@@ -126,7 +126,7 @@ export async function salvarEmpregador(_: EstadoAcao, f: FormData): Promise<Esta
     nome: txt(f, 'nome'), razao_social: txt(f, 'razao_social'), cnpj: txt(f, 'cnpj'), tipo: txt(f, 'tipo') ?? 'propria',
     vinculo_padrao: txt(f, 'vinculo_padrao') ?? 'clt', taxa_tipo: txt(f, 'taxa_tipo') ?? 'nenhuma', taxa_valor: numero(f, 'taxa_valor') ?? 0,
     adiantamento_pct: numero(f, 'adiantamento_pct') ?? 40, dia_adiantamento: numero(f, 'dia_adiantamento') ?? 20, dia_saldo: numero(f, 'dia_saldo') ?? 5,
-    fechamento_externo: f.get('fechamento_externo') === 'on', contato: txt(f, 'contato'), telefone: txt(f, 'telefone'), observacoes: txt(f, 'observacoes'),
+    fechamento_externo: f.get('fechamento_externo') === 'on', ponto_externo: f.get('ponto_externo') === 'on', ponto_externo_url: txt(f, 'ponto_externo_url'), contato: txt(f, 'contato'), telefone: txt(f, 'telefone'), observacoes: txt(f, 'observacoes'),
     ...(id ? { ativo: f.get('ativo') === 'on' } : {}),
   };
   if (!d.nome) return { erro: 'Informe o nome da empresa.' };

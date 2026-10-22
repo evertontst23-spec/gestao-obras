@@ -24,7 +24,7 @@ export default async function Espelho({ searchParams }: { searchParams: Promise<
   const rh = ['admin', 'rh'].includes(perfil.papel);
   const mes = mesAtual(sp.mes ?? sp.dia?.slice(0, 7));
   const [{ data: todos }, { data: acertados }] = await Promise.all([
-    supabase.from('funcionarios').select('id, nome, matricula, cpf, telefone, data_admissao, data_demissao, ativo, funcoes(nome), obras(codigo, nome)').order('nome'),
+    supabase.from('funcionarios').select('id, nome, matricula, cpf, telefone, data_admissao, data_demissao, ativo, funcoes(nome), obras(codigo, nome), empregadores(nome, ponto_externo, ponto_externo_url)').order('nome'),
     supabase.from('pagamento_itens').select('funcionario_id, pagamentos!inner(status)').eq('categoria', 'rescisao').eq('removido', false).in('pagamentos.status', ['fechado', 'pago']),
   ]);
   // na lista: ativos e quem saiu neste mês ainda sem acerto (desligados antigos ou já acertados só aparecem se abertos pelo link)
@@ -61,6 +61,8 @@ export default async function Espelho({ searchParams }: { searchParams: Promise<
       <AbasDP atual="espelho" mes={mes} />
       <SeletorMes mes={mes} extra={<select name="func" defaultValue={func?.id} className="entrada w-auto flex-1">{funcs?.map((f) => <option key={f.id} value={f.id}>{f.nome} — {f.matricula}{f.ativo ? '' : ' (desligado)'}</option>)}</select>} />
       {r?.error && <p className="mb-4 rounded-md bg-atraso-50 px-3 py-2 text-sm text-atraso-700">{r.error.message}</p>}
+      {(() => { const em = func?.empregadores as unknown as { nome: string; ponto_externo: boolean; ponto_externo_url: string | null } | null; return em?.ponto_externo ? (
+        <p className="mb-4 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">O ponto da {em.nome} é marcado fora do sistema{em.ponto_externo_url && <> — <a className="link" href={em.ponto_externo_url} target="_blank" rel="noreferrer">abrir o Ponto Diário</a></>}. Este espelho não lança falta nem hora extra para {func!.nome.split(' ')[0]}; faltas e horas extras entram em <a className="link" href="/dp/pagamentos">Pagamentos</a> (dia 05) como desconto e hora extra.</p>) : null; })()}
       {!func ? <Vazio>Nenhum funcionário cadastrado.</Vazio> : (<>
         {rh && (
           <div className="nao-imprimir mb-4 grid gap-4 lg:grid-cols-2">

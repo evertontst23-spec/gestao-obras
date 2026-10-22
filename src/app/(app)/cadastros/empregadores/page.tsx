@@ -28,6 +28,8 @@ function Campos({ e }: { e?: any }) {
       <Campo rotulo="Contato"><input name="contato" defaultValue={e?.contato ?? ''} className="entrada" /></Campo>
       <Campo rotulo="Telefone"><input name="telefone" defaultValue={e?.telefone ?? ''} className="entrada" /></Campo>
       <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" name="fechamento_externo" defaultChecked={e?.fechamento_externo} /> A própria empresa faz o fechamento da folha (o sistema só controla ponto e benefícios)</label>
+      <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" name="ponto_externo" defaultChecked={e?.ponto_externo} /> O ponto desta empresa é marcado fora do sistema (ex.: Ponto Diário) — sem ponto facial e sem falta automática</label>
+      <Campo rotulo="Link do ponto externo" className="sm:col-span-2"><input name="ponto_externo_url" type="url" defaultValue={e?.ponto_externo_url ?? ''} className="entrada" placeholder="https://…" /></Campo>
       {e && <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="ativo" defaultChecked={e.ativo} /> Ativa</label>}
       <Campo rotulo="Observações" className="sm:col-span-2 lg:col-span-4"><input name="observacoes" defaultValue={e?.observacoes ?? ''} className="entrada" /></Campo>
       <div className="sm:col-span-2 lg:col-span-4"><Botao variante={e ? 'secundario' : 'primario'}>{e ? 'Salvar' : 'Cadastrar empresa'}</Botao></div>
@@ -52,7 +54,7 @@ export default async function Empregadores() {
         <div className="mb-5 space-y-2">{lista.map((e) => (
           <details key={e.id} className={`rounded-lg border border-concreto-200 bg-white ${e.ativo ? '' : 'opacity-60'}`}>
             <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 px-4 py-3">
-              <span><b>{e.nome}</b> <Selo cor="bg-concreto-100 text-concreto-700">{TIPO[e.tipo]}</Selo>{e.fechamento_externo && <Selo cor="bg-sky-100 text-sky-800">fechamento pela empresa</Selo>}</span>
+              <span><b>{e.nome}</b> <Selo cor="bg-concreto-100 text-concreto-700">{TIPO[e.tipo]}</Selo>{e.fechamento_externo && <Selo cor="bg-sky-100 text-sky-800">fechamento pela empresa</Selo>}{e.ponto_externo && <Selo cor="bg-atencao-100 text-atencao-800">ponto fora do sistema</Selo>}</span>
               <span className="text-xs text-concreto-600">{taxa(e)} • adiantamento {String(e.adiantamento_pct).replace('.', ',')}% dia {e.dia_adiantamento}, saldo dia {e.dia_saldo} • <Link className="link" href={`/cadastros/funcionarios?empresa=${e.id}`}>{cont.get(e.id) ?? 0} ativo(s)</Link></span>
             </summary>
             <div className="border-t border-concreto-100 p-4">{pode ? <FormAcao acao={salvarEmpregador}><Campos e={e} /></FormAcao> : <p className="text-sm">{e.observacoes}</p>}</div>

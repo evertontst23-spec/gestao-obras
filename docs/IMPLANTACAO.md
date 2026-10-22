@@ -22,7 +22,7 @@ dos backups diários e do armazenamento de fotos).
      supabase db push
      ```
    - **SQL Editor** do painel: cole e execute, nesta ordem, os arquivos de `supabase/migrations/`
-     (da `…0001` à `…0015`, uma por vez, em ordem de nome).
+     (da `…0001` à `…0016`, uma por vez, em ordem de nome).
 4. Confira em **Database → Extensions** que `pg_cron` está ativo e em **Integrations → Cron** que
    o job `gerar-alertas-obras` existe. Se a migração avisar que o pg_cron não está disponível,
    ative a extensão e rode no SQL Editor:
@@ -67,7 +67,7 @@ npm run build        # verificação de produção
 
 Testes automatizados das regras de negócio (PostgreSQL local, sem tocar no Supabase):
 ```bash
-npm run test:db        # cria o banco "obras_teste", aplica as migrações e roda 291 verificações
+npm run test:db        # cria o banco "obras_teste", aplica as migrações e roda 293 verificações
 npm run test:planilha  # leitor de planilhas com arquivos no formato SINAPI, CSV brasileiro e .xls
 ```
 

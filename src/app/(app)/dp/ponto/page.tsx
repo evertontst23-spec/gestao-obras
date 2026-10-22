@@ -16,7 +16,14 @@ export default async function Ponto({ searchParams }: { searchParams: Promise<{ 
   let q = supabase.from('registros_ponto').select('*').eq('data', dia).order('momento');
   if (sp.obra) q = q.eq('obra_id', sp.obra);
   const { data: regs } = await q;
-  const equipe = (await supabase.rpc('equipe_da_obra', { p_obra: sp.obra ?? null })).data as { id: string; matricula: string; nome: string; funcao: string; biometria: boolean }[] | null;
+  const [{ data: equipeToda }, { data: externos }, { data: empExt }] = await Promise.all([
+    supabase.rpc('equipe_da_obra', { p_obra: sp.obra ?? null }),
+    supabase.rpc('funcionarios_ponto_externo'),
+    supabase.from('empregadores').select('nome, ponto_externo_url').eq('ponto_externo', true).order('nome'),
+  ]);
+  const fora = new Set(((externos ?? []) as unknown as string[]).map(String));
+  const equipe = ((equipeToda ?? []) as { id: string; matricula: string; nome: string; funcao: string; biometria: boolean }[]).filter((e) => !fora.has(e.id));
+  const qtdFora = ((equipeToda ?? []) as { id: string }[]).filter((e) => fora.has(e.id)).length;
   const porFunc = new Map<string, NonNullable<typeof regs>>();
   (regs ?? []).forEach((r) => porFunc.set(r.funcionario_id, [...(porFunc.get(r.funcionario_id) ?? []), r]));
   const nomes = new Map((equipe ?? []).map((e) => [e.id, e]));
@@ -52,6 +59,7 @@ export default async function Ponto({ searchParams }: { searchParams: Promise<{ 
               </table></div>)}
             {[...porFunc.keys()].some((k) => !nomes.has(k)) && <p className="mt-2 text-xs text-concreto-500">Há registros de funcionários de outras obras neste dia.</p>}
             <p className="mt-2 text-xs text-concreto-500">▶ entrada • ■ saída • * lançamento manual (passe o mouse para ver a justificativa)</p>
+            {qtdFora > 0 && <p className="mt-2 rounded-md bg-atencao-50 px-3 py-2 text-xs text-atencao-800">{qtdFora} funcionário(s) de {(empExt ?? []).map((x) => x.nome).join(' e ')} não aparecem aqui: o ponto deles é marcado fora do sistema{(empExt ?? []).find((x) => x.ponto_externo_url) && <> (<a className="link" href={(empExt ?? []).find((x) => x.ponto_externo_url)!.ponto_externo_url!} target="_blank" rel="noreferrer">abrir o Ponto Diário</a>)</>}.</p>}
           </Cartao>
           {podeManual && (
             <Cartao titulo="Lançamento manual (falha de câmera, esquecimento)">

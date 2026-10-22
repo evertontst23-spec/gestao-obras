@@ -23,13 +23,14 @@ const n = (v: unknown) => Number(v ?? 0);
 export default async function Pagamento({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { supabase, perfil } = await exigirPapel('admin', 'rh', 'financeiro');
-  const [{ data: p }, { data: itensBrutos }, { data: lancs }, { data: funcs }, { data: obras }] = await Promise.all([
+  const [{ data: p }, { data: itensBrutos }, { data: lancs }, { data: funcs }, { data: obras }, { data: empExt }] = await Promise.all([
     supabase.from('v_pagamentos').select('*').eq('id', id).maybeSingle(),
     supabase.from('pagamento_itens').select('id, categoria, destino, descricao, valor, funcionario_id, empregador_id, funcionarios(nome, matricula, ativo, funcoes(nome)), empregadores(nome, tipo), obras(codigo)')
       .eq('pagamento_id', id).eq('removido', false).order('id'),
     supabase.from('lancamentos').select('id, numero, descricao, valor, status, favorecido, obras(codigo)').eq('pagamento_id', id).order('numero'),
     supabase.from('funcionarios').select('id, nome, ativo, empregadores(nome)').order('nome'),
     supabase.from('obras').select('id, codigo').order('codigo'),
+    supabase.from('empregadores').select('id, nome, ponto_externo_url').eq('ponto_externo', true),
   ]);
   if (!p) notFound();
   const itens = (itensBrutos ?? []) as unknown as Item[];
@@ -65,6 +66,8 @@ export default async function Pagamento({ params }: { params: Promise<{ id: stri
         <Indicador rotulo="Passagens e alimentação" valor={reais(p.total_beneficios)} detalhe="transferir aos funcionários" />
         <Indicador rotulo="Pagar a pessoas" valor={reais(p.total_pessoas)} detalhe="equipe direta (CAD)" />
       </div>
+      {editavel && p.tipo === 'saldo' && (empExt ?? []).some((e) => itens.some((i) => i.empregador_id === e.id)) && (
+        <p className="mb-4 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">⚠ O ponto de {(empExt ?? []).filter((e) => itens.some((i) => i.empregador_id === e.id)).map((e) => e.nome).join(' e ')} é marcado fora do sistema: o saldo foi calculado sem faltas e sem horas extras. Confira no {(empExt ?? []).find((e) => e.ponto_externo_url) ? <a className="link" href={(empExt ?? []).find((e) => e.ponto_externo_url)!.ponto_externo_url!} target="_blank" rel="noreferrer">Ponto Diário</a> : 'Ponto Diário'} e inclua cada falta como <b>Desconto</b> (salário ÷ 30) e as horas extras como <b>Hora extra</b>.</p>)}
       {zerados.length > 0 && editavel && (
         <p className="mb-4 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">⚠ Falta informar o valor da quinzena de {zerados.map((i) => i.funcionarios?.nome).join(', ')} (fechamento feito pela empresa). Inclua a linha com o valor e retire a linha zerada.</p>)}
 

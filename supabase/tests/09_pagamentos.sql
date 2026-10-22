@@ -114,5 +114,9 @@ select pagamento_cancelar(:'pg2', 'teste de cancelamento');
 reset role;
 update dp_parametros set ponto_inicio = '2000-01-01';
 select pg_temp.espera_erro($$delete from pagamento_itens$$, 'Exclusão não permitida');
+-- ponto controlado fora do sistema: sem falta no espelho, fora da lista do ponto facial
+select pg_temp.confere((select count(*) filter (where falta) > 0 from _espelho_ponto(:'fa', '2026-08-01', '2026-08-31')), 'com ponto no sistema, dia sem marcação é falta');
+update empregadores set ponto_externo = true where id = :'e1';
+select pg_temp.confere((select count(*) filter (where falta) = 0 from _espelho_ponto(:'fa', '2026-08-01', '2026-08-31')), 'empresa com ponto em outra ferramenta: o sistema não lança falta');
 \echo ''
 \echo '=========== TESTES DE PAGAMENTOS PASSARAM ==========='
