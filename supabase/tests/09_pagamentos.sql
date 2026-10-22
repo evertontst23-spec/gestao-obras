@@ -107,6 +107,9 @@ select pg_temp.confere((select valor = 810.50 from pagamento_itens where pagamen
   'saldo = salário do mês − adiantamento já pago');
 select pg_temp.confere(not exists (select 1 from pagamento_itens where pagamento_id = :'pg2' and funcionario_id = :'fb'),
   'desligado já acertado não entra de novo');
+select pg_temp.confere(not exists (select 1 from folha_previa('2026-08-01') where funcionario_id = :'fb')
+   and exists (select 1 from folha_previa('2026-08-01') where funcionario_id = :'fa'),
+  'desligado já acertado sai da folha; quem está ativo continua');
 select pagamento_cancelar(:'pg2', 'teste de cancelamento');
 reset role;
 update dp_parametros set ponto_inicio = '2000-01-01';

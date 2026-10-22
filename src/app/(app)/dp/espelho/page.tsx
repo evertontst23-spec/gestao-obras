@@ -23,7 +23,13 @@ export default async function Espelho({ searchParams }: { searchParams: Promise<
   const { supabase, perfil } = await exigirPapel('admin', 'rh', 'financeiro', 'engenheiro');
   const rh = ['admin', 'rh'].includes(perfil.papel);
   const mes = mesAtual(sp.mes ?? sp.dia?.slice(0, 7));
-  const { data: funcs } = await supabase.from('funcionarios').select('id, nome, matricula, cpf, telefone, data_admissao, ativo, funcoes(nome), obras(codigo, nome)').order('nome');
+  const [{ data: todos }, { data: acertados }] = await Promise.all([
+    supabase.from('funcionarios').select('id, nome, matricula, cpf, telefone, data_admissao, data_demissao, ativo, funcoes(nome), obras(codigo, nome)').order('nome'),
+    supabase.from('pagamento_itens').select('funcionario_id, pagamentos!inner(status)').eq('categoria', 'rescisao').eq('removido', false).in('pagamentos.status', ['fechado', 'pago']),
+  ]);
+  // na lista: ativos e quem saiu neste mês ainda sem acerto (desligados antigos ou já acertados só aparecem se abertos pelo link)
+  const quitados = new Set((acertados ?? []).map((x) => x.funcionario_id));
+  const funcs = (todos ?? []).filter((f) => f.ativo || f.id === sp.func || (!!f.data_demissao && f.data_demissao >= `${mes}-01` && !quitados.has(f.id)));
   const func = funcs?.find((f) => f.id === sp.func) ?? funcs?.find((f) => f.ativo) ?? funcs?.[0];
   const [a, m] = mes.split('-').map(Number);
   const fim = new Date(Date.UTC(a, m, 0)).toISOString().slice(0, 10);
