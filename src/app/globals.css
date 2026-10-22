@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { -webkit-tap-highlight-color: transparent; }
+  body { @apply bg-concreto-50 text-concreto-900 antialiased; }
+}
+
+@layer components {
+  .entrada {
+    @apply block w-full rounded-md border border-concreto-300 bg-white px-3 py-2 text-base text-concreto-900
+           placeholder:text-concreto-400 focus:border-sinal-500 focus:outline-none focus:ring-2 focus:ring-sinal-100 sm:text-sm;
+  }
+  .tabela { @apply w-full text-left text-sm; }
+  .tabela th { @apply border-b border-concreto-200 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-concreto-500; }
+  .tabela td { @apply border-b border-concreto-100 px-3 py-2 align-top; }
+  .tabela tr:hover td { @apply bg-concreto-50; }
+  .link { @apply font-semibold text-sinal-700 hover:underline; }
+}
+
+/* Impressão: só o conteúdo (OC, fichas, relatórios) */
+@media print {
+  aside, header, nav, .nao-imprimir { display: none !important; }
+  main { margin: 0 !important; padding: 0 !important; }
+  body { background: #fff !important; }
+  .so-imprimir { display: block !important; }
+  section, details { break-inside: avoid; }
+}
+.so-imprimir { display: none; }
