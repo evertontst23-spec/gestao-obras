@@ -81,3 +81,15 @@ export async function revogarLinkPonto(_: EstadoAcao, f: FormData): Promise<Esta
   revalidatePath('/dp/espelho');
   return { ok: 'Link desativado.' };
 }
+
+// ---------------------------------------------------------------- Desligamento pela aba Admissões e desligamentos
+export async function desligarPelaMovimentacao(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const id = txt(f, 'func');
+  if (!id) return { erro: 'Escolha o funcionário.' };
+  const motivo = [txt(f, 'tipo'), txt(f, 'detalhe')].filter(Boolean).join(' — ');
+  const { error } = await supabase.rpc('funcionario_desligar', { p_func: id, p_data: txt(f, 'data'), p_motivo: motivo });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/dp', 'layout'); revalidatePath('/cadastros/funcionarios'); revalidatePath(`/cadastros/funcionarios/${id}`);
+  return { ok: 'Funcionário desligado. O ponto fica bloqueado e todo o histórico continua guardado. Inclua o acerto dele no próximo pagamento.' };
+}

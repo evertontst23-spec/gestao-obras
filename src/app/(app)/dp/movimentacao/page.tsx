@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { exigirPapel } from '@/lib/sessao';
-import { Cabecalho, Cartao, Indicador, LinkBotao, Vazio } from '@/components/ui';
+import { Cabecalho, Campo, Cartao, Indicador, LinkBotao, Vazio } from '@/components/ui';
+import { Botao, FormAcao } from '@/components/formulario';
+import { hojeISO } from '@/lib/formato';
+import { desligarPelaMovimentacao } from '../acoes';
 import { AbasDP } from '@/components/AbasDP';
 import { BaixarCSV } from '@/components/BaixarCSV';
 import { data } from '@/lib/formato';
@@ -10,7 +13,9 @@ export const metadata = { title: 'Admissões e desligamentos' };
 
 export default async function Movimentacao({ searchParams }: { searchParams: Promise<{ ano?: string }> }) {
   const sp = await searchParams;
-  const { supabase } = await exigirPapel('admin', 'rh', 'financeiro');
+  const { supabase, perfil } = await exigirPapel('admin', 'rh', 'financeiro');
+  const pode = ['admin', 'rh'].includes(perfil.papel);
+  const { data: ativosLista } = pode ? await supabase.from('funcionarios').select('id, nome, matricula, empregadores(nome), obras(codigo)').eq('ativo', true).order('nome') : { data: [] };
   const ano = /^\d{4}$/.test(sp.ano ?? '') ? sp.ano! : new Date().getFullYear().toString();
   const { data: funcs } = await supabase.from('funcionarios').select('id, nome, matricula, data_admissao, data_demissao, motivo_demissao, ativo, salario, funcoes(nome, salario_base), obras(codigo)')
     .or(`and(data_admissao.gte.${ano}-01-01,data_admissao.lte.${ano}-12-31),and(data_demissao.gte.${ano}-01-01,data_demissao.lte.${ano}-12-31)`).order('nome');
@@ -23,7 +28,7 @@ export default async function Movimentacao({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <Cabecalho titulo={`Admissões e desligamentos — ${ano}`} acoes={<div className="flex gap-2"><LinkBotao href="/cadastros/funcionarios/novo">+ Admitir funcionário</LinkBotao>
+      <Cabecalho titulo={`Admissões e desligamentos — ${ano}`} acoes={<div className="flex gap-2"><LinkBotao href="/cadastros/funcionarios/novo">+ Admitir funcionário</LinkBotao>{pode && <a href="#desligar" className="inline-flex items-center rounded-md bg-atraso-500 px-3 py-2 text-sm font-semibold text-white hover:bg-atraso-700">− Desligar funcionário</a>}
         <BaixarCSV nome={`movimentacao-${ano}`} cabecalho={['Movimento', 'Data', 'Matrícula', 'Nome', 'Função', 'Obra', 'Motivo']}
           linhas={[...adm.map((f) => ['Admissão', data(f.data_admissao), f.matricula, f.nome, fn(f)?.nome ?? '', (f.obras as unknown as { codigo: string })?.codigo ?? '', '']),
             ...des.map((f) => ['Desligamento', data(f.data_demissao), f.matricula, f.nome, fn(f)?.nome ?? '', (f.obras as unknown as { codigo: string })?.codigo ?? '', f.motivo_demissao ?? ''])]} /></div>} />
@@ -51,9 +56,26 @@ export default async function Movimentacao({ searchParams }: { searchParams: Pro
         <Cartao titulo="Desligamentos">
           {!des.length ? <Vazio>Nenhum desligamento no ano.</Vazio> : <table className="tabela"><thead><tr><th>Data</th><th>Funcionário</th><th>Motivo</th></tr></thead>
             <tbody>{des.map((f) => <tr key={f.id}><td className="whitespace-nowrap">{data(f.data_demissao)}</td><td><Link className="link" href={`/cadastros/funcionarios/${f.id}`}>{f.nome}</Link><div className="text-xs text-concreto-500">admitido em {data(f.data_admissao)}</div></td><td className="text-sm">{f.motivo_demissao}</td></tr>)}</tbody></table>}
-          <p className="mt-2 text-xs text-concreto-500">O desligamento é feito no dossiê do funcionário (bloqueia o ponto e mantém o histórico).</p>
         </Cartao>
       </div>
+      {pode && (
+        <div id="desligar" className="mt-5 scroll-mt-4">
+          <Cartao titulo="Desligar funcionário">
+            <FormAcao acao={desligarPelaMovimentacao} limparAoConcluir className="grid gap-3 md:grid-cols-2">
+              <Campo rotulo="Funcionário" className="md:col-span-2"><select name="func" required className="entrada"><option value="">Escolha…</option>
+                {(ativosLista ?? []).map((f) => <option key={f.id} value={f.id}>{f.nome} — {f.matricula}{(f.empregadores as unknown as { nome: string } | null)?.nome ? ` • ${(f.empregadores as unknown as { nome: string }).nome}` : ''}{(f.obras as unknown as { codigo: string } | null)?.codigo ? ` • ${(f.obras as unknown as { codigo: string }).codigo}` : ''}</option>)}</select></Campo>
+              <Campo rotulo="Data do desligamento" dica="Último dia trabalhado"><input type="date" name="data" required defaultValue={hojeISO()} max={hojeISO()} className="entrada" /></Campo>
+              <Campo rotulo="Tipo"><select name="tipo" required className="entrada">
+                <option>Pedido de demissão</option><option>Dispensa sem justa causa</option><option>Dispensa por justa causa</option>
+                <option>Término de contrato / experiência</option><option>Acordo entre as partes</option><option>Saiu da equipe (terceirizado / empresa parceira)</option><option>Abandono de emprego</option><option>Outro</option></select></Campo>
+              <Campo rotulo="Observação" className="md:col-span-2"><input name="detalhe" className="entrada" placeholder="Ex.: acertado pelos dias trabalhados; rescisão a acertar" /></Campo>
+              <div className="md:col-span-2">
+                <p className="mb-2 text-xs text-concreto-500">O ponto fica bloqueado a partir da data e a pasta do funcionário continua guardada. O saldo de salário entra sozinho no próximo pagamento gerado em <Link className="link" href="/dp/pagamentos">Pagamentos</Link>.</p>
+                <Botao variante="perigo">Confirmar desligamento</Botao>
+              </div>
+            </FormAcao>
+          </Cartao>
+        </div>)}
     </>
   );
 }
