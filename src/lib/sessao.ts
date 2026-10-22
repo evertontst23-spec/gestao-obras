@@ -7,9 +7,11 @@ import type { Papel, Perfil } from './dominio';
 /** Usuário logado + perfil. Redireciona para o login se não houver sessão. */
 export const obterSessao = cache(async () => {
   const supabase = await criarClienteServidor();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-  const { data: perfil } = await supabase.from('perfis').select('*').eq('id', user.id).single();
+  // token verificado localmente (chaves de assinatura do Supabase); o banco confere de novo em cada consulta (RLS)
+  const { data } = await supabase.auth.getClaims();
+  const id = data?.claims?.sub;
+  if (!id) redirect('/login');
+  const { data: perfil } = await supabase.from('perfis').select('*').eq('id', id).single();
   if (!perfil || !perfil.ativo) redirect('/login?erro=inativo');
   return { supabase, perfil: perfil as Perfil };
 });

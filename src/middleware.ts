@@ -42,7 +42,10 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // getClaims confere a assinatura do token localmente (sem ir ao servidor de login a cada clique)
+  // e renova a sessão quando o token vence.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub ? data.claims : null;
   const caminho = request.nextUrl.pathname;
   const publica = PUBLICAS.some((p) => caminho.startsWith(p));
 
