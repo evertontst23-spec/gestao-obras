@@ -31,6 +31,7 @@ export const MENU: SecaoMenu[] = [
   ] },
   { titulo: 'RH / Departamento Pessoal', itens: [
     { href: '/dp/ponto', rotulo: 'Registro de ponto', curto: 'Ponto', icone: '◷', papeis: ['admin', 'rh', 'seguranca', 'engenheiro', 'encarregado', 'almoxarifado'] },
+    { href: '/dp/pagamentos', rotulo: 'Pagamentos (dia 20 / dia 05)', curto: 'Pagamentos', icone: '$', papeis: ['admin', 'rh', 'financeiro'] },
     { href: '/dp/folha', rotulo: 'Folha', icone: '₢', papeis: ['admin', 'rh', 'financeiro'] },
     { href: '/dp/espelho', rotulo: 'Espelho de ponto', curto: 'Espelho', icone: '▥', papeis: ['admin', 'rh', 'financeiro', 'engenheiro'] },
     { href: '/dp/correcoes', rotulo: 'Pedidos de correção', curto: 'Correções', icone: '✎', papeis: ['admin', 'rh'] },
@@ -68,6 +69,6 @@ export const ATALHOS: Record<Papel, string[]> = {
   compras: ['/suprimentos', '/suprimentos/cotacoes', '/suprimentos/ordens', '/materiais'],
   almoxarifado: ['/suprimentos', '/suprimentos/ordens', '/suprimentos/estoque', '/materiais'],
   seguranca: ['/sst', '/dp/ponto', '/sst/epi', '/sst/dds'],
-  rh: ['/dp/ponto', '/dp/espelho', '/dp/folha', '/cadastros/funcionarios'],
+  rh: ['/dp/pagamentos', '/dp/ponto', '/dp/espelho', '/cadastros/funcionarios'],
   financeiro: ['/financeiro', '/financeiro/lancamentos', '/financeiro/medicoes', '/dp/folha'],
 };

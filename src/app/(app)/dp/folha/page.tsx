@@ -16,10 +16,11 @@ export default async function Folha({ searchParams }: { searchParams: Promise<{ 
   const sp = await searchParams;
   const { supabase, perfil } = await exigirPapel('admin', 'rh', 'financeiro');
   const mes = mesAtual(sp.mes);
-  const [{ data: obras }, { data: fechada }, { data: historico }] = await Promise.all([
+  const [{ data: obras }, { data: fechada }, { data: historico }, { data: par }] = await Promise.all([
     supabase.from('obras').select('id, codigo').order('codigo'),
     supabase.from('folhas').select('*, perfis:fechada_por(nome)').eq('competencia', `${mes}-01`).maybeSingle(),
     supabase.from('folhas').select('id, competencia, total_bruto, total_liquido, total_he, funcionarios').order('competencia', { ascending: false }).limit(12),
+    supabase.from('dp_parametros').select('ponto_inicio').eq('id', 1).maybeSingle(),
   ]);
   let linhas: LinhaFolha[];
   let erro: string | null = null;
@@ -43,6 +44,12 @@ export default async function Folha({ searchParams }: { searchParams: Promise<{ 
       <AbasDP atual="folha" mes={mes} />
       <SeletorMes mes={mes} extra={<select name="obra" defaultValue={sp.obra ?? ''} className="entrada w-auto"><option value="">Todas as obras</option>{obras?.map((o) => <option key={o.id} value={o.id}>{o.codigo}</option>)}</select>} />
       {erro && <p className="mb-4 rounded-md bg-atraso-50 px-3 py-2 text-sm text-atraso-700">{erro}</p>}
+      <p className="nao-imprimir mb-4 rounded-md bg-concreto-50 px-3 py-2 text-sm text-concreto-700">
+        {par?.ponto_inicio
+          ? <>Faltas, atrasos e horas extras contam a partir de <b>{par.ponto_inicio.split('-').reverse().join('/')}</b> (início do controle de ponto). </>
+          : <>O controle de ponto ainda não começou: a folha <b>não desconta faltas</b> nem calcula horas extras. Quando o ponto entrar em uso, informe a data em <a className="link" href="/dp/parametros">Parâmetros</a>. </>}
+        Os valores do dia 20 e do dia 05, por empresa, ficam em <a className="link" href="/dp/pagamentos">Pagamentos</a>.
+      </p>
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-5">
         <Indicador rotulo="Funcionários" valor={linhas.length} />
         <Indicador rotulo="Total bruto" valor={reais(soma(linhas, 'bruto'))} />

@@ -124,7 +124,7 @@ export const CATEGORIAS_DESPESA: Record<string, string> = {
   equipamentos: 'Equipamentos', servicos_terceiros: 'Serviços de terceiros', impostos: 'Impostos', administrativo: 'Administrativo', outras_despesas: 'Outras despesas',
 };
 export const CATEGORIAS_FIN: Record<string, string> = { ...CATEGORIAS_RECEITA, ...CATEGORIAS_DESPESA };
-export const ORIGEM_LANC: Record<string, string> = { manual: 'Manual', oc: 'Ordem de compra', folha: 'Folha', bm: 'Medição' };
+export const ORIGEM_LANC: Record<string, string> = { manual: 'Manual', oc: 'Ordem de compra', folha: 'Folha / pagamentos do RH', bm: 'Medição' };
 export const STATUS_BM: Record<string, { rotulo: string; cor: string }> = {
   aberto: { rotulo: 'Aguardando aprovação', cor: 'bg-atencao-100 text-atencao-800' },
   aprovado: { rotulo: 'Aprovado', cor: 'bg-ok-50 text-ok-700' },

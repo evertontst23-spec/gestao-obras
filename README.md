@@ -14,7 +14,7 @@ npm install
 npm run dev
 ```
 Banco: aplique `supabase/migrations/*.sql` (ver docs/IMPLANTACAO.md).
-Testes: `npm run test:db` (266 verificações das regras no banco) · `npm run test:planilha` (leitor de planilhas).
+Testes: `npm run test:db` (290 verificações das regras no banco) · `npm run test:planilha` (leitor de planilhas).
 Para experimentar a importação: `docs/EXEMPLO_planilha_orcamentaria.xlsx` (dados fictícios).
 
 ## Estrutura
@@ -33,7 +33,8 @@ supabase/
     …0011_financeiro.sql               contrato, contas a pagar/receber, BM com retenções, integração OC/folha, RDO com fotos
     …0012_ponto_rh.sql                 ponto no RH: correção sem apagar o original, link do funcionário, pedidos de correção
     …0013_empregadores.sql             empresa contratante de cada funcionário (CAD, fornecedoras de mão de obra, CLTs de parceiras)
-  tests/                  8 cenários com 266 verificações (dados de teste prefixados "TESTE")
+    …0014_pagamentos.sql               pagamentos do RH (dia 20 / dia 05 por empresa) e início do controle de ponto
+  tests/                  9 cenários com 290 verificações (dados de teste prefixados "TESTE")
 src/
   middleware.ts           sessão e proteção de rotas
   lib/                    clientes Supabase, sessão, rótulos do domínio, formatação

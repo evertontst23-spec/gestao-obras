@@ -30,6 +30,8 @@ export default async function Parametros() {
               <Campo rotulo="Tolerância (min/dia)" dica="CLT art. 58 §1º: até 10"><input name="tolerancia_minutos" defaultValue={n(p?.tolerancia_minutos)} className="entrada" /></Campo>
               <Campo rotulo="Salário mínimo (R$)" dica="Base da insalubridade"><input name="salario_minimo" defaultValue={n(p?.salario_minimo)} className="entrada" /></Campo>
               <Campo rotulo="Desconto de VT (%)"><input name="desconto_vt_pct" defaultValue={n(p?.desconto_vt_pct)} className="entrada" /></Campo>
+              <Campo rotulo="Valor da passagem (R$)" dica="Padrão quando o funcionário não tem valor próprio"><input name="valor_passagem" defaultValue={n(p?.valor_passagem)} className="entrada" /></Campo>
+              <Campo rotulo="Início do controle de ponto" dica="Faltas, atrasos e horas extras só contam a partir desta data. Vazio = ainda não desconta"><input type="date" name="ponto_inicio" defaultValue={p?.ponto_inicio ?? ''} className="entrada" /></Campo>
               <Campo rotulo="Faixas do INSS (empregado)" className="col-span-2" dica='Lista: [{"ate": teto da faixa, "aliquota": %}] — cálculo progressivo'>
                 <textarea name="inss_faixas" rows={5} defaultValue={JSON.stringify(p?.inss_faixas, null, 1)} className="entrada font-mono text-xs" /></Campo>
             </fieldset>

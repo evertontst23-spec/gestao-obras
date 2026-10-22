@@ -14,7 +14,7 @@ export const metadata = { title: 'Lançamento' };
 export default async function Lancamento({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { supabase } = await exigirPapel('admin', 'financeiro');
-  const { data: l } = await supabase.from('lancamentos').select('*, obras(id, codigo, nome), fornecedores(nome), ordens_compra(numero), boletins_medicao(numero), folhas(competencia), criador:criado_por(nome)').eq('id', id).maybeSingle();
+  const { data: l } = await supabase.from('lancamentos').select('*, obras(id, codigo, nome), fornecedores(nome), ordens_compra(numero), boletins_medicao(numero), folhas(competencia), pagamentos(titulo), criador:criado_por(nome)').eq('id', id).maybeSingle();
   if (!l) notFound();
   const hoje = hojeISO();
   const s = situacaoLanc(l, hoje);
@@ -37,7 +37,7 @@ export default async function Lancamento({ params }: { params: Promise<{ id: str
             <Info rotulo="Documento">{l.documento_numero ?? '—'}</Info>
             <Info rotulo="Competência">{data(l.competencia)}</Info>
             <Info rotulo="Vencimento">{data(l.vencimento)}</Info>
-            <Info rotulo="Origem">{ORIGEM_LANC[l.origem]}{oc && <> — <Link className="link" href={`/suprimentos/ordens/${l.oc_id}`}>{codOC(oc.numero)}</Link></>}{bm && <> — <Link className="link" href={`/financeiro/medicoes/${l.bm_id}`}>{codBM(bm.numero)}</Link></>}{fol && <> — <Link className="link" href={`/dp/folha?mes=${fol.competencia.slice(0, 7)}`}>folha {fol.competencia.slice(5, 7)}/{fol.competencia.slice(0, 4)}</Link></>}</Info>
+            <Info rotulo="Origem">{ORIGEM_LANC[l.origem]}{oc && <> — <Link className="link" href={`/suprimentos/ordens/${l.oc_id}`}>{codOC(oc.numero)}</Link></>}{bm && <> — <Link className="link" href={`/financeiro/medicoes/${l.bm_id}`}>{codBM(bm.numero)}</Link></>}{l.pagamento_id && <> — <Link className="link" href={`/dp/pagamentos/${l.pagamento_id}`}>{(l.pagamentos as unknown as { titulo: string } | null)?.titulo ?? 'pagamento'}</Link></>}{fol && <> — <Link className="link" href={`/dp/folha?mes=${fol.competencia.slice(0, 7)}`}>folha {fol.competencia.slice(5, 7)}/{fol.competencia.slice(0, 4)}</Link></>}</Info>
             {l.status === 'liquidado' && <>
               <Info rotulo={l.tipo === 'receita' ? 'Recebido em' : 'Pago em'}>{data(l.liquidado_em)}</Info>
               <Info rotulo="Valor baixado"><span className="font-mono">{reais(l.valor_liquidado)}</span></Info>
