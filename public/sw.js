@@ -1,7 +1,7 @@
 // Service worker: app instalável + tolerância a sinal fraco no canteiro.
 // Estratégia: arquivos estáticos em cache; páginas pela rede com fallback do cache/offline.
 // (Fila de operações offline está prevista para uma etapa futura.)
-const VERSAO = 'obras-v1';
+const VERSAO = 'obras-v2';
 const ESTATICOS = ['/offline', '/icon.svg', '/manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {
