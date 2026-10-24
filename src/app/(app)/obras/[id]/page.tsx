@@ -37,6 +37,8 @@ export default async function DetalheObra({ params }: { params: Promise<{ id: st
         sub={<><span className="font-mono">{obra.codigo}</span> • {obra.cliente ?? 'sem cliente'} • <Selo cor="bg-concreto-100 text-concreto-700">{SITUACOES_OBRA[obra.situacao]}</Selo></>}
         acoes={<>
           {gere && <LinkBotao href={`/tarefas/nova?obra=${id}`}>+ Tarefa</LinkBotao>}
+          {gere && <LinkBotao href={`/tarefas/importar?obra=${id}`} variante="secundario">⬆ Planilha de tarefas</LinkBotao>}
+          <LinkBotao href={`/materiais/pedido?obra=${id}`} variante="secundario">🖨 Pedido de material (PDF)</LinkBotao>
           <LinkBotao href={`/tarefas?obra=${id}`} variante="secundario">Plano de ação</LinkBotao>
           <LinkBotao href={`/tarefas?obra=${id}&visao=kanban`} variante="secundario">Kanban</LinkBotao>
         </>}

@@ -21,6 +21,7 @@ export const MENU: SecaoMenu[] = [
   { titulo: 'Financeiro', itens: [
     { href: '/financeiro', rotulo: 'Fluxo de caixa', curto: 'Caixa', icone: '◫', papeis: ['admin', 'financeiro'] },
     { href: '/financeiro/lancamentos', rotulo: 'Contas a pagar e receber', curto: 'Contas', icone: '⇆', papeis: ['admin', 'financeiro'] },
+    { href: '/financeiro/centro-custo', rotulo: 'Centro de custo por obra', curto: 'Centro de custo', icone: '◧', papeis: ['admin', 'financeiro'] },
     { href: '/financeiro/medicoes', rotulo: 'Medições (BM)', curto: 'BM', icone: '▧', papeis: ['admin', 'financeiro', 'engenheiro'] },
   ] },
   { titulo: 'SST', itens: [

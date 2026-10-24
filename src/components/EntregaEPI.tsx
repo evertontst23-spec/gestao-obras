@@ -79,7 +79,7 @@ export function EntregaEPI({ funcionarios, epis, locais, saldos, hoje }:
             className={`min-h-[40px] rounded disabled:opacity-40 ${conf === 'facial' ? 'bg-white shadow' : 'text-concreto-600'}`}>🙂 Reconhecimento facial</button>
         </div>
         <p className="mb-2 text-xs text-concreto-600">Declaro ter recebido os EPIs acima, gratuitamente, e ter sido orientado sobre uso, guarda e conservação (NR-06, 6.7.1).</p>
-        {conf === 'assinatura' ? <Assinatura ref={ass} /> : <CapturaRosto onCaptura={setDescritor} rotulo="Confirmar pelo rosto do funcionário" />}
+        {conf === 'assinatura' ? <Assinatura ref={ass} /> : <CapturaRosto onCaptura={(d) => setDescritor(d)} rotulo="Confirmar pelo rosto do funcionário" />}
       </div>
       {msg?.erro && <p role="alert" className="rounded-md bg-atraso-50 px-3 py-2 text-sm font-medium text-atraso-700">{msg.erro}</p>}
       {msg?.ok && <p className="rounded-md bg-ok-50 px-3 py-2 text-sm font-medium text-ok-700">{msg.ok} <a href={`/sst/epi/ficha/${func}`} className="underline">Ver ficha de EPI</a></p>}

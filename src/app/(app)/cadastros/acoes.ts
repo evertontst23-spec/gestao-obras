@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { criarClienteServidor } from '@/lib/supabase/server';
-import { type EstadoAcao, mensagemErro, numero, txt } from '@/lib/acoes';
+import { type EstadoAcao, dinheiro, mensagemErro, numero, numerosInvalidos, txt } from '@/lib/acoes';
 
 const lista = (f: FormData, k: string) => (txt(f, k) ?? '').split(/[,;\n]/).map((s) => s.trim()).filter(Boolean);
 
@@ -18,18 +18,22 @@ function erroCadastro(e: { message?: string; code?: string }) {
 export async function salvarFuncao(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
   const id = txt(f, 'id');
   const d = {
-    nome: txt(f, 'nome'), cbo: txt(f, 'cbo'), salario_base: numero(f, 'salario_base') ?? 0,
-    carga_diaria_horas: numero(f, 'carga_diaria_horas') ?? 8, vale_alimentacao_dia: numero(f, 'vale_alimentacao_dia') ?? 0,
-    vale_transporte_dia: numero(f, 'vale_transporte_dia') ?? 0, adicional_insalubridade_pct: numero(f, 'adicional_insalubridade_pct') ?? 0,
+    nome: txt(f, 'nome'), cbo: txt(f, 'cbo'), salario_base: dinheiro(f, 'salario_base') ?? 0,
+    carga_diaria_horas: numero(f, 'carga_diaria_horas') ?? 8, vale_alimentacao_dia: dinheiro(f, 'vale_alimentacao_dia') ?? 0,
+    vale_transporte_dia: dinheiro(f, 'vale_transporte_dia') ?? 0, adicional_insalubridade_pct: numero(f, 'adicional_insalubridade_pct') ?? 0,
     adicional_periculosidade: f.get('adicional_periculosidade') === 'on', epis_obrigatorios: lista(f, 'epis_obrigatorios'),
     riscos: lista(f, 'riscos'), ativo: id ? f.get('ativo') === 'on' : true,
   };
   if (!d.nome) return { erro: 'Informe o nome da função.' };
+  const ruins = numerosInvalidos(f, ['salario_base', 'carga_diaria_horas', 'vale_alimentacao_dia', 'vale_transporte_dia', 'adicional_insalubridade_pct']);
+  if (ruins.length) return { erro: 'Não entendi o valor digitado. Use, por exemplo, 1.621,00 ou 1621,00.' };
   const supabase = await criarClienteServidor();
   const { error } = id ? await supabase.from('funcoes').update(d).eq('id', id) : await supabase.from('funcoes').insert(d);
   if (error) return { erro: erroCadastro(error) };
   revalidatePath('/cadastros/funcoes');
-  return { ok: id ? 'Função atualizada — os funcionários desta função passam a usar os novos valores.' : 'Função cadastrada.' };
+  revalidatePath('/cadastros/funcionarios');
+  const brl = d.salario_base.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  return { ok: id ? `Função atualizada — salário base ${brl}. Os funcionários desta função passam a usar o novo valor.` : `Função cadastrada — salário base ${brl}.` };
 }
 
 // ---------------- Funcionários
@@ -37,10 +41,10 @@ function dadosFuncionario(f: FormData) {
   return {
     nome: txt(f, 'nome'), cpf: txt(f, 'cpf'), rg: txt(f, 'rg'), data_nascimento: txt(f, 'data_nascimento'),
     telefone: txt(f, 'telefone'), endereco: txt(f, 'endereco'), funcao_id: txt(f, 'funcao_id'), obra_id: txt(f, 'obra_id'),
-    salario: numero(f, 'salario'), data_admissao: txt(f, 'data_admissao') ?? undefined, banco: txt(f, 'banco'),
+    salario: dinheiro(f, 'salario'), data_admissao: txt(f, 'data_admissao') ?? undefined, banco: txt(f, 'banco'),
     agencia: txt(f, 'agencia'), conta: txt(f, 'conta'), pix: txt(f, 'pix'), observacoes: txt(f, 'observacoes'),
     empregador_id: txt(f, 'empregador_id'), vinculo: txt(f, 'vinculo'), adicional_pct: numero(f, 'adicional_pct') ?? 0,
-    alimentacao_dia: numero(f, 'alimentacao_dia'), passagens_dia: numero(f, 'passagens_dia'), passagem_semanal: numero(f, 'passagem_semanal'),
+    alimentacao_dia: dinheiro(f, 'alimentacao_dia'), passagens_dia: numero(f, 'passagens_dia'), passagem_semanal: dinheiro(f, 'passagem_semanal'),
     pendencias: txt(f, 'pendencias'),
   };
 }
@@ -89,6 +93,19 @@ export async function registrarDocumento(c: Record<string, string | null>): Prom
   if (error) return { erro: mensagemErro(error) };
   revalidatePath(`/cadastros/funcionarios/${d.funcionario_id}`);
   return { ok: 'Documento anexado ao dossiê.' };
+}
+
+/** Foto do rosto (tirada no cadastro da biometria ou enviada pelo RH) */
+export async function salvarFotoFuncionario(c: Record<string, string | null>): Promise<EstadoAcao> {
+  const id = c.funcionario_id, caminho = c.caminho;
+  if (!id || !caminho) return { erro: 'Tire a foto ou escolha a imagem.' };
+  if (!caminho.startsWith(`rh/${id}/`)) return { erro: 'Arquivo inválido.' };
+  const supabase = await criarClienteServidor();
+  const { error, count } = await supabase.from('funcionarios').update({ foto_caminho: caminho }, { count: 'exact' }).eq('id', id);
+  if (error) return { erro: mensagemErro(error) };
+  if (!count) return { erro: 'Sem permissão para alterar a foto.' };
+  revalidatePath(`/cadastros/funcionarios/${id}`); revalidatePath('/cadastros/funcionarios');
+  return { ok: 'Foto do funcionário atualizada.' };
 }
 
 // ---------------- Fornecedores

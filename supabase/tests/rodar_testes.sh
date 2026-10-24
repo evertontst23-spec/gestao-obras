@@ -10,4 +10,4 @@ psql -q -v ON_ERROR_STOP=1 -d "$DB" -f "$DIR/tests/00_stub_supabase.sql" >/dev/n
 for f in "$DIR"/migrations/*.sql; do psql -q -v ON_ERROR_STOP=1 -d "$DB" -f "$f" >/dev/null 2>&1 || { echo "Erro em $f"; psql -v ON_ERROR_STOP=1 -d "$DB" -f "$f" | tail -5; exit 1; }; done
 # os cenários testam faltas e atrasos: o controle de ponto começa "desde sempre" no banco de teste
 psql -q -d "$DB" -c "update dp_parametros set ponto_inicio = '2000-01-01'" >/dev/null
-for t in "$DIR"/tests/0[1-9]_*.sql; do echo "--- $(basename "$t")"; psql -q -v ON_ERROR_STOP=1 -d "$DB" -o /dev/null -f "$t" 2>&1 | sed -E "s/^psql:[^ ]+ //; s/^NOTICE:  //"; done
+for t in "$DIR"/tests/[0-9][1-9]_*.sql "$DIR"/tests/[1-9]0_*.sql; do echo "--- $(basename "$t")"; psql -q -v ON_ERROR_STOP=1 -d "$DB" -o /dev/null -f "$t" 2>&1 | sed -E "s/^psql:[^ ]+ //; s/^NOTICE:  //"; done

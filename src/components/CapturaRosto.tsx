@@ -6,7 +6,17 @@ import { abrirCamera, carregarModelos, lerDescritor } from '@/lib/rostos';
  * Captura um descritor facial médio (3 amostras boas) para cadastro ou confirmação.
  * onCaptura recebe o descritor (128 números).
  */
-export function CapturaRosto({ onCaptura, rotulo = 'Capturar rosto' }: { onCaptura: (d: number[]) => void; rotulo?: string }) {
+/** Foto do rosto (JPEG, até 480 px) tirada do vídeo no momento da captura */
+function fotografar(v: HTMLVideoElement): string | null {
+  if (!v.videoWidth) return null;
+  const escala = Math.min(1, 480 / Math.max(v.videoWidth, v.videoHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.round(v.videoWidth * escala); c.height = Math.round(v.videoHeight * escala);
+  c.getContext('2d')!.drawImage(v, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.85);
+}
+
+export function CapturaRosto({ onCaptura, rotulo = 'Capturar rosto' }: { onCaptura: (d: number[], foto: string | null) => void; rotulo?: string }) {
   const video = useRef<HTMLVideoElement>(null);
   const parar = useRef<(() => void) | null>(null);
   const [estado, setEstado] = useState<'parado' | 'carregando' | 'capturando' | 'ok' | 'erro'>('parado');
@@ -21,16 +31,20 @@ export function CapturaRosto({ onCaptura, rotulo = 'Capturar rosto' }: { onCaptu
       parar.current = await abrirCamera(video.current!);
       setEstado('capturando'); setMsg('Olhe para a câmera…');
       const amostras: number[][] = [];
+      let foto: string | null = null;
       for (let t = 0; t < 40 && amostras.length < 3; t++) {
         const r = await lerDescritor(fa, video.current!);
-        if (r && r.qualidade > 0.6) { amostras.push(r.descritor); setMsg(`Capturando… ${amostras.length}/3`); }
+        if (r && r.qualidade > 0.6) {
+          if (!foto || r.qualidade > 0.85) foto = fotografar(video.current!) ?? foto;
+          amostras.push(r.descritor); setMsg(`Capturando… ${amostras.length}/3`);
+        }
         await new Promise((ok) => setTimeout(ok, 250));
       }
       parar.current?.(); parar.current = null;
       if (amostras.length < 3) { setEstado('erro'); setMsg('Rosto não detectado com clareza. Melhore a iluminação e tente de novo.'); return; }
       const media = amostras[0].map((_, i) => amostras.reduce((s, a) => s + a[i], 0) / amostras.length);
       setEstado('ok'); setMsg('Rosto capturado ✓');
-      onCaptura(media);
+      onCaptura(media, foto);
     } catch (e) {
       parar.current?.(); parar.current = null;
       setEstado('erro');

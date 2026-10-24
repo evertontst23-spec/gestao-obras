@@ -2,15 +2,15 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { criarClienteServidor } from '@/lib/supabase/server';
-import { type EstadoAcao, mensagemErro, numero, txt } from '@/lib/acoes';
+import { type EstadoAcao, dinheiro, mensagemErro, numero, txt } from '@/lib/acoes';
 
 const atualizar = (id?: string | null) => { revalidatePath('/dp/pagamentos'); if (id) revalidatePath(`/dp/pagamentos/${id}`); revalidatePath('/financeiro', 'layout'); };
 
 export async function criarPagamento(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
   const supabase = await criarClienteServidor();
-  const { data: id, error } = await supabase.rpc('pagamento_criar', {
+  const { data: id, error } = await supabase.rpc('pagamento_criar_obra', {
     p_data: txt(f, 'data_pagamento'), p_titulo: txt(f, 'titulo'), p_tipo: txt(f, 'tipo') ?? 'adiantamento',
-    p_inicio: txt(f, 'periodo_inicio'), p_fim: txt(f, 'periodo_fim'), p_obs: txt(f, 'observacoes'),
+    p_inicio: txt(f, 'periodo_inicio'), p_fim: txt(f, 'periodo_fim'), p_obs: txt(f, 'observacoes'), p_obra: txt(f, 'obra_id'),
   });
   if (error) return { erro: mensagemErro(error) };
   if (f.get('gerar')) {
@@ -33,7 +33,7 @@ export async function gerarLinhas(_: EstadoAcao, f: FormData): Promise<EstadoAca
 export async function salvarItem(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
   const supabase = await criarClienteServidor();
   const id = txt(f, 'id');
-  const valor = numero(f, 'valor');
+  const valor = dinheiro(f, 'valor');
   if (valor === null) return { erro: 'Informe o valor.' };
   const { error } = await supabase.rpc('pagamento_item_salvar', { p_pagamento: id, p: {
     funcionario_id: txt(f, 'funcionario_id'), empregador_id: txt(f, 'empregador_id'), obra_id: txt(f, 'obra_id'),

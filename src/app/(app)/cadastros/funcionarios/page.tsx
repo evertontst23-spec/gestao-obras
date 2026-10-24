@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
 import { exigirPapel } from '@/lib/sessao';
 import { Cabecalho, Indicador, LinkBotao, Selo, Vazio } from '@/components/ui';
@@ -16,10 +17,17 @@ export default async function Funcionarios({ searchParams }: { searchParams: Pro
   if (sp.funcao) q = q.eq('funcao_id', sp.funcao);
   if (sp.empresa) q = sp.empresa === 'sem' ? q.is('empregador_id', null) : q.eq('empregador_id', sp.empresa);
   if (sp.q) { const t = sp.q.replace(/[%,()]/g, ''); q = q.or(`nome.ilike.%${t}%,cpf.ilike.%${t}%,matricula.ilike.%${t}%`); }
-  const [{ data: lista }, { data: obras }, { data: funcoes }, { data: empresas }] = await Promise.all([
+  const [{ data: lista }, { data: obras }, { data: funcoes }, { data: empresas }, { data: fotos }, { data: docsQ }] = await Promise.all([
     q, supabase.from('obras').select('id, codigo, nome').order('nome'), supabase.from('funcoes').select('id, nome').order('nome'),
     supabase.from('empregadores').select('id, nome').order('nome'),
+    supabase.from('funcionarios').select('id, foto_caminho').not('foto_caminho', 'is', null),
+    supabase.from('funcionario_documentos').select('funcionario_id').eq('substituido', false),
   ]);
+  const caminhoFoto = new Map((fotos ?? []).map((x) => [x.id, x.foto_caminho as string]));
+  const { data: urlsFoto } = caminhoFoto.size ? await supabase.storage.from('anexos').createSignedUrls([...caminhoFoto.values()], 3600) : { data: [] };
+  const urlFoto = new Map((urlsFoto ?? []).filter((u) => u.signedUrl).map((u) => [u.path, u.signedUrl]));
+  const nDocs = new Map<string, number>();
+  (docsQ ?? []).forEach((d) => nDocs.set(d.funcionario_id, (nDocs.get(d.funcionario_id) ?? 0) + 1));
   const fs = lista ?? [];
   const folha = fs.filter((f) => f.ativo).reduce((s, f) => s + Number(f.salario_efetivo ?? 0), 0);
   const pode = perfil.papel === 'admin' || perfil.papel === 'rh';
@@ -59,12 +67,15 @@ export default async function Funcionarios({ searchParams }: { searchParams: Pro
       {!fs.length ? <Vazio>Nenhum funcionário encontrado.</Vazio> : (
         <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white">
           <table className="tabela">
-            <thead><tr><th>Matrícula</th><th>Nome</th><th>Empresa</th><th>Função</th><th>Obra</th><th>Admissão</th><th className="text-right">Salário</th><th>Situação</th></tr></thead>
+            <thead><tr><th></th><th>Matrícula</th><th>Nome</th><th>Empresa</th><th>Função</th><th>Obra</th><th>Admissão</th><th className="text-right">Salário</th><th>Situação</th><th>Dossiê</th></tr></thead>
             <tbody>{fs.map((f) => (
               <tr key={f.id}>
+                <td className="w-10 !py-1">{caminhoFoto.has(f.id) && urlFoto.get(caminhoFoto.get(f.id)!)
+                  ? <img src={urlFoto.get(caminhoFoto.get(f.id)!) ?? undefined} alt="" className="h-9 w-9 rounded-full object-cover" />
+                  : <span className="flex h-9 w-9 items-center justify-center rounded-full bg-concreto-100 text-xs font-bold text-concreto-500">{((n: string[]) => (n[0]?.[0] ?? '') + (n.length > 1 ? n[n.length - 1][0] : '')).call(null, f.nome.split(' ').filter((p: string) => p.length > 2)).toUpperCase()}</span>}</td>
                 <td className="font-mono text-xs">{f.matricula}</td>
                 <td><Link href={`/cadastros/funcionarios/${f.id}`} className="link">{f.nome}</Link>
-                  {f.biometria_cadastrada && <span title="Biometria facial cadastrada" className="ml-1 text-xs">🙂</span>}
+                  {f.biometria_cadastrada && <span title="Biometria facial cadastrada" className="ml-1 rounded bg-ok-50 px-1 text-[10px] font-semibold text-ok-700">facial ✓</span>}
                   {f.pendencias && <div className="text-xs text-atencao-700">a confirmar: {f.pendencias}</div>}</td>
                 <td className="whitespace-nowrap text-xs">{f.empregador_nome ?? '—'}{f.vinculo && <div className="text-concreto-500">{({ clt: 'CLT', terceirizado: 'terceirizado', clt_parceira: 'CLT parceira', autonomo: 'autônomo' } as Record<string, string>)[f.vinculo]}</div>}</td>
                 <td>{f.funcao_nome ?? '—'}</td>
@@ -75,6 +86,7 @@ export default async function Funcionarios({ searchParams }: { searchParams: Pro
                   : f.documentos_vencidos > 0 ? <Selo cor="bg-atraso-50 text-atraso-700">{f.documentos_vencidos} doc. vencido(s)</Selo>
                   : f.documentos_a_vencer > 0 ? <Selo cor="bg-atencao-50 text-atencao-700">doc. a vencer</Selo>
                   : <Selo cor="bg-ok-50 text-ok-700">Ativo</Selo>}</td>
+                <td className="whitespace-nowrap text-xs"><Link className="link" href={`/cadastros/funcionarios/${f.id}/dossie`}>📄 {nDocs.get(f.id) ?? 0} doc.</Link></td>
               </tr>))}
             </tbody>
           </table>

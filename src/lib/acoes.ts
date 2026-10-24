@@ -17,9 +17,29 @@ export function txt(f: FormData, k: string) {
   const v = f.get(k);
   return typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
 }
+/** Converte texto digitado no padrão brasileiro ("1.621,00", "1621,5", "R$ 2.500") ou com ponto decimal ("1621.50"). */
+export function paraNumero(v: string, milharSemVirgula = false): number | null {
+  let s = v.replace(/R\$|\s/g, '');
+  if (s.includes(',')) {
+    // "1.621,00" → vírgula é o decimal; "1,621.00" (padrão americano) → ponto é o decimal
+    s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+  } else if (milharSemVirgula && /^-?\d{1,3}(\.\d{3})+$/.test(s)) {
+    s = s.replace(/\./g, '');            // "1.621" em campo de dinheiro = mil seiscentos e vinte e um
+  }
+  if (s === '' || s === '-') return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
 export function numero(f: FormData, k: string) {
   const v = txt(f, k);
-  if (v === null) return null;
-  const n = Number(v.replace(',', '.'));
-  return Number.isFinite(n) ? n : null;
+  return v === null ? null : paraNumero(v);
+}
+/** Valor em reais: aceita "1.621", "1.621,00", "1621,00", "R$ 1.621,00" */
+export function dinheiro(f: FormData, k: string) {
+  const v = txt(f, k);
+  return v === null ? null : paraNumero(v, true);
+}
+/** Campos numéricos preenchidos em formato que não deu para entender */
+export function numerosInvalidos(f: FormData, ks: string[]) {
+  return ks.filter((k) => txt(f, k) !== null && paraNumero(txt(f, k)!, true) === null);
 }

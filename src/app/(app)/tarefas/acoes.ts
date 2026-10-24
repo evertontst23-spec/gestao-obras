@@ -113,3 +113,25 @@ export async function comentar(_: EstadoAcao, f: FormData) {
   const t = txt(f, 'tarefa')!;
   return chamar('tarefa_comentar', { p_tarefa: t, p_texto: txt(f, 'texto') }, t, 'Comentário registrado.');
 }
+
+// ---- Importação de planilha de tarefas por obra
+export type LinhaImport = {
+  titulo: string; descricao: string | null; local: string | null; quantidade_prevista: number | null; unidade: string | null;
+  inicio_previsto: string; fim_previsto: string; encarregado_id: string; etapa_id: string | null; prioridade: string; observacoes: string | null;
+};
+export async function importarTarefas(obra: string, linhas: LinhaImport[]): Promise<EstadoAcao> {
+  if (!obra) return { erro: 'Escolha a obra.' };
+  if (!linhas.length) return { erro: 'Nenhuma tarefa para importar.' };
+  if (linhas.length > 500) return { erro: 'Importe no máximo 500 tarefas por vez.' };
+  const ruim = linhas.findIndex((l) => !l.titulo || l.titulo.trim().length < 3 || !l.inicio_previsto || !l.fim_previsto || l.fim_previsto < l.inicio_previsto || !l.encarregado_id);
+  if (ruim >= 0) return { erro: `A tarefa ${ruim + 1} está incompleta (serviço, responsável e prazos são obrigatórios; o fim não pode ser antes do início).` };
+  const supabase = await criarClienteServidor();
+  const { error, count } = await supabase.from('tarefas').insert(linhas.map((l) => ({
+    obra_id: obra, titulo: l.titulo.trim().slice(0, 300), descricao: l.descricao, local: l.local, quantidade_prevista: l.quantidade_prevista,
+    unidade: l.unidade, inicio_previsto: l.inicio_previsto, fim_previsto: l.fim_previsto, encarregado_id: l.encarregado_id,
+    etapa_id: l.etapa_id, prioridade: ['baixa', 'normal', 'alta', 'urgente'].includes(l.prioridade) ? l.prioridade : 'normal', observacoes: l.observacoes,
+  })), { count: 'exact' });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/tarefas'); revalidatePath('/campo'); revalidatePath('/painel'); revalidatePath(`/obras/${obra}`);
+  return { ok: `${count ?? linhas.length} tarefa(s) importada(s). Os encarregados já foram avisados.` };
+}

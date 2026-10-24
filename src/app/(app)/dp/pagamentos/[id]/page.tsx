@@ -15,25 +15,46 @@ export const metadata = { title: 'Pagamento' };
 
 type Item = {
   id: number; categoria: string; destino: 'empresa' | 'funcionario'; descricao: string; valor: number; funcionario_id: string | null;
-  empregador_id: string | null; funcionarios: { nome: string; matricula: string; ativo: boolean; funcoes: { nome: string } | null } | null;
+  empregador_id: string | null; obra_id: string | null; funcionarios: { nome: string; matricula: string; ativo: boolean; funcoes: { nome: string } | null } | null;
   empregadores: { nome: string; tipo: string } | null; obras: { codigo: string } | null;
 };
 const n = (v: unknown) => Number(v ?? 0);
 
-export default async function Pagamento({ params }: { params: Promise<{ id: string }> }) {
+export default async function Pagamento({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ obra?: string }> }) {
   const { id } = await params;
+  const sp = await searchParams;
   const { supabase, perfil } = await exigirPapel('admin', 'rh', 'financeiro');
-  const [{ data: p }, { data: itensBrutos }, { data: lancs }, { data: funcs }, { data: obras }, { data: empExt }] = await Promise.all([
+  const [{ data: p }, { data: itensBrutos }, { data: lancs }, { data: funcs }, { data: obras }, { data: empExt }, { data: pobra }] = await Promise.all([
     supabase.from('v_pagamentos').select('*').eq('id', id).maybeSingle(),
-    supabase.from('pagamento_itens').select('id, categoria, destino, descricao, valor, funcionario_id, empregador_id, funcionarios(nome, matricula, ativo, funcoes(nome)), empregadores(nome, tipo), obras(codigo)')
+    supabase.from('pagamento_itens').select('id, categoria, destino, descricao, valor, funcionario_id, empregador_id, obra_id, funcionarios(nome, matricula, ativo, funcoes(nome)), empregadores(nome, tipo), obras(codigo)')
       .eq('pagamento_id', id).eq('removido', false).order('id'),
     supabase.from('lancamentos').select('id, numero, descricao, valor, status, favorecido, obras(codigo)').eq('pagamento_id', id).order('numero'),
     supabase.from('funcionarios').select('id, nome, ativo, empregadores(nome)').order('nome'),
     supabase.from('obras').select('id, codigo').order('codigo'),
     supabase.from('empregadores').select('id, nome, ponto_externo_url').eq('ponto_externo', true),
+    supabase.from('pagamentos').select('obra_id, obras(codigo, nome)').eq('id', id).maybeSingle(),
   ]);
   if (!p) notFound();
-  const itens = (itensBrutos ?? []) as unknown as Item[];
+  const todosItens = (itensBrutos ?? []) as unknown as Item[];
+  const obraDoPag = (pobra?.obras as unknown as { codigo: string; nome: string } | null) ?? null;
+  const codObra = new Map((obras ?? []).map((o) => [o.id, o.codigo]));
+  // centro de custo: soma por obra
+  const porObra = new Map<string, { codigo: string; empresas: number; benef: number; pessoas: number; pessoasN: Set<string> }>();
+  for (const i of todosItens) {
+    const k = i.obra_id ?? '';
+    const g = porObra.get(k) ?? { codigo: k ? codObra.get(k) ?? '—' : 'Sem obra', empresas: 0, benef: 0, pessoas: 0, pessoasN: new Set<string>() };
+    if (i.destino === 'empresa') g.empresas += n(i.valor); else if (BENEFICIO.includes(i.categoria)) g.benef += n(i.valor); else g.pessoas += n(i.valor);
+    if (i.funcionario_id) g.pessoasN.add(i.funcionario_id);
+    porObra.set(k, g);
+  }
+  const obrasDoPag = [...porObra.entries()].sort((a, b) => a[1].codigo.localeCompare(b[1].codigo));
+  const filtro = sp.obra && porObra.has(sp.obra === 'sem' ? '' : sp.obra) ? (sp.obra === 'sem' ? '' : sp.obra) : null;
+  const itens = filtro === null ? todosItens : todosItens.filter((i) => (i.obra_id ?? '') === filtro);
+  const somaDe = (f: (i: Item) => boolean) => itens.filter(f).reduce((t, i) => t + n(i.valor), 0);
+  const tot = filtro === null ? { total: n(p.total), emp: n(p.total_empresas), ben: n(p.total_beneficios), pes: n(p.total_pessoas) }
+    : { total: somaDe(() => true), emp: somaDe((i) => i.destino === 'empresa'), ben: somaDe((i) => i.destino === 'funcionario' && BENEFICIO.includes(i.categoria)),
+        pes: somaDe((i) => i.destino === 'funcionario' && !BENEFICIO.includes(i.categoria)) };
+  const nomeFiltro = filtro === null ? null : filtro ? codObra.get(filtro) ?? '' : 'Sem obra';
   const rh = ['admin', 'rh'].includes(perfil.papel);
   const editavel = p.status === 'rascunho';
 
@@ -51,21 +72,40 @@ export default async function Pagamento({ params }: { params: Promise<{ id: stri
   const csv = itens.map((i) => [i.empregadores?.nome ?? '', i.funcionarios?.nome ?? '', CAT_PAG[i.categoria], i.destino === 'empresa' ? 'Empresa' : 'Funcionário', i.obras?.codigo ?? '', i.descricao, n(i.valor)]);
   return (
     <>
-      <Cabecalho titulo={p.titulo}
-        sub={<><Selo cor={STATUS_PAG[p.status].cor}>{STATUS_PAG[p.status].rotulo}</Selo> <span className="ml-1">{TIPO_PAG[p.tipo]} • pagamento em {data(p.data_pagamento)}{p.periodo_inicio && p.periodo_fim && ` • passagens/alimentação de ${data(p.periodo_inicio)} a ${data(p.periodo_fim)}`}</span></>}
-        acoes={<div className="flex gap-2"><BaixarCSV nome={`pagamento-${p.data_pagamento}`} cabecalho={['Empresa', 'Funcionário', 'Item', 'Pagar a', 'Obra', 'Descrição', 'Valor']} linhas={csv} /><BotaoImprimir /></div>} />
+      <Cabecalho titulo={nomeFiltro ? `${p.titulo} — obra ${nomeFiltro}` : p.titulo}
+        sub={<><Selo cor={STATUS_PAG[p.status].cor}>{STATUS_PAG[p.status].rotulo}</Selo> {obraDoPag && <Selo cor="bg-sinal-50 text-sinal-700">só a obra {obraDoPag.codigo}</Selo>} <span className="ml-1">{TIPO_PAG[p.tipo]} • pagamento em {data(p.data_pagamento)}{p.periodo_inicio && p.periodo_fim && ` • passagens/alimentação de ${data(p.periodo_inicio)} a ${data(p.periodo_fim)}`}</span></>}
+        acoes={<div className="flex gap-2"><BaixarCSV nome={`pagamento-${p.data_pagamento}${nomeFiltro ? `-${nomeFiltro}` : ''}`} cabecalho={['Empresa', 'Funcionário', 'Item', 'Pagar a', 'Obra', 'Descrição', 'Valor']} linhas={csv} /><BotaoImprimir /></div>} />
       <AbasDP atual="pag" />
       <p className="nao-imprimir mb-3 text-sm"><Link className="link" href="/dp/pagamentos">← Todos os pagamentos</Link></p>
 
       <div className="mb-5 rounded-lg border border-sinal-400 bg-sinal-50 p-4">
-        <div className="text-sm font-semibold text-sinal-700">Total {p.status === 'pago' ? `pago em ${data(p.pago_em)}` : `a pagar em ${data(p.data_pagamento)}`}</div>
-        <div className="font-mono text-3xl font-bold text-sinal-700">{reais(p.total)}</div>
+        <div className="text-sm font-semibold text-sinal-700">{nomeFiltro ? `Obra ${nomeFiltro} — ` : ''}Total {p.status === 'pago' ? `pago em ${data(p.pago_em)}` : `a pagar em ${data(p.data_pagamento)}`}</div>
+        <div className="font-mono text-3xl font-bold text-sinal-700">{reais(tot.total)}</div>
+        {nomeFiltro && <div className="text-xs text-sinal-700">parte desta obra no pagamento de {reais(p.total)}</div>}
       </div>
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Indicador rotulo="Pagar às empresas" valor={reais(p.total_empresas)} detalhe="folha + taxa (e o valor da Mundial/A2)" />
-        <Indicador rotulo="Passagens e alimentação" valor={reais(p.total_beneficios)} detalhe="transferir aos funcionários" />
-        <Indicador rotulo="Pagar a pessoas" valor={reais(p.total_pessoas)} detalhe="equipe direta (CAD)" />
+        <Indicador rotulo="Pagar às empresas" valor={reais(tot.emp)} detalhe="folha + taxa (e o valor da Mundial/A2)" />
+        <Indicador rotulo="Passagens e alimentação" valor={reais(tot.ben)} detalhe="transferir aos funcionários" />
+        <Indicador rotulo="Pagar a pessoas" valor={reais(tot.pes)} detalhe="equipe direta (CAD)" />
       </div>
+      {obrasDoPag.length > 0 && (
+        <Cartao titulo="Por obra (centro de custo)" className="mb-5">
+          <div className="overflow-x-auto"><table className="tabela whitespace-nowrap">
+            <thead><tr><th>Obra</th><th className="text-right">Pessoas</th><th className="text-right">Empresas</th><th className="text-right">Passagens e alim.</th><th className="text-right">Pessoas (CAD)</th><th className="text-right">Total</th></tr></thead>
+            <tbody>
+              {obrasDoPag.map(([k, g]) => (
+                <tr key={k || 'sem'} className={filtro === k ? 'bg-sinal-50' : ''}>
+                  <td><Link className="link font-semibold" href={`/dp/pagamentos/${p.id}?obra=${k || 'sem'}`}>{g.codigo}</Link></td>
+                  <td className="text-right">{g.pessoasN.size}</td>
+                  <td className="text-right font-mono">{reais(g.empresas)}</td><td className="text-right font-mono">{reais(g.benef)}</td>
+                  <td className="text-right font-mono">{reais(g.pessoas)}</td><td className="text-right font-mono font-bold">{reais(g.empresas + g.benef + g.pessoas)}</td>
+                </tr>))}
+              <tr className="bg-concreto-50 font-semibold"><td><Link className="link" href={`/dp/pagamentos/${p.id}`}>Todas</Link></td><td /><td className="text-right font-mono">{reais(p.total_empresas)}</td>
+                <td className="text-right font-mono">{reais(p.total_beneficios)}</td><td className="text-right font-mono">{reais(p.total_pessoas)}</td><td className="text-right font-mono">{reais(p.total)}</td></tr>
+            </tbody>
+          </table></div>
+          <p className="nao-imprimir mt-2 text-xs text-concreto-500">Clique na obra para ver e imprimir (PDF) o fechamento só dela. Ao fechar, cada obra recebe as suas contas a pagar no financeiro.</p>
+        </Cartao>)}
       {editavel && p.tipo === 'saldo' && (empExt ?? []).some((e) => itens.some((i) => i.empregador_id === e.id)) && (
         <p className="mb-4 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">⚠ O ponto de {(empExt ?? []).filter((e) => itens.some((i) => i.empregador_id === e.id)).map((e) => e.nome).join(' e ')} é marcado fora do sistema: o saldo foi calculado sem faltas e sem horas extras. Confira no {(empExt ?? []).find((e) => e.ponto_externo_url) ? <a className="link" href={(empExt ?? []).find((e) => e.ponto_externo_url)!.ponto_externo_url!} target="_blank" rel="noreferrer">Ponto Diário</a> : 'Ponto Diário'} e inclua cada falta como <b>Desconto</b> (salário ÷ 30) e as horas extras como <b>Hora extra</b>.</p>)}
       {zerados.length > 0 && editavel && (

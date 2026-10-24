@@ -24,7 +24,7 @@ export default async function Espelho({ searchParams }: { searchParams: Promise<
   const rh = ['admin', 'rh'].includes(perfil.papel);
   const mes = mesAtual(sp.mes ?? sp.dia?.slice(0, 7));
   const [{ data: todos }, { data: acertados }] = await Promise.all([
-    supabase.from('funcionarios').select('id, nome, matricula, cpf, telefone, data_admissao, data_demissao, ativo, funcoes(nome), obras(codigo, nome), empregadores(nome, ponto_externo, ponto_externo_url)').order('nome'),
+    supabase.from('funcionarios').select('id, nome, matricula, cpf, telefone, obra_id, data_admissao, data_demissao, ativo, funcoes(nome), obras(codigo, nome), empregadores(nome, ponto_externo, ponto_externo_url)').order('nome'),
     supabase.from('pagamento_itens').select('funcionario_id, pagamentos!inner(status)').eq('categoria', 'rescisao').eq('removido', false).in('pagamentos.status', ['fechado', 'pago']),
   ]);
   // na lista: ativos e quem saiu neste mês ainda sem acerto (desligados antigos ou já acertados só aparecem se abertos pelo link)
@@ -44,7 +44,9 @@ export default async function Espelho({ searchParams }: { searchParams: Promise<
   const [{ data: pedidos }, { data: acesso }, { data: fechada }] = rh && func ? await Promise.all([
     supabase.from('ponto_contestacoes').select('*').eq('funcionario_id', func.id).order('criado_em', { ascending: false }).limit(20),
     supabase.from('funcionario_acessos').select('token, criado_em, ultimo_acesso').eq('funcionario_id', func.id).is('revogado_em', null).maybeSingle(),
-    supabase.from('folhas').select('id').eq('competencia', `${mes}-01`).maybeSingle(),
+    // folha geral do mês ou a folha da obra do funcionário
+    supabase.from('folhas').select('id').eq('competencia', `${mes}-01`)
+      .or(func.obra_id ? `obra_id.is.null,obra_id.eq.${func.obra_id}` : 'obra_id.is.null').limit(1).maybeSingle(),
   ]) : [{ data: null }, { data: null }, { data: null }];
   const abertos = (pedidos ?? []).filter((p) => p.status === 'aberta');
   const diaSel = sp.dia ? dias.find((d) => d.data === sp.dia) : undefined;

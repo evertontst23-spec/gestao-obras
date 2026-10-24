@@ -39,7 +39,8 @@ export default async function NovaTarefa({ searchParams }: { searchParams: Promi
   const o = obras.find((x) => x.id === obraSel)!;
   return (
     <>
-      <Cabecalho titulo="Nova tarefa" sub={<>Obra: <b>{o.codigo} — {o.nome}</b> · <Link href="/tarefas/nova" className="link">trocar</Link></>} />
+      <Cabecalho titulo="Nova tarefa" sub={<>Obra: <b>{o.codigo} — {o.nome}</b> · <Link href="/tarefas/nova" className="link">trocar</Link></>}
+        acoes={<Link href={`/tarefas/importar?obra=${obraSel}`} className="inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold hover:border-sinal-400">⬆ Importar várias pela planilha</Link>} />
       <Cartao>
         <FormAcao acao={criarTarefa} limparAoConcluir>
           <input type="hidden" name="obra_id" value={obraSel} />

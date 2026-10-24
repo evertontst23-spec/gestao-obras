@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { notFound } from 'next/navigation';
 import { obterSessao } from '@/lib/sessao';
 import { Cabecalho, Cartao, Campo, Info, Selo } from '@/components/ui';
@@ -7,7 +8,7 @@ import { UploadArquivo } from '@/components/UploadArquivo';
 import { CadastroBiometria } from '@/components/CadastroBiometria';
 import { removerBiometria } from '@/app/(app)/sst/acoes';
 import Link from 'next/link';
-import { atualizarFuncionario, desligarFuncionario, reativarFuncionario, registrarDocumento } from '../../acoes';
+import { atualizarFuncionario, desligarFuncionario, reativarFuncionario, registrarDocumento, salvarFotoFuncionario } from '../../acoes';
 import { TIPOS_DOC_FUNC, reais } from '@/lib/dominio';
 import { data, dataHora, hojeISO } from '@/lib/formato';
 
@@ -18,18 +19,20 @@ export default async function DossieFuncionario({ params }: { params: Promise<{ 
   if (!f) notFound();
   const pode = perfil.papel === 'admin' || perfil.papel === 'rh';
   const podeDoc = pode || perfil.papel === 'seguranca';
-  const [{ data: empregadores }, { data: docs }, { data: funcoes }, { data: obras }, { data: epis }, { data: oss }] = await Promise.all([
+  const [{ data: empregadores }, { data: docs }, { data: funcoes }, { data: obras }, { data: epis }, { data: oss }, { data: foto }] = await Promise.all([
     supabase.from('empregadores').select('id, nome').order('nome'),
     supabase.from('funcionario_documentos').select('*').eq('funcionario_id', id).order('substituido').order('criado_em', { ascending: false }),
     supabase.from('funcoes').select('*').order('nome'),
     supabase.from('obras').select('id, codigo, nome').order('nome'),
     supabase.from('epi_entregas').select('id, data').eq('funcionario_id', id).order('data', { ascending: false }),
     supabase.from('ordens_servico').select('id, numero, data, ciencia_em').eq('funcionario_id', id).eq('substituida', false),
+    supabase.from('funcionarios').select('foto_caminho').eq('id', id).maybeSingle(),
   ]);
   const ativos = (docs ?? []).filter((d) => !d.substituido);
-  const caminhos = (docs ?? []).map((d) => d.caminho).filter(Boolean) as string[];
+  const caminhos = [...(docs ?? []).map((d) => d.caminho), foto?.foto_caminho].filter(Boolean) as string[];
   const { data: urls } = caminhos.length ? await supabase.storage.from('anexos').createSignedUrls(caminhos, 3600) : { data: [] };
   const url = new Map((urls ?? []).map((u) => [u.path, u.signedUrl]));
+  const fotoUrl = foto?.foto_caminho ? url.get(foto.foto_caminho) : undefined;
   const hoje = hojeISO();
   const tiposPresentes = new Set(ativos.map((d) => d.tipo));
   const faltando = ['ASO', 'Contrato de trabalho', 'NR-06 (EPI)', 'NR-18'].filter((t) => !tiposPresentes.has(t));
@@ -37,6 +40,7 @@ export default async function DossieFuncionario({ params }: { params: Promise<{ 
   return (
     <>
       <Cabecalho titulo={f.nome}
+        acoes={<Link href={`/cadastros/funcionarios/${id}/dossie`} className="inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold hover:border-sinal-400">📄 Dossiê completo (PDF)</Link>}
         sub={<span className="flex flex-wrap items-center gap-2"><span className="font-mono">Matrícula {f.matricula}</span> • {f.funcao_nome ?? 'função a definir'} • {f.empregador_nome ?? 'sem empresa'} • {f.obra_codigo ?? 'Escritório'}
           {f.ativo ? <Selo cor="bg-ok-50 text-ok-700">Ativo</Selo> : <Selo cor="bg-concreto-200 text-concreto-700">Desligado em {data(f.data_demissao)}</Selo>}</span>} />
 
@@ -79,6 +83,12 @@ export default async function DossieFuncionario({ params }: { params: Promise<{ 
 
         <div className="space-y-5">
           <Cartao titulo="Resumo">
+            <div className="mb-3 flex items-center gap-3">
+              {fotoUrl ? <a href={fotoUrl} target="_blank" rel="noreferrer"><img src={fotoUrl} alt={`Foto de ${f.nome}`} className="h-24 w-24 rounded-lg border border-concreto-200 object-cover" /></a>
+                : <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-dashed border-concreto-300 bg-concreto-50 text-center text-[11px] text-concreto-500">sem foto</div>}
+              <div className="text-sm"><div className="font-semibold">{f.nome}</div><div className="text-xs text-concreto-500">Matrícula {f.matricula}</div>
+                <div className="mt-1 text-xs">{f.biometria_cadastrada ? <span className="text-ok-700">🙂 Facial cadastrada</span> : <span className="text-atencao-700">Facial não cadastrada</span>}</div></div>
+            </div>
             <dl className="grid grid-cols-2 gap-3">
               <Info rotulo="Salário">{reais(f.salario_efetivo)}</Info>
               <Info rotulo="Jornada">{f.carga_diaria_horas} h/dia</Info>
@@ -109,10 +119,19 @@ export default async function DossieFuncionario({ params }: { params: Promise<{ 
             <Cartao titulo="Biometria facial (ponto e EPI)">
               {f.biometria_cadastrada ? (
                 <div className="space-y-2 text-sm">
+                  {fotoUrl && <img src={fotoUrl} alt="" className="mx-auto h-40 w-40 rounded-lg object-cover" />}
                   <p className="text-ok-700">✓ Cadastrada com consentimento em {dataHora(f.biometria_consentida_em)}.</p>
+                  {!fotoUrl && <p className="rounded-md bg-atencao-50 px-2 py-1 text-xs text-atencao-800">Cadastro feito antes da foto ser guardada. Tire uma foto do funcionário abaixo para aparecer na ficha e no dossiê.</p>}
                   <FormAcao acao={removerBiometria} className="flex gap-2"><input type="hidden" name="funcionario_id" value={id} />
                     <input name="motivo" placeholder="Motivo da remoção" className="entrada flex-1" /><Botao variante="secundario">Remover</Botao></FormAcao>
                 </div>) : <CadastroBiometria funcionario={id} nome={f.nome} />}
+            </Cartao>)}
+
+          {['admin', 'rh', 'seguranca'].includes(perfil.papel) && (
+            <Cartao titulo={fotoUrl ? 'Trocar a foto' : 'Foto do funcionário'}>
+              <UploadArquivo pasta={`rh/${id}`} acao={salvarFotoFuncionario} rotuloBotao="Salvar foto" accept="image/*">
+                <input type="hidden" name="funcionario_id" value={id} />
+              </UploadArquivo>
             </Cartao>)}
 
           {pode && (f.ativo ? (

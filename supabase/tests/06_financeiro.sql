@@ -81,7 +81,7 @@ select pg_temp.espera_erro(format($$select bm_aprovar(%L, hoje() + 1, 'NF 1')$$,
 select bm_aprovar(:'bm', hoje(), 'NFS-e 1520');
 select pg_temp.confere((select valor = 16646.50 and vencimento = hoje() + 30 and status = 'aberto' from lancamentos where bm_id = :'bm' and categoria = 'medicao'),
   'BM aprovado gera conta a receber do líquido em 30 dias');
-select pg_temp.confere((select valor = 985 and vencimento = '2027-05-19' from lancamentos where bm_id = :'bm' and categoria = 'retencao_tecnica'),
+select pg_temp.confere((select valor = 985 and vencimento = (select data_prevista_conclusao + 30 from obras where id = :obra) from lancamentos where bm_id = :'bm' and categoria = 'retencao_tecnica'),
   'retenção técnica a receber após a conclusão da obra');
 select pg_temp.confere((select valor = 1182 and categoria = 'impostos' from lancamentos where bm_id = :'bm' and tipo = 'despesa'),
   'impostos sobre faturamento (6%) lançados a pagar');

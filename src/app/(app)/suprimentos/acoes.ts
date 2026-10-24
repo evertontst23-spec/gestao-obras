@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { criarClienteServidor } from '@/lib/supabase/server';
-import { type EstadoAcao, mensagemErro, numero, txt } from '@/lib/acoes';
+import { type EstadoAcao, dinheiro, mensagemErro, numero, txt } from '@/lib/acoes';
 
 const rev = () => { revalidatePath('/suprimentos', 'layout'); revalidatePath('/materiais', 'layout'); };
 
@@ -39,7 +39,7 @@ export async function salvarProposta(_: EstadoAcao, f: FormData): Promise<Estado
   const supabase = await criarClienteServidor();
   const { error } = await supabase.rpc('cotacao_proposta_salvar', {
     p_cotacao: cot, p_fornecedor: txt(f, 'fornecedor_id'), p_prazo: numero(f, 'prazo'), p_condicao: txt(f, 'condicao'),
-    p_frete: numero(f, 'frete') ?? 0, p_precos: precos, p_obs: txt(f, 'observacoes'),
+    p_frete: dinheiro(f, 'frete') ?? 0, p_precos: precos, p_obs: txt(f, 'observacoes'),
   });
   if (error) return { erro: mensagemErro(error) };
   revalidatePath(`/suprimentos/cotacoes/${cot}`);

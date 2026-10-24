@@ -22,7 +22,9 @@ export default async function Materiais({ searchParams }: { searchParams: Promis
     <>
       <Cabecalho titulo={perfil.papel === 'encarregado' ? 'Meus pedidos de material' : 'Solicitações de material'}
         sub={f.status ? STATUS_SOLICITACAO[f.status]?.rotulo : 'Em aberto'}
-        acoes={pode && <LinkBotao href={f.obra ? `/materiais/nova?obra=${f.obra}` : '/materiais/nova'}>+ Solicitar material</LinkBotao>} />
+        acoes={<div className="flex flex-wrap gap-2">
+          <Link href={f.obra ? `/materiais/pedido?obra=${f.obra}${f.status ? `&status=${f.status}` : ''}` : '/materiais/pedido'} className="inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold hover:border-sinal-400">🖨 Pedido em PDF por obra</Link>
+          {pode && <LinkBotao href={f.obra ? `/materiais/nova?obra=${f.obra}` : '/materiais/nova'}>+ Solicitar material</LinkBotao>}</div>} />
       <form className="mb-4 flex flex-wrap gap-2 rounded-lg border border-concreto-200 bg-white p-3">
         <select name="obra" defaultValue={f.obra ?? ''} className="entrada w-auto min-w-[200px] flex-1"><option value="">Todas as obras</option>
           {obras?.map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}</select>

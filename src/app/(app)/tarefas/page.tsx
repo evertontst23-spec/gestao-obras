@@ -37,7 +37,9 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
   return (
     <>
       <Cabecalho titulo="Plano de ação" sub={`${ts.length} tarefa(s)`}
-        acoes={gestor(perfil.papel) && <LinkBotao href={f.obra ? `/tarefas/nova?obra=${f.obra}` : '/tarefas/nova'}>+ Nova tarefa</LinkBotao>} />
+        acoes={gestor(perfil.papel) && <>
+          <Link href={f.obra ? `/tarefas/importar?obra=${f.obra}` : '/tarefas/importar'} className="inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold hover:border-sinal-400">⬆ Importar planilha de tarefas</Link>
+          <LinkBotao href={f.obra ? `/tarefas/nova?obra=${f.obra}` : '/tarefas/nova'}>+ Nova tarefa</LinkBotao></>} />
 
       <form className="mb-4 grid grid-cols-2 gap-2 rounded-lg border border-concreto-200 bg-white p-3 md:grid-cols-4 xl:grid-cols-8">
         <input type="hidden" name="visao" value={visao} />

@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { criarClienteServidor } from '@/lib/supabase/server';
-import { type EstadoAcao, mensagemErro, numero, txt } from '@/lib/acoes';
+import { type EstadoAcao, dinheiro, mensagemErro, numero, txt } from '@/lib/acoes';
 
 export async function fecharFolha(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
   const supabase = await criarClienteServidor();
@@ -9,6 +9,14 @@ export async function fecharFolha(_: EstadoAcao, f: FormData): Promise<EstadoAca
   if (error) return { erro: mensagemErro(error) };
   revalidatePath('/dp/folha');
   return { ok: 'Folha fechada. Os valores ficam congelados para esta competência.' };
+}
+
+export async function fecharFolhaObra(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('folha_fechar_obra', { p_mes: `${txt(f, 'mes')}-01`, p_obra: txt(f, 'obra') });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/dp/folha');
+  return { ok: `Folha da obra ${txt(f, 'codigo') ?? ''} fechada. Os custos entram no centro de custo da obra.` };
 }
 
 export async function registrarAtestado(c: Record<string, string | null>): Promise<EstadoAcao> {
@@ -29,7 +37,7 @@ export async function salvarParametros(_: EstadoAcao, f: FormData): Promise<Esta
   const { error } = await supabase.rpc('dp_salvar_parametros', { p: {
     percentual_he_util: numero(f, 'percentual_he_util'), percentual_he_domingo: numero(f, 'percentual_he_domingo'),
     jornada_sabado_horas: numero(f, 'jornada_sabado_horas'), tolerancia_minutos: numero(f, 'tolerancia_minutos'),
-    salario_minimo: numero(f, 'salario_minimo'), desconto_vt_pct: numero(f, 'desconto_vt_pct'), valor_passagem: numero(f, 'valor_passagem'),
+    salario_minimo: dinheiro(f, 'salario_minimo'), desconto_vt_pct: numero(f, 'desconto_vt_pct'), valor_passagem: dinheiro(f, 'valor_passagem'),
     ponto_inicio: txt(f, 'ponto_inicio') ?? '', inss_faixas: faixas } });
   if (error) return { erro: mensagemErro(error) };
   revalidatePath('/dp', 'layout');

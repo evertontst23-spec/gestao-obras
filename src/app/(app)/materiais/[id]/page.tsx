@@ -39,6 +39,7 @@ export default async function DetalheSolicitacao({ params, searchParams }: { par
   return (
     <>
       <Cabecalho titulo={`Solicitação ${codSM(s.numero)}`}
+        acoes={<Link href={`/materiais/pedido?sm=${id}`} className="inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold hover:border-sinal-400">🖨 PDF do pedido</Link>}
         sub={<span className="flex flex-wrap items-center gap-2"><Link href={`/obras/${s.obra_id}`} className="link">{s.obra_codigo} — {s.obra_nome}</Link><SeloSolicitacao s={s.status} /><SeloPrioridade p={s.prioridade} /></span>} />
       {criado && <p className="mb-4 rounded-md bg-ok-50 px-4 py-3 text-sm font-semibold text-ok-700">Pedido enviado! Você será avisado a cada etapa. Se quiser, anexe uma foto abaixo.</p>}
 
