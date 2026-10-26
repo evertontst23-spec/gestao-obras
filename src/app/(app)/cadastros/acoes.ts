@@ -159,19 +159,19 @@ export async function salvarEmpregador(_: EstadoAcao, f: FormData): Promise<Esta
 
 // ---------------- Importar documentos da ficha de inscrição (links temporários do Supabase das fichas)
 const ORIGEM_FICHAS = 'https://fraqghktmzfxtvznuasx.supabase.co/storage/v1/object/sign/fichas-admissao/';
-export async function importarDocumentosFicha(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+export async function importarDocumentosFicha(linhasBrutas: string[]): Promise<EstadoAcao> {
   const supabase = await criarClienteServidor();
   const { data: papel } = await supabase.rpc('meu_papel');
   if (!['admin', 'rh'].includes(String(papel))) return { erro: 'Apenas RH ou diretoria importam documentos.' };
-  const linhas = (txt(f, 'linhas') ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
+  const linhas = linhasBrutas.map((l) => l.trim()).filter(Boolean).slice(0, 6);
   if (!linhas.length) return { erro: 'Cole as linhas: matrícula ; tipo ; link.' };
   const { data: funcs } = await supabase.from('funcionarios').select('id, matricula');
   const porMat = new Map((funcs ?? []).map((x) => [String(x.matricula), x.id as string]));
   let ok = 0; const erros: string[] = [];
-  for (const [n, l] of linhas.entries()) {
+  for (const l of linhas) {
     const [mat, tipo, url] = l.split(';').map((x) => x.trim());
     const fid = porMat.get(mat ?? '');
-    if (!fid || !tipo || !url?.startsWith(ORIGEM_FICHAS)) { erros.push(`linha ${n + 1}: matrícula, tipo ou link inválido`); continue; }
+    if (!fid || !tipo || !url?.startsWith(ORIGEM_FICHAS)) { erros.push(`${mat ?? '?'} ${tipo ?? ''}: matrícula, tipo ou link inválido`); continue; }
     try {
       const r = await fetch(url);
       if (!r.ok) throw new Error(`download ${r.status}`);
@@ -188,7 +188,7 @@ export async function importarDocumentosFicha(_: EstadoAcao, f: FormData): Promi
         : await registrarDocumento({ funcionario_id: fid, tipo, descricao: 'Enviado pelo funcionário na ficha de inscrição', caminho, tipo_mime: mime, emissao: null, validade: null });
       if (res?.erro) throw new Error(res.erro);
       ok++;
-    } catch (e) { erros.push(`linha ${n + 1} (${mat} ${tipo}): ${(e as Error).message}`); }
+    } catch (e) { erros.push(`${mat} ${tipo}: ${(e as Error).message}`); }
   }
   revalidatePath('/cadastros/dossies');
   return erros.length ? { erro: `${ok} importado(s). Problemas: ${erros.join(' | ')}` } : { ok: `${ok} documento(s) guardado(s) nas pastas.` };
