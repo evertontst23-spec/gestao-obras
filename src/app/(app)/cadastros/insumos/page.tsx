@@ -26,12 +26,13 @@ function Campos({ i }: { i?: any }) {
   );
 }
 
-export default async function Insumos({ searchParams }: { searchParams: Promise<{ q?: string; cat?: string }> }) {
+export default async function Insumos({ searchParams }: { searchParams: Promise<{ q?: string; cat?: string; revisar?: string }> }) {
   const sp = await searchParams;
   const { supabase, perfil } = await exigirPapel('admin', 'compras', 'almoxarifado', 'engenheiro');
   const pode = perfil.papel === 'admin' || perfil.papel === 'compras';
   let q = supabase.from('insumos').select('*').order('categoria').order('codigo');
   if (sp.cat) q = q.eq('categoria', sp.cat);
+  if (sp.revisar) q = q.eq('revisar', true);
   if (sp.q) { const t = sp.q.replace(/[%,()]/g, ''); q = q.or(`codigo.ilike.%${t}%,descricao.ilike.%${t}%`); }
   const [{ data: lista }, { data: est }] = await Promise.all([q, supabase.from('v_estoque').select('insumo_id, saldo')]);
   const saldo = new Map<string, number>();
@@ -44,8 +45,10 @@ export default async function Insumos({ searchParams }: { searchParams: Promise<
       <form className="mb-3 flex flex-wrap gap-2">
         <input name="q" defaultValue={sp.q} placeholder="Código ou descrição…" className="entrada flex-1" />
         <select name="cat" defaultValue={sp.cat ?? ''} className="entrada w-auto"><option value="">Todas as categorias</option>{CATEGORIAS_INSUMO.map((c) => <option key={c}>{c}</option>)}</select>
+        <label className="flex items-center gap-2 px-1 text-sm"><input type="checkbox" name="revisar" value="1" defaultChecked={!!sp.revisar} className="accent-sinal-500" /> Só cadastrados pelos pedidos</label>
         <button className="rounded-md bg-concreto-800 px-4 text-sm font-semibold text-white">Filtrar</button>
       </form>
+      {(lista ?? []).some((i) => i.revisar) && <p className="mb-3 rounded-md bg-sinal-50 px-3 py-2 text-sm text-sinal-800">Insumos marcados com <b>novo</b> foram cadastrados automaticamente a partir de pedidos de material. Confira nome, unidade e categoria e salve para tirar a marca.</p>}
       {!lista?.length ? <Vazio>Nenhum insumo encontrado.</Vazio> : (
         <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white">
           <table className="tabela">
@@ -55,7 +58,7 @@ export default async function Insumos({ searchParams }: { searchParams: Promise<
               return (
                 <tr key={i.id} className={i.ativo ? '' : 'opacity-50'}>
                   <td className="font-mono font-bold">{i.codigo}</td>
-                  <td>{i.descricao}{i.ca && <span className="ml-1 text-xs text-concreto-500">CA {i.ca}</span>}</td>
+                  <td>{i.descricao}{i.revisar && <Selo cor="bg-sinal-100 text-sinal-700">novo — revisar</Selo>}{i.ca && <span className="ml-1 text-xs text-concreto-500">CA {i.ca}</span>}</td>
                   <td><Selo cor={i.categoria === 'EPI' ? 'bg-sky-100 text-sky-800' : 'bg-concreto-100 text-concreto-700'}>{i.categoria}</Selo></td>
                   <td>{i.unidade}</td>
                   <td className={`text-right font-mono ${Number(i.estoque_minimo) > 0 && s < Number(i.estoque_minimo) ? 'font-bold text-atraso-700' : ''}`}>{num(s, 3)}</td>

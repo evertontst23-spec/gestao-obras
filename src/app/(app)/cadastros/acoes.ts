@@ -130,7 +130,7 @@ export async function salvarInsumo(_: EstadoAcao, f: FormData): Promise<EstadoAc
   const id = txt(f, 'id');
   const d = { codigo: txt(f, 'codigo')?.toUpperCase(), descricao: txt(f, 'descricao'), unidade: txt(f, 'unidade'),
     categoria: txt(f, 'categoria') ?? 'Material', estoque_minimo: numero(f, 'estoque_minimo') ?? 0, ca: txt(f, 'ca'),
-    ca_validade: txt(f, 'ca_validade'), vida_util_dias: numero(f, 'vida_util_dias'), ...(id ? { ativo: f.get('ativo') === 'on' } : {}) };
+    ca_validade: txt(f, 'ca_validade'), vida_util_dias: numero(f, 'vida_util_dias'), ...(id ? { ativo: f.get('ativo') === 'on', revisar: false } : {}) };
   if (!d.codigo || !d.descricao || !d.unidade) return { erro: 'Código, descrição e unidade são obrigatórios.' };
   const supabase = await criarClienteServidor();
   const { error } = id ? await supabase.from('insumos').update(d).eq('id', id) : await supabase.from('insumos').insert(d);

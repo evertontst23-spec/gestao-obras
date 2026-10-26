@@ -13,6 +13,8 @@ export async function criarSolicitacao(_: EstadoAcao, f: FormData): Promise<Esta
     quantidade: Number(String(f.getAll('quantidade')[i] ?? '').replace(',', '.')),
   })).filter((i) => i.material);
   if (!itens.length) return { erro: 'Inclua pelo menos um material.' };
+  const semNome = itens.find((i) => / —\s*$/.test(i.material));
+  if (semNome) return { erro: `O código ${semNome.material.replace(/ —\s*$/, '')} não está no cadastro. Digite o nome do material para cadastrá-lo.` };
   if (itens.some((i) => !i.unidade || !(i.quantidade > 0))) return { erro: 'Cada material precisa de unidade e quantidade maior que zero.' };
 
   const supabase = await criarClienteServidor();
