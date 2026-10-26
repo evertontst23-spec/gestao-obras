@@ -6,6 +6,9 @@ import { BotaoImprimir } from '@/components/BotaoImprimir';
 import { reais } from '@/lib/dominio';
 import { data, dataHora, hojeISO } from '@/lib/formato';
 import { CAT_PAG } from '@/app/(app)/dp/pagamentos/comum';
+import { UploadArquivo } from '@/components/UploadArquivo';
+import { registrarDocumento, salvarFotoFuncionario } from '../../../acoes';
+import { PASTAS, docsDoSlot, resumoDossie, slotPreenchido, type Doc } from '@/lib/dossie';
 
 export const metadata = { title: 'Dossiê do funcionário' };
 const VINCULO: Record<string, string> = { clt: 'CLT (próprio)', terceirizado: 'Terceirizado', clt_parceira: 'CLT de empresa parceira', autonomo: 'Autônomo / diarista' };
@@ -23,7 +26,8 @@ const td = 'border border-concreto-300 px-2 py-1 align-top';
 /** Dossiê completo do funcionário, pronto para imprimir ou salvar em PDF */
 export default async function Dossie({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase } = await exigirPapel('admin', 'rh', 'seguranca', 'financeiro', 'engenheiro');
+  const { supabase, perfil } = await exigirPapel('admin', 'rh', 'seguranca', 'financeiro', 'engenheiro');
+  const podeDoc = ['admin', 'rh', 'seguranca'].includes(perfil.papel);
   const { data: f } = await supabase.from('v_funcionarios').select('*').eq('id', id).maybeSingle();
   if (!f) notFound();
   const [{ data: extra }, { data: docs }, { data: epis }, { data: oss }, { data: atests }, { data: pags }, { data: consent }] = await Promise.all([
@@ -40,9 +44,11 @@ export default async function Dossie({ params }: { params: Promise<{ id: string 
   const url = new Map((urls ?? []).map((u) => [u.path, u.signedUrl ?? undefined]));
   const foto = extra?.foto_caminho ? url.get(extra.foto_caminho) : undefined;
   const hoje = hojeISO();
-  const ativos = (docs ?? []).filter((d) => !d.substituido);
-  const presentes = new Set(ativos.map((d) => d.tipo));
-  const faltando = ['ASO', 'Contrato de trabalho', 'NR-06 (EPI)', 'NR-18', 'RG / CPF', 'CTPS'].filter((t) => !presentes.has(t));
+  const lista = (docs ?? []) as Doc[];
+  const osAtual = (oss ?? []).filter((o) => !o.substituida).slice(-1)[0];
+  const x = { foto: !!extra?.foto_caminho, epi: (epis ?? []).length, os: !!osAtual, biometria: !!f.biometria_cadastrada };
+  const resumo = resumoDossie(lista, x, !f.ativo, hoje);
+  const emTrinta = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
   type Pag = { id: number; categoria: string; descricao: string; valor: number; pagamentos: { data_pagamento: string; titulo: string; status: string } };
   const pagamentos = ((pags ?? []) as unknown as Pag[]).sort((a, b) => a.pagamentos.data_pagamento.localeCompare(b.pagamentos.data_pagamento));
 
@@ -52,7 +58,7 @@ export default async function Dossie({ params }: { params: Promise<{ id: string 
         <Link href={`/cadastros/funcionarios/${id}`} className="link text-sm">← Voltar à ficha</Link>
         <BotaoImprimir rotulo="🖨 Imprimir / salvar PDF" />
       </div>
-      <article className="mx-auto max-w-4xl rounded-lg border border-concreto-200 bg-white p-6 text-sm print:border-0 print:p-0">
+      <article className="mx-auto max-w-5xl rounded-lg border border-concreto-200 bg-white p-6 text-sm print:border-0 print:p-0">
         <div className="flex items-start gap-4 border-b-2 border-concreto-800 pb-3">
           {foto ? <img src={foto} alt="" className="h-28 w-28 rounded-md border border-concreto-300 object-cover" />
             : <div className="flex h-28 w-28 items-center justify-center rounded-md border border-dashed border-concreto-300 text-[11px] text-concreto-400">sem foto</div>}
@@ -63,6 +69,72 @@ export default async function Dossie({ params }: { params: Promise<{ id: string 
             <div className="mt-1 text-xs">{f.ativo ? 'Ativo' : `Desligado em ${data(f.data_demissao)}${f.motivo_demissao ? ` — ${f.motivo_demissao}` : ''}`} • emitido em {dataHora(new Date().toISOString())}</div>
           </div>
         </div>
+
+        <Secao t={`Pasta de documentos — ${resumo.ok} de ${resumo.total} obrigatórios`}>
+          {resumo.faltam.length > 0 && <p className="mb-3 rounded bg-atencao-50 px-3 py-2 text-xs text-atencao-800">Faltam: {resumo.faltam.map((s) => s.rotulo).join(', ')}</p>}
+          {resumo.vencidos.length > 0 && <p className="mb-3 rounded bg-atraso-50 px-3 py-2 text-xs text-atraso-700">Vencidos: {resumo.vencidos.map((d) => `${d.tipo} (${data(d.validade)})`).join(', ')}</p>}
+          <div className="space-y-5">
+            {PASTAS.filter((pa) => pa.id !== 'desligamento' || !f.ativo).map((pa) => (
+              <div key={pa.id} className="break-inside-avoid">
+                <h3 className="mb-2 flex items-center gap-2 text-sm font-bold"><span aria-hidden>📁</span>{pa.titulo}
+                  <span className="text-xs font-normal text-concreto-500">{pa.slots.filter((s) => slotPreenchido(s, lista, x)).length}/{pa.slots.length}</span></h3>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {pa.slots.map((s) => {
+                    const ds = docsDoSlot(s, lista);
+                    const cheio = slotPreenchido(s, lista, x);
+                    const venc = ds.find((d) => d.validade && d.validade < hoje);
+                    const breve = !venc && ds.find((d) => d.validade && d.validade <= emTrinta);
+                    const img = s.sistema === 'foto' && foto ? foto : ds.map((d) => d.caminho && d.tipo_mime?.startsWith('image/') ? url.get(d.caminho) : undefined).find(Boolean);
+                    const link = s.sistema === 'epi' && !ds.length ? `/sst/epi/ficha/${id}` : s.sistema === 'os' ? (osAtual ? `/sst/os/${osAtual.id}` : `/sst/os/nova?func=${id}`)
+                      : ds[0]?.caminho ? url.get(ds[0].caminho) : undefined;
+                    return (
+                      <div key={s.tipo} className={`flex min-w-0 flex-col overflow-hidden rounded-md border text-xs ${venc ? 'border-atraso-500' : cheio ? 'border-concreto-300' : s.obrigatorio ? 'border-dashed border-atencao-500' : 'border-dashed border-concreto-300'}`}>
+                        <a href={link} target={link?.startsWith('http') ? '_blank' : undefined} rel="noreferrer"
+                          className={`flex h-28 items-center justify-center overflow-hidden ${cheio ? 'bg-concreto-50' : 'bg-white'} ${link ? 'hover:opacity-90' : 'pointer-events-none'}`}>
+                          {img ? <img src={img} alt={s.rotulo} className="h-full w-full object-cover" />
+                            : cheio ? <span className="text-3xl" aria-hidden>{s.sistema === 'epi' ? '🦺' : s.sistema === 'os' ? '📋' : s.sistema === 'biometria' ? '🙂' : '📄'}</span>
+                            : <span className="px-2 text-center text-[11px] text-concreto-400">{s.obrigatorio ? 'falta' : 'vazio'}</span>}
+                        </a>
+                        <div className="flex flex-1 flex-col gap-1 p-2">
+                          <div className="font-semibold leading-tight">{s.rotulo}{s.obrigatorio && <span className="text-atraso-700"> *</span>}</div>
+                          <div className="text-[11px] text-concreto-500">
+                            {s.sistema === 'epi' && x.epi > 0 ? `${x.epi} entrega(s) no sistema` : s.sistema === 'os' ? (osAtual ? `OS-${String(osAtual.numero).padStart(4, '0')}${osAtual.ciencia_em ? ' assinada' : ' sem ciência'}` : 'não emitida')
+                              : s.sistema === 'biometria' ? (x.biometria ? 'consentimento registrado' : 'sem consentimento')
+                              : s.sistema === 'foto' && x.foto && !ds.length ? 'da biometria / ficha'
+                              : ds.length ? `${ds.length > 1 ? `${ds.length} arquivos • ` : ''}${ds[0].validade ? `validade ${data(ds[0].validade)}` : `anexado ${data(ds[0].criado_em.slice(0, 10))}`}` : '—'}
+                          </div>
+                          {venc && <span className="w-fit rounded bg-atraso-50 px-1.5 font-semibold text-atraso-700">vencido</span>}
+                          {breve && <span className="w-fit rounded bg-atencao-50 px-1.5 font-semibold text-atencao-700">vence em breve</span>}
+                          {ds.length > 1 && <div className="nao-imprimir flex flex-wrap gap-1">{ds.map((d, k) => d.caminho && <a key={d.id} className="link" href={url.get(d.caminho)} target="_blank" rel="noreferrer">arq. {k + 1}</a>)}</div>}
+                          {podeDoc && !s.sistema?.match(/^(os|biometria)$/) && (
+                            <details className="nao-imprimir mt-auto">
+                              <summary className="cursor-pointer font-semibold text-sinal-700">{s.varios ? '+ anexar' : cheio ? 'substituir' : '+ anexar'}</summary>
+                              <div className="mt-2">
+                                {s.sistema === 'foto' ? (
+                                  <UploadArquivo pasta={`rh/${id}`} acao={salvarFotoFuncionario} rotuloBotao="Salvar foto" accept="image/*">
+                                    <input type="hidden" name="funcionario_id" value={id} />
+                                  </UploadArquivo>
+                                ) : (
+                                  <UploadArquivo pasta={`rh/${id}`} acao={registrarDocumento} rotuloBotao="Guardar na pasta">
+                                    <input type="hidden" name="funcionario_id" value={id} /><input type="hidden" name="tipo" value={s.tipo} />
+                                    {s.varios && <input name="descricao" className="entrada" placeholder="Descrição (opcional)" />}
+                                    {s.validade && <div className="grid grid-cols-2 gap-1">
+                                      <label className="text-[10px] text-concreto-500">Emissão<input type="date" name="emissao" className="entrada" /></label>
+                                      <label className="text-[10px] text-concreto-500">Validade<input type="date" name="validade" className="entrada" /></label></div>}
+                                  </UploadArquivo>)}
+                              </div>
+                            </details>)}
+                        </div>
+                      </div>);
+                  })}
+                </div>
+              </div>))}
+          </div>
+          {lista.some((d) => d.substituido) && (
+            <details className="nao-imprimir mt-4 text-xs"><summary className="cursor-pointer text-concreto-600">Versões substituídas ({lista.filter((d) => d.substituido).length}) — guardadas como histórico</summary>
+              <ul className="mt-2 space-y-1">{lista.filter((d) => d.substituido).map((d) => <li key={d.id}>{d.tipo} — anexado {dataHora(d.criado_em)} {d.caminho && url.get(d.caminho) && <a className="link" href={url.get(d.caminho)} target="_blank" rel="noreferrer">abrir</a>}</li>)}</ul>
+            </details>)}
+        </Secao>
 
         <Secao t="Dados pessoais">
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4">
@@ -81,25 +153,6 @@ export default async function Dossie({ params }: { params: Promise<{ id: string 
           </dl>
           <p className="mt-2 text-xs text-concreto-600">Biometria facial: {f.biometria_cadastrada ? `cadastrada com consentimento (LGPD) em ${dataHora(f.biometria_consentida_em)}` : 'não cadastrada'}
             {(consent ?? []).length > 1 && ` • ${consent!.length} registros de consentimento/revogação`}.</p>
-        </Secao>
-
-        <Secao t={`Documentos (${ativos.length})`}>
-          {faltando.length > 0 && <p className="mb-2 text-xs text-atraso-700">Faltam: {faltando.join(', ')}</p>}
-          {!docs?.length ? <p className="text-concreto-500">Nenhum documento anexado.</p> : (
-            <table className="w-full border-collapse text-xs"><thead><tr><th className={th}>Documento</th><th className={th}>Emissão</th><th className={th}>Validade</th><th className={th}>Anexado em</th><th className={`${th} nao-imprimir`}></th></tr></thead>
-              <tbody>{docs.map((d) => (
-                <tr key={d.id} className={d.substituido ? 'text-concreto-400' : ''}>
-                  <td className={td}><b>{d.tipo}</b>{d.descricao && ` — ${d.descricao}`}{d.substituido && ' (substituído)'}</td>
-                  <td className={td}>{data(d.emissao)}</td>
-                  <td className={`${td} ${d.validade && d.validade < hoje ? 'font-bold text-atraso-700' : ''}`}>{data(d.validade)}{d.validade && d.validade < hoje ? ' vencido' : ''}</td>
-                  <td className={td}>{dataHora(d.criado_em)}</td>
-                  <td className={`${td} nao-imprimir`}>{d.caminho && url.get(d.caminho) && <a className="link" href={url.get(d.caminho) ?? undefined} target="_blank" rel="noreferrer">abrir</a>}</td>
-                </tr>))}</tbody></table>)}
-          {ativos.filter((d) => d.tipo_mime?.startsWith('image/') && d.caminho && url.get(d.caminho)).length > 0 && (
-            <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {ativos.filter((d) => d.tipo_mime?.startsWith('image/') && d.caminho && url.get(d.caminho)).map((d) => (
-                <figure key={d.id} className="break-inside-avoid"><img src={url.get(d.caminho!) ?? undefined} alt={d.tipo} className="h-32 w-full rounded border border-concreto-200 object-cover" /><figcaption className="text-[10px]">{d.tipo}</figcaption></figure>))}
-            </div>)}
         </Secao>
 
         <Secao t="Segurança do trabalho">

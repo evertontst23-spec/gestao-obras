@@ -2,6 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { criarClienteServidor } from '@/lib/supabase/server';
+import { TIPOS_VARIOS } from '@/lib/dossie';
 import { type EstadoAcao, dinheiro, mensagemErro, numero, numerosInvalidos, txt } from '@/lib/acoes';
 
 const lista = (f: FormData, k: string) => (txt(f, k) ?? '').split(/[,;\n]/).map((s) => s.trim()).filter(Boolean);
@@ -87,12 +88,14 @@ export async function registrarDocumento(c: Record<string, string | null>): Prom
     validade: c.validade, caminho: c.caminho, tipo_mime: c.tipo_mime };
   if (!d.funcionario_id || !d.caminho) return { erro: 'Anexe o arquivo do documento.' };
   const supabase = await criarClienteServidor();
-  // documento novo do mesmo tipo substitui o anterior (histórico preservado)
-  await supabase.from('funcionario_documentos').update({ substituido: true }).eq('funcionario_id', d.funcionario_id).eq('tipo', d.tipo).eq('substituido', false);
+  // documento novo do mesmo tipo substitui o anterior (histórico preservado); certificados, atestados e outros acumulam
+  if (!TIPOS_VARIOS.has(d.tipo))
+    await supabase.from('funcionario_documentos').update({ substituido: true }).eq('funcionario_id', d.funcionario_id).eq('tipo', d.tipo).eq('substituido', false);
   const { error } = await supabase.from('funcionario_documentos').insert(d);
   if (error) return { erro: mensagemErro(error) };
-  revalidatePath(`/cadastros/funcionarios/${d.funcionario_id}`);
-  return { ok: 'Documento anexado ao dossiê.' };
+  revalidatePath(`/cadastros/funcionarios/${d.funcionario_id}`); revalidatePath(`/cadastros/funcionarios/${d.funcionario_id}/dossie`);
+  revalidatePath('/cadastros/dossies');
+  return { ok: `${d.tipo} guardado na pasta.` };
 }
 
 /** Foto do rosto (tirada no cadastro da biometria ou enviada pelo RH) */
@@ -152,4 +155,41 @@ export async function salvarEmpregador(_: EstadoAcao, f: FormData): Promise<Esta
   if (error) return { erro: erroCadastro(error) };
   revalidatePath('/cadastros/empregadores');
   return { ok: id ? 'Empresa atualizada.' : 'Empresa cadastrada.' };
+}
+
+// ---------------- Importar documentos da ficha de inscrição (links temporários do Supabase das fichas)
+const ORIGEM_FICHAS = 'https://fraqghktmzfxtvznuasx.supabase.co/storage/v1/object/sign/fichas-admissao/';
+export async function importarDocumentosFicha(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { data: papel } = await supabase.rpc('meu_papel');
+  if (!['admin', 'rh'].includes(String(papel))) return { erro: 'Apenas RH ou diretoria importam documentos.' };
+  const linhas = (txt(f, 'linhas') ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
+  if (!linhas.length) return { erro: 'Cole as linhas: matrícula ; tipo ; link.' };
+  const { data: funcs } = await supabase.from('funcionarios').select('id, matricula');
+  const porMat = new Map((funcs ?? []).map((x) => [String(x.matricula), x.id as string]));
+  let ok = 0; const erros: string[] = [];
+  for (const [n, l] of linhas.entries()) {
+    const [mat, tipo, url] = l.split(';').map((x) => x.trim());
+    const fid = porMat.get(mat ?? '');
+    if (!fid || !tipo || !url?.startsWith(ORIGEM_FICHAS)) { erros.push(`linha ${n + 1}: matrícula, tipo ou link inválido`); continue; }
+    try {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`download ${r.status}`);
+      const mime = (r.headers.get('content-type') ?? 'image/jpeg').split(';')[0];
+      if (!/^(image\/|application\/pdf)/.test(mime)) throw new Error('arquivo não é imagem nem PDF');
+      const bytes = new Uint8Array(await r.arrayBuffer());
+      if (bytes.length > 15e6) throw new Error('arquivo grande demais');
+      const ext = mime === 'application/pdf' ? 'pdf' : mime === 'image/png' ? 'png' : 'jpg';
+      const caminho = `rh/${fid}/ficha-${crypto.randomUUID()}.${ext}`;
+      const up = await supabase.storage.from('anexos').upload(caminho, bytes, { contentType: mime });
+      if (up.error) throw new Error(up.error.message);
+      const res = tipo === 'Foto'
+        ? await salvarFotoFuncionario({ funcionario_id: fid, caminho })
+        : await registrarDocumento({ funcionario_id: fid, tipo, descricao: 'Enviado pelo funcionário na ficha de inscrição', caminho, tipo_mime: mime, emissao: null, validade: null });
+      if (res?.erro) throw new Error(res.erro);
+      ok++;
+    } catch (e) { erros.push(`linha ${n + 1} (${mat} ${tipo}): ${(e as Error).message}`); }
+  }
+  revalidatePath('/cadastros/dossies');
+  return erros.length ? { erro: `${ok} importado(s). Problemas: ${erros.join(' | ')}` } : { ok: `${ok} documento(s) guardado(s) nas pastas.` };
 }

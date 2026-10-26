@@ -40,7 +40,7 @@ export default async function Funcionarios({ searchParams }: { searchParams: Pro
   return (
     <>
       <Cabecalho titulo="Funcionários" sub="Dossiê, centro de custo por obra, documentos e histórico. Desligamento não apaga a pasta."
-        acoes={pode && <div className="flex gap-2"><LinkBotao href="/cadastros/empregadores" variante="secundario">Empresas</LinkBotao><LinkBotao href="/cadastros/funcionarios/novo">+ Novo funcionário</LinkBotao></div>} />
+        acoes={pode && <div className="flex gap-2"><LinkBotao href="/cadastros/dossies" variante="secundario">📁 Dossiês</LinkBotao><LinkBotao href="/cadastros/empregadores" variante="secundario">Empresas</LinkBotao><LinkBotao href="/cadastros/funcionarios/novo">+ Novo funcionário</LinkBotao></div>} />
       {porEmpresa.size > 0 && (
         <div className="mb-4 flex flex-wrap gap-2">
           {[...porEmpresa].sort((a, b) => b[1].n - a[1].n).map(([nome, e]) => (
@@ -86,7 +86,7 @@ export default async function Funcionarios({ searchParams }: { searchParams: Pro
                   : f.documentos_vencidos > 0 ? <Selo cor="bg-atraso-50 text-atraso-700">{f.documentos_vencidos} doc. vencido(s)</Selo>
                   : f.documentos_a_vencer > 0 ? <Selo cor="bg-atencao-50 text-atencao-700">doc. a vencer</Selo>
                   : <Selo cor="bg-ok-50 text-ok-700">Ativo</Selo>}</td>
-                <td className="whitespace-nowrap text-xs"><Link className="link" href={`/cadastros/funcionarios/${f.id}/dossie`}>📄 {nDocs.get(f.id) ?? 0} doc.</Link></td>
+                <td className="whitespace-nowrap text-xs"><Link className="link" href={`/cadastros/funcionarios/${f.id}/dossie`}>📁 {nDocs.get(f.id) ?? 0} doc.</Link></td>
               </tr>))}
             </tbody>
           </table>

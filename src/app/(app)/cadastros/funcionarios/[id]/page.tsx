@@ -9,7 +9,8 @@ import { CadastroBiometria } from '@/components/CadastroBiometria';
 import { removerBiometria } from '@/app/(app)/sst/acoes';
 import Link from 'next/link';
 import { atualizarFuncionario, desligarFuncionario, reativarFuncionario, registrarDocumento, salvarFotoFuncionario } from '../../acoes';
-import { TIPOS_DOC_FUNC, reais } from '@/lib/dominio';
+import { reais } from '@/lib/dominio';
+import { TIPOS_DOSSIE } from '@/lib/dossie';
 import { data, dataHora, hojeISO } from '@/lib/formato';
 
 export default async function DossieFuncionario({ params }: { params: Promise<{ id: string }> }) {
@@ -40,7 +41,7 @@ export default async function DossieFuncionario({ params }: { params: Promise<{ 
   return (
     <>
       <Cabecalho titulo={f.nome}
-        acoes={<Link href={`/cadastros/funcionarios/${id}/dossie`} className="inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold hover:border-sinal-400">📄 Dossiê completo (PDF)</Link>}
+        acoes={<Link href={`/cadastros/funcionarios/${id}/dossie`} className="inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold hover:border-sinal-400">📁 Abrir pasta (dossiê)</Link>}
         sub={<span className="flex flex-wrap items-center gap-2"><span className="font-mono">Matrícula {f.matricula}</span> • {f.funcao_nome ?? 'função a definir'} • {f.empregador_nome ?? 'sem empresa'} • {f.obra_codigo ?? 'Escritório'}
           {f.ativo ? <Selo cor="bg-ok-50 text-ok-700">Ativo</Selo> : <Selo cor="bg-concreto-200 text-concreto-700">Desligado em {data(f.data_demissao)}</Selo>}</span>} />
 
@@ -105,7 +106,7 @@ export default async function DossieFuncionario({ params }: { params: Promise<{ 
             <Cartao titulo="Anexar documento">
               <UploadArquivo pasta={`rh/${id}`} acao={registrarDocumento} rotuloBotao="Anexar ao dossiê">
                 <input type="hidden" name="funcionario_id" value={id} />
-                <Campo rotulo="Tipo"><select name="tipo" className="entrada">{TIPOS_DOC_FUNC.map((t) => <option key={t}>{t}</option>)}</select></Campo>
+                <Campo rotulo="Tipo"><select name="tipo" className="entrada">{TIPOS_DOSSIE.map((t) => <option key={t}>{t}</option>)}</select></Campo>
                 <Campo rotulo="Descrição"><input name="descricao" className="entrada" placeholder="Ex.: ASO admissional" /></Campo>
                 <div className="grid grid-cols-2 gap-2">
                   <Campo rotulo="Emissão"><input type="date" name="emissao" className="entrada" /></Campo>
