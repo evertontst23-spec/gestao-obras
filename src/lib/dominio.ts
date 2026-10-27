@@ -10,7 +10,7 @@ export type StatusMaterial =
 export type Prioridade = 'baixa' | 'normal' | 'alta' | 'urgente';
 export type SituacaoPrazo = 'no_prazo' | 'atencao' | 'atrasado' | 'concluido';
 
-export interface Perfil { id: string; nome: string; email: string | null; telefone: string | null; papel: Papel; ativo: boolean }
+export interface Perfil { id: string; nome: string; email: string | null; telefone: string | null; papel: Papel; ativo: boolean; coordenador_compras?: boolean }
 
 export const PAPEIS: Record<Papel, string> = {
   admin: 'Diretoria / Administrador',
@@ -100,7 +100,7 @@ export const codOC = (n: number) => `OC-${String(n).padStart(5, '0')}`;
 
 export const STATUS_COTACAO: Record<string, { rotulo: string; cor: string }> = {
   em_cotacao: { rotulo: 'Em cotação', cor: 'bg-atencao-50 text-atencao-700' },
-  aguardando_aprovacao: { rotulo: 'Aguardando diretoria', cor: 'bg-sinal-100 text-sinal-700' },
+  aguardando_aprovacao: { rotulo: 'Aguardando aprovação', cor: 'bg-sinal-100 text-sinal-700' },
   aprovada: { rotulo: 'Aprovada — OC emitida', cor: 'bg-ok-50 text-ok-700' },
   recusada: { rotulo: 'Recusada', cor: 'bg-atraso-50 text-atraso-700' },
   cancelada: { rotulo: 'Cancelada', cor: 'bg-concreto-200 text-concreto-600' },

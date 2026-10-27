@@ -1,7 +1,7 @@
 import { exigirPapel } from '@/lib/sessao';
 import { Cabecalho, Cartao, Campo, Selo } from '@/components/ui';
 import { FormAcao, Botao } from '@/components/formulario';
-import { atualizarUsuario, cadastrarUsuario, redefinirSenha } from './acoes';
+import { atualizarUsuario, cadastrarUsuario, definirLimiteCompras, redefinirSenha } from './acoes';
 import { PAPEIS, type Perfil } from '@/lib/dominio';
 
 export const metadata = { title: 'Usuários e permissões' };
@@ -18,10 +18,22 @@ export default async function Usuarios() {
   const { supabase } = await exigirPapel('admin');
   const { data } = await supabase.from('perfis').select('*').order('ativo', { ascending: false }).order('nome');
   const usuarios = (data ?? []) as Perfil[];
+  const { data: par } = await supabase.from('compras_parametros').select('limite_coordenador').maybeSingle();
+  const limite = Number(par?.limite_coordenador ?? 0);
+  const coords = usuarios.filter((u) => u.coordenador_compras && u.ativo);
   return (
     <>
       <Cabecalho titulo="Usuários e permissões" sub={`${usuarios.filter((u) => u.ativo).length} ativo(s)`} />
       <div className="grid gap-5 lg:grid-cols-3">
+        <div className="space-y-5">
+        <Cartao titulo="Alçada de aprovação de compras">
+          <FormAcao acao={definirLimiteCompras} className="space-y-3">
+            <Campo rotulo="Coordenador de compras aprova até (R$)" dica="Acima deste valor, só a diretoria aprova a compra.">
+              <input name="limite" inputMode="decimal" required defaultValue={limite.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} className="entrada" /></Campo>
+            <Botao variante="secundario">Salvar limite</Botao>
+          </FormAcao>
+          <p className="mt-3 text-xs text-concreto-500">Coordenador(es) de compras: {coords.length ? <b>{coords.map((u) => u.nome).join(', ')}</b> : 'nenhum — marque em um usuário ao lado'}.</p>
+        </Cartao>
         <Cartao titulo="Cadastrar colaborador">
           <FormAcao acao={cadastrarUsuario} limparAoConcluir className="space-y-3">
             <Campo rotulo="Nome completo"><input name="nome" required className="entrada" /></Campo>
@@ -36,12 +48,13 @@ export default async function Usuarios() {
             <p><b>Encarregado:</b> executa as tarefas atribuídas e pede materiais.</p><p><b>Compras / Almoxarifado:</b> atendem os pedidos de todas as obras.</p>
           </div>
         </Cartao>
+        </div>
         <div className="space-y-3 lg:col-span-2">
           {usuarios.map((u) => (
             <details key={u.id} className={`rounded-lg border border-concreto-200 bg-white ${u.ativo ? '' : 'opacity-60'}`}>
               <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 px-4 py-3">
                 <span><b>{u.nome}</b> <span className="text-sm text-concreto-500">{u.email}</span></span>
-                <span className="flex gap-2"><Selo cor="bg-concreto-100 text-concreto-700">{PAPEIS[u.papel]}</Selo>{!u.ativo && <Selo cor="bg-atraso-50 text-atraso-700">Inativo</Selo>}</span>
+                <span className="flex gap-2"><Selo cor="bg-concreto-100 text-concreto-700">{PAPEIS[u.papel]}</Selo>{u.coordenador_compras && <Selo cor="bg-sky-100 text-sky-800">Coord. compras</Selo>}{!u.ativo && <Selo cor="bg-atraso-50 text-atraso-700">Inativo</Selo>}</span>
               </summary>
               <div className="grid gap-4 border-t border-concreto-100 p-4 md:grid-cols-2">
                 <FormAcao acao={atualizarUsuario} className="space-y-2">
@@ -50,6 +63,7 @@ export default async function Usuarios() {
                   <Campo rotulo="Telefone"><input name="telefone" defaultValue={u.telefone ?? ''} className="entrada" /></Campo>
                   <Campo rotulo="Perfil"><SelectPapel padrao={u.papel} /></Campo>
                   <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="ativo" defaultChecked={u.ativo} className="accent-sinal-500" /> Acesso ativo</label>
+                  <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="coordenador_compras" defaultChecked={!!u.coordenador_compras} className="accent-sinal-500" /> Coordenador de compras (aprova até {limite.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })})</label>
                   <Botao variante="secundario">Salvar</Botao>
                 </FormAcao>
                 <FormAcao acao={redefinirSenha} limparAoConcluir className="space-y-2">

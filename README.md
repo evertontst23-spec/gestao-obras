@@ -14,7 +14,7 @@ npm install
 npm run dev
 ```
 Banco: aplique `supabase/migrations/*.sql` (ver docs/IMPLANTACAO.md).
-Testes: `npm run test:db` (326 verificações das regras no banco) · `npm run test:planilha` (leitor de planilhas).
+Testes: `npm run test:db` (339 verificações das regras no banco) · `npm run test:planilha` (leitor de planilhas).
 Para experimentar a importação: `docs/EXEMPLO_planilha_orcamentaria.xlsx` (dados fictícios).
 
 ## Estrutura
@@ -40,7 +40,8 @@ supabase/
     …0018_material_codigo.sql          código padronizado no pedido de material e cadastro automático de insumos
     …0019_rdo_frentes.sql              RDO por frentes de serviço; responsável da obra pode ser encarregado, engenheiro ou diretoria
     …0020_locacao_vinculo.sql          pedido de compra ou locação (período e controle de locações), vínculo com tarefa obrigatório, encarregado de campo na tarefa
-  tests/                  13 cenários com 326 verificações (dados de teste prefixados "TESTE")
+    …0021_alcada_alertas.sql           alçada de aprovação de compras (coordenador até o limite, acima só diretoria) e alertas de todas as etapas do fluxo
+  tests/                  14 cenários com 339 verificações (dados de teste prefixados "TESTE")
 src/
   middleware.ts           sessão e proteção de rotas
   lib/                    clientes Supabase, sessão, rótulos do domínio, formatação

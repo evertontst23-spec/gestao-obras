@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { criarClienteServidor } from '@/lib/supabase/server';
 import { criarClienteAdmin } from '@/lib/supabase/admin';
-import { type EstadoAcao, mensagemErro, txt } from '@/lib/acoes';
+import { type EstadoAcao, dinheiro, mensagemErro, txt } from '@/lib/acoes';
 import type { Papel } from '@/lib/dominio';
 
 const PAPEIS_VALIDOS: Papel[] = ['admin', 'engenheiro', 'encarregado', 'compras', 'almoxarifado', 'seguranca', 'rh', 'financeiro'];
@@ -47,6 +47,8 @@ export async function atualizarUsuario(_: EstadoAcao, f: FormData): Promise<Esta
   if (id === user?.id && (!ativo || papel !== 'admin')) return { erro: 'Você não pode remover seu próprio acesso de administrador.' };
   const { error } = await supabase.from('perfis').update({ nome: txt(f, 'nome'), telefone: txt(f, 'telefone'), papel, ativo }).eq('id', id);
   if (error) return { erro: mensagemErro(error) };
+  const { error: e2 } = await supabase.rpc('perfil_definir_coordenador', { p_usuario: id, p_coordenador: f.get('coordenador_compras') === 'on' });
+  if (e2) return { erro: mensagemErro(e2) };
   // mantém o papel também no token de acesso
   await criarClienteAdmin().auth.admin.updateUserById(id, { app_metadata: { papel }, ban_duration: ativo ? 'none' : '876000h' });
   revalidatePath('/usuarios');
@@ -60,4 +62,15 @@ export async function redefinirSenha(_: EstadoAcao, f: FormData): Promise<Estado
   const { error } = await criarClienteAdmin().auth.admin.updateUserById(txt(f, 'id')!, { password: senha });
   if (error) return { erro: error.message };
   return { ok: 'Senha redefinida.' };
+}
+
+export async function definirLimiteCompras(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await exigirAdmin();
+  if (!supabase) return { erro: 'Apenas a diretoria define o limite.' };
+  const v = dinheiro(f, 'limite');
+  if (v == null) return { erro: 'Informe o valor do limite.' };
+  const { error } = await supabase.rpc('compras_definir_limite', { p_valor: v });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/usuarios'); revalidatePath('/suprimentos', 'layout');
+  return { ok: `Limite do coordenador de compras: R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.` };
 }

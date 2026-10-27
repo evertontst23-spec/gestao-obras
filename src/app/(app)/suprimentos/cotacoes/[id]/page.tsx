@@ -24,6 +24,10 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
   const menorItem = new Map<string, number>();
   (itens ?? []).forEach((i) => { const vs = ps.map((p) => preco.get(`${p.id}:${i.id}`)).filter((v): v is number => v !== undefined); if (vs.length) menorItem.set(i.id, Math.min(...vs)); });
   const comprador = perfil.papel === 'compras' || perfil.papel === 'admin';
+  const { data: par } = await supabase.from('compras_parametros').select('limite_coordenador').maybeSingle();
+  const limite = Number(par?.limite_coordenador ?? 0);
+  const dentroLimite = Number(c.valor_escolhido ?? 0) <= limite;
+  const podeAprovar = perfil.papel === 'admin' || (!!perfil.coordenador_compras && dentroLimite);
   const aberta = c.status === 'em_cotacao';
   const nomeForn = (p: (typeof ps)[number]) => (p.fornecedores as unknown as { nome: string })?.nome;
 
@@ -93,13 +97,15 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
                   <span className="font-mono font-bold">{reais(p.valor_total)}</span>{k === 0 && <Selo cor="bg-ok-50 text-ok-700">menor</Selo>}
                 </label>))}</div>
               <Campo rotulo="Justificativa (obrigatória se não for a de menor valor)"><textarea name="justificativa" rows={2} className="entrada" /></Campo>
-              <Botao>Enviar para a diretoria</Botao>
+              <Botao>Enviar para aprovação</Botao>
             </FormAcao>
           </Cartao>
         )}
 
         {c.status === 'aguardando_aprovacao' && (
-          <Cartao titulo="Aprovação da diretoria" className="border-2 border-sinal-500">
+          <Cartao titulo={dentroLimite ? 'Aprovação (coordenador de compras ou diretoria)' : 'Aprovação da diretoria'} className="border-2 border-sinal-500">
+            <p className={`mb-3 rounded px-3 py-2 text-xs font-semibold ${dentroLimite ? 'bg-ok-50 text-ok-700' : 'bg-atencao-50 text-atencao-800'}`}>
+              Limite do coordenador de compras: {reais(limite)}. {dentroLimite ? 'Esta compra está dentro do limite — o coordenador ou a diretoria podem aprovar.' : 'Esta compra está acima do limite — só a diretoria aprova.'}</p>
             <dl className="mb-3 grid grid-cols-2 gap-3">
               <Info rotulo="Fornecedor escolhido">{c.fornecedor_escolhido}</Info>
               <Info rotulo="Valor">{reais(c.valor_escolhido)}</Info>
@@ -107,7 +113,7 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
               <Info rotulo="Enviado em">{dataHora(c.enviado_em)}</Info>
               {c.justificativa_escolha && <div className="col-span-2"><Info rotulo="Justificativa do comprador">{c.justificativa_escolha}</Info></div>}
             </dl>
-            {perfil.papel === 'admin' ? (
+            {podeAprovar ? (
               <FormAcao acao={decidirCotacao} className="space-y-3">
                 <input type="hidden" name="cotacao_id" value={id} />
                 <div className="grid grid-cols-2 gap-2">
@@ -120,7 +126,7 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
                   <Botao variante="perigo" name="decisao" value="recusar">Recusar</Botao>
                 </div>
               </FormAcao>
-            ) : <p className="text-sm text-concreto-600">Aguardando decisão da diretoria.</p>}
+            ) : <p className="text-sm text-concreto-600">{dentroLimite ? 'Aguardando o coordenador de compras ou a diretoria.' : 'Aguardando decisão da diretoria.'}</p>}
           </Cartao>
         )}
 

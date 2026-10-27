@@ -54,7 +54,7 @@ export default async function Suprimentos({ searchParams }: { searchParams: Prom
       <Cabecalho titulo={perfil.papel === 'almoxarifado' ? 'Almoxarifado' : 'Suprimentos'} sub="Itens de material em aberto, por etapa do fluxo" />
       <AbasSuprimentos atual="filas" />
       <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-3">
-        <Indicador rotulo="Compras aguardando diretoria" valor={cotAprovar ?? 0} tom={cotAprovar ? 'sinal' : 'ok'} href="/suprimentos/cotacoes?status=aguardando_aprovacao" />
+        <Indicador rotulo="Compras aguardando aprovação" valor={cotAprovar ?? 0} tom={cotAprovar ? 'sinal' : 'ok'} href="/suprimentos/cotacoes?status=aguardando_aprovacao" />
         <Indicador rotulo="OCs aguardando pagamento" valor={ocPagar ?? 0} href="/suprimentos/ordens?status=emitida" />
         <Indicador rotulo="OCs pagas — receber na obra" valor={ocColeta ?? 0} tom={ocColeta ? 'sinal' : 'ok'} href="/suprimentos/ordens?status=pronta_coleta" />
       </div>
