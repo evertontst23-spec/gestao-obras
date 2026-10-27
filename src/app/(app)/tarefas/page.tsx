@@ -25,7 +25,7 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
   const [{ data: tarefas }, { data: obras }, { data: encarregados }, { data: etapas }] = await Promise.all([
     q,
     supabase.from('obras').select('id, codigo, nome').order('nome'),
-    supabase.from('perfis').select('id, nome').eq('papel', 'encarregado').order('nome'),
+    supabase.from('perfis').select('id, nome').in('papel', ['encarregado', 'engenheiro', 'admin']).order('nome'),
     f.obra ? supabase.from('etapas').select('id, nome').eq('obra_id', f.obra).order('ordem') : Promise.resolve({ data: [] as { id: string; nome: string }[] }),
   ]);
   const ts = tarefas ?? [];

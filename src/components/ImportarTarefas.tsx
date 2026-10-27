@@ -14,14 +14,14 @@ const MODELO = 'Serviço;Local;Quantidade;Unidade;Início;Fim;Responsável;Etapa
   + 'Reboco interno;Pavimento 1;80;m²;10/11/2026;21/11/2026;;Acabamento;Alta;Usar argamassa industrializada\n';
 
 /** Importa uma planilha (Excel ou CSV) de tarefas para uma obra: reconhece as colunas, mostra a prévia e cria tudo de uma vez. */
-export function ImportarTarefas({ obra, encarregados, etapas, hoje }: { obra: string; encarregados: Op[]; etapas: Op[]; hoje: string }) {
+export function ImportarTarefas({ obra, encarregados, etapas, hoje, padrao = '' }: { obra: string; encarregados: Op[]; etapas: Op[]; hoje: string; padrao?: string }) {
   const router = useRouter();
   const ref = useRef<HTMLInputElement>(null);
   const [nomeArq, setNomeArq] = useState('');
   const [abas, setAbas] = useState<Aba[]>([]);
   const [abaSel, setAbaSel] = useState('');
   const [mapa, setMapa] = useState<MapaTarefas | null>(null);
-  const [respPadrao, setRespPadrao] = useState(encarregados.length === 1 ? encarregados[0].id : '');
+  const [respPadrao, setRespPadrao] = useState(padrao || (encarregados.length === 1 ? encarregados[0].id : ''));
   const [iniPadrao, setIniPadrao] = useState(hoje);
   const [diasPadrao, setDiasPadrao] = useState('7');
   const [estado, setEstado] = useState<'livre' | 'lendo' | 'enviando'>('livre');
@@ -111,7 +111,7 @@ export function ImportarTarefas({ obra, encarregados, etapas, hoje }: { obra: st
           <div className="grid gap-3 rounded-lg border border-concreto-200 bg-white p-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
             {abas.length > 1 && <label className="text-xs text-concreto-600">Aba<select value={abaSel} onChange={(e) => trocarAba(e.target.value)} className="entrada block">{abas.map((a) => <option key={a.nome}>{a.nome}</option>)}</select></label>}
             <label className="text-xs text-concreto-600">Linha do cabeçalho<input type="number" min={1} value={mapa.linha + 1} onChange={(e) => setMapa({ ...mapa, linha: Math.max(0, Number(e.target.value) - 1) })} className="entrada block" /></label>
-            <label className="text-xs text-concreto-600">Responsável padrão *<select value={respPadrao} onChange={(e) => setRespPadrao(e.target.value)} className="entrada block"><option value="">Escolha…</option>{encarregados.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}</select></label>
+            <label className="text-xs text-concreto-600">Responsável (da obra) *<select value={respPadrao} onChange={(e) => setRespPadrao(e.target.value)} className="entrada block"><option value="">Escolha…</option>{encarregados.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}</select></label>
             <label className="text-xs text-concreto-600">Início quando vazio<input type="date" value={iniPadrao} onChange={(e) => setIniPadrao(e.target.value)} className="entrada block" /></label>
             <label className="text-xs text-concreto-600">Prazo quando sem fim (dias)<input type="number" min={0} value={diasPadrao} onChange={(e) => setDiasPadrao(e.target.value)} className="entrada block" /></label>
           </div>
@@ -126,7 +126,7 @@ export function ImportarTarefas({ obra, encarregados, etapas, hoje }: { obra: st
                   </select></label>))}
             </div>
           </details>
-          {!encarregados.length && <p className="rounded-md bg-atraso-50 px-3 py-2 text-sm text-atraso-700">Não há usuário com perfil de encarregado ativo. Cadastre um encarregado em Usuários para poder criar tarefas.</p>}
+          {!encarregados.length && <p className="rounded-md bg-atraso-50 px-3 py-2 text-sm text-atraso-700">Não há usuário que possa ser responsável (encarregado, engenheiro ou diretoria).</p>}
           <div className="rounded-lg border border-concreto-200 bg-white">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-concreto-100 px-3 py-2 text-sm">
               <b>{linhas.length} tarefa(s) encontrada(s)</b>

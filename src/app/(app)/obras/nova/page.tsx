@@ -17,8 +17,8 @@ export default async function NovaObra() {
       <Cartao>
         <FormAcao acao={criarObra}>
           <CamposObra rotulo="Cadastrar obra"
-            engenheiros={lista.filter((p) => p.papel === 'engenheiro')}
-            encarregados={lista.filter((p) => p.papel === 'encarregado')} />
+            engenheiros={lista.filter((p) => ['engenheiro', 'admin'].includes(p.papel))}
+            encarregados={lista.filter((p) => ['encarregado', 'engenheiro', 'admin'].includes(p.papel))} />
         </FormAcao>
       </Cartao>
     </>

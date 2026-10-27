@@ -81,8 +81,10 @@ export async function salvarContrato(_: EstadoAcao, f: FormData): Promise<Estado
 export async function registrarDiario(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
   const supabase = await criarClienteServidor();
   const obra = txt(f, 'obra_id');
-  const dados: Record<string, string | null> = {};
-  for (const k of ['clima', 'equipe_presente', 'equipe_descricao', 'servicos_executados', 'ocorrencias', 'paralisacoes', 'necessidades_material', 'observacoes']) dados[k] = txt(f, k);
+  const dados: Record<string, unknown> = {};
+  for (const k of ['clima', 'servicos_executados', 'ocorrencias', 'paralisacoes', 'necessidades_material', 'observacoes']) dados[k] = txt(f, k);
+  try { dados.frentes = JSON.parse(txt(f, 'frentes') ?? '[]'); } catch { return { erro: 'Frentes de serviço inválidas.' }; }
+  if (!(dados.frentes as unknown[]).length && !dados.servicos_executados) return { erro: 'Adicione pelo menos uma frente de serviço (serviço e quem trabalhou) ou escreva o resumo do dia.' };
   const { data, error } = await supabase.rpc('diario_registrar', { p_obra: obra, p_data: txt(f, 'data'), p_dados: dados, p_tarefas: [] });
   if (error) return { erro: mensagemErro(error) };
   redirect(`/obras/${obra}/diario/${data}`);

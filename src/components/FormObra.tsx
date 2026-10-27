@@ -18,10 +18,10 @@ export function CamposObra({ obra, engenheiros, encarregados, rotulo }:
           {engenheiros.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
         </select>
       </Campo>
-      <Campo rotulo="Encarregado responsável">
+      <Campo rotulo="Responsável pela obra (encarregado)" dica="Recebe as tarefas da planilha e os avisos da obra">
         <select name="encarregado_id" defaultValue={obra?.encarregado_id ?? ''} className="entrada">
           <option value="">—</option>
-          {encarregados.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+          {encarregados.map((p) => <option key={p.id} value={p.id}>{p.nome}{p.papel !== 'encarregado' ? ` (${p.papel === 'admin' ? 'diretoria' : 'engenheiro'})` : ''}</option>)}
         </select>
       </Campo>
       <Campo rotulo="Situação">

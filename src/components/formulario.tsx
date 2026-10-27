@@ -1,19 +1,30 @@
 'use client';
-import { useActionState, useEffect, useRef, type ReactNode } from 'react';
+import { createContext, startTransition, useActionState, useContext, useEffect, useRef, type ReactNode } from 'react';
 import { useFormStatus } from 'react-dom';
 import type { EstadoAcao } from '@/lib/acoes';
 
 type Acao = (estado: EstadoAcao, dados: FormData) => Promise<EstadoAcao>;
+const Enviando = createContext<boolean | null>(null);
 
-/** Formulário ligado a uma Server Action, com mensagem de erro/sucesso. */
+/**
+ * Formulário ligado a uma Server Action, com mensagem de erro/sucesso.
+ * Envia por onSubmit (e não pelo action do form) para o React não "resetar" os campos depois de salvar:
+ * o reset automático fazia selects voltarem ao valor antigo (ex.: a função do funcionário).
+ */
 export function FormAcao({ acao, children, className = '', limparAoConcluir = false }:
   { acao: Acao; children: ReactNode; className?: string; limparAoConcluir?: boolean }) {
-  const [estado, despachar] = useActionState(acao, null);
+  const [estado, despachar, pendente] = useActionState(acao, null);
   const ref = useRef<HTMLFormElement>(null);
   useEffect(() => { if (estado?.ok && limparAoConcluir) ref.current?.reset(); }, [estado, limparAoConcluir]);
   return (
-    <form ref={ref} action={despachar} className={className}>
-      {children}
+    <form ref={ref} className={className} onSubmit={(e) => {
+      e.preventDefault();
+      if (pendente) return;
+      const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLElement | null;
+      const dados = new FormData(e.currentTarget, submitter && submitter.getAttribute('name') ? submitter : undefined);
+      startTransition(() => despachar(dados));
+    }}>
+      <Enviando.Provider value={pendente}>{children}</Enviando.Provider>
       {estado?.erro && <p role="alert" className="mt-3 rounded-md bg-atraso-50 px-3 py-2 text-sm font-medium text-atraso-700">{estado.erro}</p>}
       {estado?.ok && <p className="mt-3 rounded-md bg-ok-50 px-3 py-2 text-sm font-medium text-ok-700">{estado.ok}</p>}
     </form>
@@ -30,7 +41,9 @@ const VARIANTES = {
 
 export function Botao({ children, variante = 'primario', grande = false, className = '', ...resto }:
   { children: ReactNode; variante?: keyof typeof VARIANTES; grande?: boolean; className?: string } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  const { pending } = useFormStatus();
+  const ctx = useContext(Enviando);
+  const { pending: pendenteForm } = useFormStatus();
+  const pending = ctx ?? pendenteForm;
   return (
     <button
       type="submit"

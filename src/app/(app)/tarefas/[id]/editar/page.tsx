@@ -16,7 +16,7 @@ export default async function EditarTarefa({ params }: { params: Promise<{ id: s
   const [{ data: itensPl }, { data: etapas }, { data: encarregados }] = await Promise.all([
     pl ? supabase.from('v_planilha_itens').select('id, codigo, descricao, unidade, saldo').eq('planilha_id', pl.id).eq('tipo', 'servico').order('ordem') : Promise.resolve({ data: [] }),
     supabase.from('etapas').select('id, nome').eq('obra_id', t.obra_id).order('ordem'),
-    supabase.from('perfis').select('*').eq('papel', 'encarregado').eq('ativo', true).order('nome'),
+    supabase.from('perfis').select('*').in('papel', ['encarregado', 'engenheiro', 'admin']).eq('ativo', true).order('nome'),
   ]);
   return (
     <>

@@ -12,7 +12,7 @@ export default async function NovaTarefa({ searchParams }: { searchParams: Promi
   const { obra } = await searchParams;
   const { supabase, perfil } = await exigirPapel('admin', 'engenheiro');
   // RLS já restringe às obras em que o usuário atua
-  const { data: obras } = await supabase.from('obras').select('id, codigo, nome').not('situacao', 'in', '(concluida,cancelada)').order('nome');
+  const { data: obras } = await supabase.from('obras').select('id, codigo, nome, encarregado_id, engenheiro_id').not('situacao', 'in', '(concluida,cancelada)').order('nome');
   void perfil;
 
   if (!obras?.length) return <><Cabecalho titulo="Nova tarefa" /><Vazio>Cadastre uma obra antes. <Link className="link" href="/obras/nova">Nova obra</Link></Vazio></>;
@@ -34,7 +34,7 @@ export default async function NovaTarefa({ searchParams }: { searchParams: Promi
   const [{ data: itensPl }, { data: etapas }, { data: membros }] = await Promise.all([
     pl ? supabase.from('v_planilha_itens').select('id, codigo, descricao, unidade, saldo').eq('planilha_id', pl.id).eq('tipo', 'servico').order('ordem') : Promise.resolve({ data: [] }),
     supabase.from('etapas').select('id, nome').eq('obra_id', obraSel).order('ordem'),
-    supabase.from('perfis').select('*').eq('papel', 'encarregado').eq('ativo', true).order('nome'),
+    supabase.from('perfis').select('*').in('papel', ['encarregado', 'engenheiro', 'admin']).eq('ativo', true).order('nome'),
   ]);
   const o = obras.find((x) => x.id === obraSel)!;
   return (
@@ -44,7 +44,7 @@ export default async function NovaTarefa({ searchParams }: { searchParams: Promi
       <Cartao>
         <FormAcao acao={criarTarefa} limparAoConcluir>
           <input type="hidden" name="obra_id" value={obraSel} />
-          <CamposTarefa itens={(itensPl ?? []) as { id: string; codigo: string | null; descricao: string; unidade: string | null; saldo: number }[]} etapas={etapas ?? []} encarregados={(membros ?? []) as Perfil[]} comPrazo />
+          <CamposTarefa tarefa={{ encarregado_id: o.encarregado_id ?? o.engenheiro_id ?? '' }} itens={(itensPl ?? []) as { id: string; codigo: string | null; descricao: string; unidade: string | null; saldo: number }[]} etapas={etapas ?? []} encarregados={(membros ?? []) as Perfil[]} comPrazo />
           <div className="mt-5 flex flex-wrap gap-2">
             <Botao>Criar e abrir tarefa</Botao>
             <Botao variante="secundario" name="continuar" value="1">Criar e cadastrar outra</Botao>

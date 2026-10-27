@@ -9,7 +9,7 @@ export const metadata = { title: 'Importar planilha de tarefas' };
 export default async function ImportarTarefasPagina({ searchParams }: { searchParams: Promise<{ obra?: string }> }) {
   const { obra } = await searchParams;
   const { supabase } = await exigirPapel('admin', 'engenheiro');
-  const { data: obras } = await supabase.from('obras').select('id, codigo, nome').not('situacao', 'in', '(concluida,cancelada)').order('nome');
+  const { data: obras } = await supabase.from('obras').select('id, codigo, nome, encarregado_id, engenheiro_id').not('situacao', 'in', '(concluida,cancelada)').order('nome');
   if (!obras?.length) return <><Cabecalho titulo="Importar planilha de tarefas" /><Vazio>Cadastre uma obra antes.</Vazio></>;
   const o = obras.find((x) => x.id === obra);
   if (!o) {
@@ -23,7 +23,7 @@ export default async function ImportarTarefasPagina({ searchParams }: { searchPa
       </>);
   }
   const [{ data: enc }, { data: etapas }, { count }] = await Promise.all([
-    supabase.from('perfis').select('id, nome').eq('papel', 'encarregado').eq('ativo', true).order('nome'),
+    supabase.from('perfis').select('id, nome, papel').in('papel', ['encarregado', 'engenheiro', 'admin']).eq('ativo', true).order('nome'),
     supabase.from('etapas').select('id, nome').eq('obra_id', o.id).order('ordem'),
     supabase.from('tarefas').select('id', { count: 'exact', head: true }).eq('obra_id', o.id),
   ]);
@@ -31,7 +31,9 @@ export default async function ImportarTarefasPagina({ searchParams }: { searchPa
     <>
       <Cabecalho titulo="Importar planilha de tarefas" sub={<>Obra: <b>{o.codigo} — {o.nome}</b> · {count ?? 0} tarefa(s) já cadastrada(s) · <Link href="/tarefas/importar" className="link">trocar obra</Link></>} />
       <div className="grid gap-5 lg:grid-cols-3">
-        <Cartao className="lg:col-span-2"><ImportarTarefas obra={o.id} encarregados={enc ?? []} etapas={etapas ?? []} hoje={hojeISO()} /></Cartao>
+        <Cartao className="lg:col-span-2"><ImportarTarefas obra={o.id} encarregados={(enc ?? []).map((p) => ({ id: p.id, nome: p.papel === 'encarregado' ? p.nome : `${p.nome} (${p.papel === 'admin' ? 'diretoria' : 'engenheiro'})` }))}
+          padrao={o.encarregado_id ?? o.engenheiro_id ?? ''} etapas={etapas ?? []} hoje={hojeISO()} />
+          {!o.encarregado_id && !o.engenheiro_id && <p className="mt-3 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">Esta obra ainda não tem responsável. Defina em <Link className="link" href={`/obras/${o.id}`}>Obra → Editar dados da obra → Responsável pela obra</Link> para ele já vir escolhido aqui.</p>}</Cartao>
         <Cartao titulo="Como montar a planilha">
           <ul className="list-disc space-y-1 pl-5 text-sm text-concreto-600">
             <li>Uma tarefa por linha. Só a coluna <b>Serviço</b> é obrigatória.</li>

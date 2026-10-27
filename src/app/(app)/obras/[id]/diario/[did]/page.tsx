@@ -10,6 +10,8 @@ import { Botao, FormAcao } from '@/components/formulario';
 import { data, dataHora, hojeISO } from '@/lib/formato';
 import { validarDiario } from '@/app/(app)/financeiro/acoes';
 import { FormDiario } from '../FormDiario';
+import { dadosRdo } from '../dados';
+import type { Frente } from '@/components/FrentesServico';
 
 export const metadata = { title: 'Diário de obra' };
 const CLIMA: Record<string, string> = { ensolarado: '☀ Ensolarado', nublado: '☁ Nublado', chuva_leve: '🌦 Chuva leve', chuva_forte: '🌧 Chuva forte (impraticável)' };
@@ -27,6 +29,8 @@ export default async function DiaDiario({ params }: { params: Promise<{ id: stri
   const { data: execDia } = await supabase.from('v_medicoes').select('id, item_descricao, quantidade, unidade, status, local').eq('obra_id', id).eq('data', d.data).neq('status', 'rejeitada');
   const { count: presentes } = await supabase.from('registros_ponto').select('funcionario_id', { count: 'exact', head: true }).eq('obra_id', id).eq('data', d.data).eq('tipo', 'entrada');
   const pode = ['encarregado', 'engenheiro', 'admin'].includes(perfil.papel);
+  const rdo = pode && !d.validado_em ? await dadosRdo(supabase, id) : null;
+  const frentes = (Array.isArray(d.frentes) ? d.frentes : []) as Frente[];
   const linha = (r: string, t: string | null) => t ? <div><div className="text-xs font-semibold uppercase tracking-wide text-concreto-500">{r}</div><p className="whitespace-pre-line">{t}</p></div> : null;
 
   return (
@@ -38,11 +42,22 @@ export default async function DiaDiario({ params }: { params: Promise<{ id: stri
           <Cartao titulo="Relatório diário">
             <div className="mb-4 grid gap-4 sm:grid-cols-3">
               <Info rotulo="Clima">{CLIMA[d.clima] ?? d.clima ?? '—'}</Info>
-              <Info rotulo="Equipe presente">{d.equipe_presente ?? '—'}{presentes ? <span className="text-xs text-concreto-500"> (ponto: {presentes} entrada(s))</span> : null}</Info>
+              <Info rotulo="Pessoas na obra">{d.equipe_presente ?? '—'}{presentes ? <span className="text-xs text-concreto-500"> (ponto: {presentes} entrada(s))</span> : null}</Info>
               <Info rotulo="Composição">{d.equipe_descricao ?? '—'}</Info>
             </div>
+            {frentes.length > 0 && (
+              <div className="mb-4">
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-concreto-500">Frentes de serviço</div>
+                <table className="w-full border-collapse text-sm">
+                  <thead><tr className="bg-concreto-50 text-left text-xs"><th className="border border-concreto-200 px-2 py-1">Serviço</th><th className="border border-concreto-200 px-2 py-1">Equipe</th><th className="border border-concreto-200 px-2 py-1 text-right">Pessoas</th></tr></thead>
+                  <tbody>{frentes.map((fr, i) => (
+                    <tr key={i}><td className="border border-concreto-200 px-2 py-1 align-top"><b>{fr.servico}</b>{fr.local && <div className="text-xs text-concreto-500">{fr.local}</div>}</td>
+                      <td className="border border-concreto-200 px-2 py-1 align-top">{fr.equipe.length ? fr.equipe.map((p, k) => <div key={k}>{p.nome || '—'} <span className="text-xs text-concreto-500">{p.funcao}</span></div>) : '—'}</td>
+                      <td className="border border-concreto-200 px-2 py-1 text-right align-top">{fr.equipe.length}</td></tr>))}</tbody>
+                </table>
+              </div>)}
             <div className="space-y-3 text-sm">
-              {linha('Serviços executados', d.servicos_executados)}
+              {linha(frentes.length ? 'Resumo do dia' : 'Serviços executados', d.servicos_executados)}
               {linha('Ocorrências', d.ocorrencias)}
               {linha('Paralisações', d.paralisacoes)}
               {linha('Material necessário', d.necessidades_material)}
@@ -71,7 +86,7 @@ export default async function DiaDiario({ params }: { params: Promise<{ id: stri
                 <Botao variante="sucesso">Validar diário</Botao></FormAcao>
             </Cartao>)}
           {pode && !d.validado_em && (
-            <Cartao titulo="Corrigir informações"><FormDiario obraId={id} hoje={hojeISO()} d={d} /></Cartao>)}
+            <Cartao titulo="Corrigir informações"><FormDiario obraId={id} hoje={hojeISO()} d={d} funcionarios={rdo?.funcionarios ?? []} tarefas={rdo?.tarefas ?? []} /></Cartao>)}
         </div>
       </div>
     </>

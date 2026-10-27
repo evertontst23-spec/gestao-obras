@@ -129,7 +129,7 @@ export default async function DetalheObra({ params }: { params: Promise<{ id: st
                 <input type="hidden" name="obra_id" value={id} />
                 <select name="usuario_id" className="entrada" required defaultValue="">
                   <option value="" disabled>Selecionar colaborador…</option>
-                  {lista.filter((p) => p.papel === 'engenheiro' || p.papel === 'encarregado').map((p) => <option key={p.id} value={p.id}>{p.nome} — {PAPEIS[p.papel]}</option>)}
+                  {lista.filter((p) => ['engenheiro', 'encarregado', 'admin'].includes(p.papel)).map((p) => <option key={p.id} value={p.id}>{p.nome} — {PAPEIS[p.papel]}</option>)}
                 </select>
                 <input name="funcao" placeholder="Função na obra (opcional)" className="entrada" />
                 <Botao variante="secundario">Vincular à obra</Botao>
@@ -145,7 +145,7 @@ export default async function DetalheObra({ params }: { params: Promise<{ id: st
           <div className="border-t border-concreto-100 p-4">
             <FormAcao acao={atualizarObra}>
               <CamposObra obra={obra} rotulo="Salvar alterações"
-                engenheiros={lista.filter((p) => p.papel === 'engenheiro')} encarregados={lista.filter((p) => p.papel === 'encarregado')} />
+                engenheiros={lista.filter((p) => ['engenheiro', 'admin'].includes(p.papel))} encarregados={lista.filter((p) => ['encarregado', 'engenheiro', 'admin'].includes(p.papel))} />
             </FormAcao>
           </div>
         </details>

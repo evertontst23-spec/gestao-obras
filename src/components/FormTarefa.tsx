@@ -32,7 +32,7 @@ export function CamposTarefa({ tarefa, etapas, encarregados, comPrazo, itens = [
           {Object.entries(PRIORIDADES).map(([k, v]) => <option key={k} value={k}>{v.rotulo}</option>)}
         </select>
       </Campo>
-      <Campo rotulo="Encarregado responsável *" className="sm:col-span-2">
+      <Campo rotulo="Responsável *" className="sm:col-span-2">
         <select name="encarregado_id" required defaultValue={tarefa?.encarregado_id ?? ''} className="entrada">
           <option value="" disabled>Selecionar…</option>
           {encarregados.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}

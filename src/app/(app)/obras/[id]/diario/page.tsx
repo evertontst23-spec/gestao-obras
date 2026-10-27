@@ -5,6 +5,7 @@ import { Cabecalho, Cartao, Indicador, Selo, Vazio } from '@/components/ui';
 import { AbasObra } from '@/components/AbasObra';
 import { data, hojeISO, somarDias } from '@/lib/formato';
 import { FormDiario } from './FormDiario';
+import { dadosRdo } from './dados';
 
 export const metadata = { title: 'Diário de obra' };
 const CLIMA: Record<string, string> = { ensolarado: '☀ Ensolarado', nublado: '☁ Nublado', chuva_leve: '🌦 Chuva leve', chuva_forte: '🌧 Chuva forte' };
@@ -20,6 +21,7 @@ export default async function Diario({ params }: { params: Promise<{ id: string 
     supabase.from('registros_ponto').select('funcionario_id').eq('obra_id', id).eq('data', hoje),
   ]);
   if (!obra) notFound();
+  const rdo = await dadosRdo(supabase, id);
   const ds = lista ?? [];
   const hojeFeito = ds.find((d) => d.data === hoje);
   const pode = ['encarregado', 'engenheiro', 'admin'].includes(perfil.papel);
@@ -52,13 +54,14 @@ export default async function Diario({ params }: { params: Promise<{ id: string 
                   </div>
                 </div>
                 <p className="mt-1 line-clamp-2 text-sm text-concreto-700">{d.servicos_executados}</p>
+                {Array.isArray(d.frentes) && d.frentes.length > 0 && <p className="mt-1 text-xs text-concreto-600">{(d.frentes as { servico: string }[]).length} frente(s): {(d.frentes as { servico: string }[]).map((f) => f.servico).join(' • ')}</p>}
                 {d.ocorrencias && <p className="mt-1 line-clamp-1 text-xs text-atencao-700">⚑ {d.ocorrencias}</p>}
                 <div className="mt-1 text-xs text-concreto-500">por {(d.perfis as unknown as { nome: string })?.nome}</div>
               </Link>))}</div>)}
         </div>
         {pode && (
           <Cartao titulo={hojeFeito ? 'Registrar outro dia' : 'Registrar o diário de hoje'} className={`lg:order-none lg:col-span-2 ${hojeFeito ? '' : 'order-first'}`}>
-            <FormDiario obraId={id} hoje={hoje} equipeSugerida={presentes || undefined} />
+            <FormDiario obraId={id} hoje={hoje} funcionarios={rdo.funcionarios} tarefas={rdo.tarefas} />{presentes > 0 && <p className="mt-2 text-xs text-concreto-500">Ponto de hoje nesta obra: {presentes} pessoa(s).</p>}
           </Cartao>)}
       </div>
     </>
