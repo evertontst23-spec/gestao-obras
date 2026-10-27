@@ -55,7 +55,7 @@ export function FrentesServico({ funcionarios, tarefas, inicial }: { funcionario
                 <button type="button" aria-label="Tirar da frente" onClick={() => muda(i, { equipe: fr.equipe.filter((_, k) => k !== j) })} className="px-2 text-atraso-700">✕</button>
               </div>))}
             <div className="flex flex-wrap gap-2 pt-1">
-              <select value="" onChange={(e) => addFuncionario(i, e.target.value)} className="entrada w-auto min-w-0 flex-1">
+              <select value="" onChange={(e) => addFuncionario(i, e.target.value)} className="entrada w-full">
                 <option value="">+ Funcionário nesta frente…</option>
                 <optgroup label="Equipe da obra">{funcionarios.filter((f) => f.daObra).map((f) => <option key={f.id} value={f.id} disabled={usados.has(f.id)}>{f.nome}{f.funcao ? ` — ${f.funcao}` : ''}</option>)}</optgroup>
                 <optgroup label="Outras obras / escritório">{funcionarios.filter((f) => !f.daObra).map((f) => <option key={f.id} value={f.id} disabled={usados.has(f.id)}>{f.nome}{f.funcao ? ` — ${f.funcao}` : ''}</option>)}</optgroup>
