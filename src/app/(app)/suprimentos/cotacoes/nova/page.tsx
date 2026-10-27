@@ -60,7 +60,7 @@ export default async function NovaCotacao() {
         })}
         <Cartao titulo="Reposição do depósito central (sem pedido de obra)">
           <FormAcao acao={criarCotacao} className="space-y-3">
-            {[0, 1, 2, 3].map((k) => (
+            {Array.from({ length: 10 }, (_, k) => k).map((k) => (
               <div key={k} className="grid grid-cols-3 gap-2">
                 <select name="repor_insumo" className="entrada col-span-2"><option value="">Insumo…</option>
                   {insumos?.map((i) => <option key={i.id} value={i.id}>{i.codigo} — {i.descricao} ({i.unidade}){estoque.has(i.id) ? ` • estoque ${num(estoque.get(i.id)!.total)}` : ''}</option>)}</select>
