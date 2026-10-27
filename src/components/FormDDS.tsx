@@ -1,4 +1,5 @@
 'use client';
+import { textoFalha } from '@/lib/falha';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { comprimirImagem } from './UploadArquivo';
@@ -34,7 +35,7 @@ export function FormDDS({ obra, equipe, hoje }: { obra: string; equipe: { id: st
         conteudo: s('conteudo'), local: s('local'), participantes: marcados, foto: caminho, obs: s('obs') });
       if (r?.ok && r.id) { router.push(`/sst/dds/${r.id}`); return; }
       setMsg(r);
-    } catch (er) { setMsg({ erro: (er as Error).message }); } finally { setEnviando(false); }
+    } catch (er) { setMsg({ erro: textoFalha(er) }); } finally { setEnviando(false); }
   }
 
   return (

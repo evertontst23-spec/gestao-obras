@@ -15,7 +15,7 @@ export async function enviarFotoRosto(funcionario: string, foto: string) {
   return salvarFotoFuncionario({ funcionario_id: funcionario, caminho });
 }
 
-export function CadastroBiometria({ funcionario, nome }: { funcionario: string; nome: string }) {
+export function CadastroBiometria({ funcionario, nome, aoConcluir }: { funcionario: string; nome: string; aoConcluir?: () => void }) {
   const router = useRouter();
   const termo = `Eu, ${nome}, autorizo a coleta e o tratamento da minha biometria facial, exclusivamente para registro de ponto e confirmação de recebimento de EPI, nos termos do art. 11 da LGPD. Sei que posso revogar este consentimento a qualquer momento junto ao RH.`;
   const [aceito, setAceito] = useState(false);
@@ -28,7 +28,7 @@ export function CadastroBiometria({ funcionario, nome }: { funcionario: string; 
       {aceito && <CapturaRosto rotulo="Capturar rosto do funcionário" onCaptura={async (d, foto) => {
         const r = await cadastrarBiometria(funcionario, d, termo);
         if (r?.ok && foto) { const rf = await enviarFotoRosto(funcionario, foto); if (rf?.erro) { setMsg(rf); router.refresh(); return; } }
-        setMsg(r); if (r?.ok) router.refresh();
+        setMsg(r); if (r?.ok) { if (aoConcluir) aoConcluir(); else router.refresh(); }
       }} />}
       {msg?.erro && <p className="text-sm text-atraso-700">{msg.erro}</p>}
       {msg?.ok && <p className="text-sm font-semibold text-ok-700">{msg.ok}</p>}

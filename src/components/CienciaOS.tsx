@@ -1,4 +1,5 @@
 'use client';
+import { textoFalha } from '@/lib/falha';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Assinatura, enviarAssinatura, type AssinaturaRef } from './Assinatura';
@@ -16,7 +17,7 @@ export function CienciaOS({ os }: { os: string }) {
         if (ref.current?.vazia()) return setMsg({ erro: 'Colete a assinatura.' });
         setEnv(true);
         try { const c = await enviarAssinatura((await ref.current!.blob())!, `sst/os/${os}`); const r = await cienciaOS(os, c); setMsg(r); if (r?.ok) router.refresh(); }
-        catch (e) { setMsg({ erro: (e as Error).message }); } finally { setEnv(false); }
+        catch (e) { setMsg({ erro: textoFalha(e) }); } finally { setEnv(false); }
       }} className="min-h-[48px] w-full rounded-md bg-ok-500 font-semibold text-white disabled:opacity-60">{env ? 'Registrando…' : 'Registrar ciência'}</button>
       {msg?.erro && <p className="text-sm text-atraso-700">{msg.erro}</p>}
     </div>

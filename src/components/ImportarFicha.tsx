@@ -1,4 +1,5 @@
 'use client';
+import { textoFalha } from '@/lib/falha';
 import { useState } from 'react';
 import { importarDocumentosFicha } from '@/app/(app)/cadastros/acoes';
 
@@ -13,7 +14,7 @@ export function ImportarFicha() {
     setRodando(true); setLog([]);
     let ok = 0;
     for (let i = 0; i < linhas.length; i += 4) {
-      const r: { ok?: string; erro?: string } | null = await importarDocumentosFicha(linhas.slice(i, i + 4)).catch((e) => ({ erro: (e as Error).message }));
+      const r: { ok?: string; erro?: string } | null = await importarDocumentosFicha(linhas.slice(i, i + 4)).catch((e) => ({ erro: textoFalha(e) }));
       const m = r?.ok ?? r?.erro ?? '';
       const n = Number(/^(\d+)/.exec(m)?.[1] ?? 0); ok += n;
       setLog((l) => [...l, `Lote ${i / 4 + 1}: ${m}`]);

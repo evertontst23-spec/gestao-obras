@@ -1,4 +1,5 @@
 'use client';
+import { textoFalha } from '@/lib/falha';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { criarClienteNavegador } from '@/lib/supabase/client';
@@ -61,7 +62,7 @@ export function FotoUpload({ obraId, tarefaId, solicitacaoId, medicaoId, naoConf
       setTimeout(() => setEstado(null), 2000);
     } catch (e) {
       setEstado(null);
-      setErro((e as Error).message?.includes('Failed to fetch') ? 'Sem conexão. Tente de novo quando o sinal voltar.' : (e as Error).message);
+      setErro(textoFalha(e));
     } finally {
       if (ref.current) ref.current.value = '';
     }

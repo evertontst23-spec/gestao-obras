@@ -1,4 +1,5 @@
 'use client';
+import { textoFalha } from '@/lib/falha';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { abrirCamera, carregarModelos, lerDescritor } from '@/lib/rostos';
@@ -41,7 +42,7 @@ export function PontoFacial({ obras }: { obras: { id: string; codigo: string; no
       }
     } catch (e) {
       setEstado('erro'); parar.current?.();
-      setMsg((e as Error).name === 'NotAllowedError' ? 'Permita o uso da câmera no navegador.' : (e as Error).message);
+      setMsg((e as Error).name === 'NotAllowedError' ? 'Permita o uso da câmera no navegador.' : textoFalha(e));
     }
   }
   function encerrar() { ativo.current = false; parar.current?.(); parar.current = null; setEstado('parado'); setMsg(''); setRes(null); }

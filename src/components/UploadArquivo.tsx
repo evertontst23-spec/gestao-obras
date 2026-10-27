@@ -1,4 +1,5 @@
 'use client';
+import { textoFalha } from '@/lib/falha';
 import { useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { criarClienteNavegador } from '@/lib/supabase/client';
@@ -50,7 +51,7 @@ export function UploadArquivo({ pasta, acao, children, rotuloBotao = 'Enviar', e
       setMsg(r);
       if (r?.ok) { ref.current?.reset(); setArquivo(null); router.refresh(); }
     } catch (er) {
-      setMsg({ erro: (er as Error).message?.includes('Failed to fetch') ? 'Sem conexão. Tente de novo quando o sinal voltar.' : (er as Error).message });
+      setMsg({ erro: textoFalha(er) });
     } finally { setEstado('livre'); }
   }
 
