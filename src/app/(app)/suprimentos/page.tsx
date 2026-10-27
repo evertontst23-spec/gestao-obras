@@ -5,7 +5,7 @@ import { AbasSuprimentos } from '@/components/AbasSuprimentos';
 import { codSM } from '@/lib/dominio';
 import { SeloLocacao } from '@/components/Locacao';
 import { FormAcao, Botao } from '@/components/formulario';
-import { verificarEstoque } from '@/app/(app)/materiais/acoes';
+import { verificarEstoque, verificarEstoqueLote } from '@/app/(app)/materiais/acoes';
 import { data, num } from '@/lib/formato';
 
 export const metadata = { title: 'Suprimentos' };
@@ -66,6 +66,16 @@ export default async function Suprimentos({ searchParams }: { searchParams: Prom
         <Indicador rotulo="Aguard. confirmação da obra" valor={aConfirmar ?? 0} detalhe="entregas enviadas" />
       </div>
       <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-concreto-600">{fila === 'risco' ? 'Risco de atraso / entregas atrasadas' : FILAS[fila].titulo}</h2>
+      {fila === 'estoque' && podeVerificar && (() => {
+        const semSaldo = lista.filter((i) => saldoDe(i) <= 0);
+        return semSaldo.length >= 2 && (
+          <FormAcao acao={verificarEstoqueLote} className="mb-3 flex flex-wrap items-center gap-3 rounded-md border-2 border-concreto-800 bg-white p-3">
+            <input type="hidden" name="modo" value="cotacao" />
+            {semSaldo.map((i) => <input key={i.id} type="hidden" name="itens" value={i.id} />)}
+            <span className="flex-1 text-sm"><b>{semSaldo.length} itens</b> sem estoque no sistema.</span>
+            <Botao variante="escuro">Enviar todos para cotação</Botao>
+          </FormAcao>);
+      })()}
       {!lista.length ? <Vazio>Nada pendente nesta fila. 👍</Vazio> : (
         <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white">
           <table className="tabela">

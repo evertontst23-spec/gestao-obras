@@ -72,6 +72,19 @@ select pg_temp.confere((select count(*) = 1 from notificacoes where usuario_id =
   'um alerta por pedido quando os itens vão para cotação (não um por item)');
 select pg_temp.confere((select count(*) >= 1 from notificacoes where usuario_id = '00000000-0000-0000-0000-00000000000c' and titulo like 'Sem estoque, foi para cotação%'),
   'quem pediu acompanha o andamento do pedido');
+-- lote: todos os itens do pedido de uma vez
+select pg_temp.como('00000000-0000-0000-0000-00000000000c');
+select criar_solicitacao('10000000-0000-0000-0000-000000000001', null, current_date + 3, 'normal', null, 'Lote de verificação',
+  '[{"material":"Pá","unidade":"un","quantidade":2},{"material":"Enxada","unidade":"un","quantidade":2},{"material":"Carrinho de mão","unidade":"un","quantidade":1}]'::jsonb) as sm3 \gset
+select pg_temp.como('00000000-0000-0000-0000-00000000000a');
+select solicitacao_decidir(:'sm3', true, null) where (select status from solicitacoes where id = :'sm3') = 'aguardando_aprovacao';
+select pg_temp.como('00000000-0000-0000-0000-00000000000c');
+select pg_temp.espera_erro(format($$select itens_verificar_estoque_lote(array(select id from solicitacao_itens where solicitacao_id = %L), 'cotacao')$$, :'sm3'), 'Apenas o almoxarifado');
+select pg_temp.como('00000000-0000-0000-0000-00000000000d');
+select pg_temp.confere(itens_verificar_estoque_lote(array(select id from solicitacao_itens where solicitacao_id = :'sm3'), 'cotacao') = 3, 'lote: os 3 itens verificados de uma vez');
+select pg_temp.confere((select bool_and(status = 'em_cotacao') from solicitacao_itens where solicitacao_id = :'sm3'), 'lote: todos foram para cotação');
+select pg_temp.espera_erro(format($$select itens_verificar_estoque_lote(array(select id from solicitacao_itens where solicitacao_id = %L), 'cotacao')$$, :'sm3'), 'Nenhum item');
+
 select pg_temp.como('00000000-0000-0000-0000-00000000000a');
 select compras_definir_limite(5000);
 select perfil_definir_coordenador('00000000-0000-0000-0000-00000000000b', false);

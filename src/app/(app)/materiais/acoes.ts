@@ -85,3 +85,15 @@ export async function prorrogarLocacao(_: EstadoAcao, f: FormData) {
   revalidatePath('/suprimentos/locacoes');
   return r;
 }
+export async function verificarEstoqueLote(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const itens = f.getAll('itens').map(String).filter(Boolean);
+  const modo = txt(f, 'modo') === 'estoque' ? 'estoque' : 'cotacao';
+  if (!itens.length) return { erro: 'Nenhum item selecionado.' };
+  const supabase = await criarClienteServidor();
+  const { data, error } = await supabase.rpc('itens_verificar_estoque_lote', { p_itens: itens, p_modo: modo, p_observacao: txt(f, 'observacao') });
+  if (error) return { erro: mensagemErro(error) };
+  const sol = txt(f, 'solicitacao');
+  if (sol) revalidatePath(`/materiais/${sol}`);
+  revalidatePath('/suprimentos'); revalidatePath('/campo'); revalidatePath('/painel');
+  return { ok: modo === 'estoque' ? `${data} item(ns) separados do estoque.` : `${data} item(ns) enviados para cotação.` };
+}

@@ -7,7 +7,7 @@ import { FotoUpload } from '@/components/FotoUpload';
 import { Galeria } from '@/components/Galeria';
 import { SeloLocacao } from '@/components/Locacao';
 import { ControleLocacao } from '@/components/ControleLocacao';
-import { cancelarItem, confirmarEntrega, decidirSolicitacao, registrarEnvio, verificarEstoque } from '../acoes';
+import { cancelarItem, confirmarEntrega, decidirSolicitacao, registrarEnvio, verificarEstoque, verificarEstoqueLote } from '../acoes';
 import { STATUS_MATERIAL, codSM, codTarefa, type StatusMaterial } from '@/lib/dominio';
 import { data, dataHora, hojeISO, num } from '@/lib/formato';
 
@@ -72,6 +72,23 @@ export default async function DetalheSolicitacao({ params, searchParams }: { par
           )}
 
           <Cartao titulo={`Materiais (${itens?.length ?? 0})`}>
+            {(() => {
+              const aVerificar = (itens ?? []).filter((i) => i.status === 'aprovado');
+              if (!almox || aVerificar.length < 2) return null;
+              return (
+                <div className="mb-4 rounded-md border-2 border-teal-600 bg-teal-50 p-3">
+                  <div className="text-sm font-bold text-teal-900">Verificar todos de uma vez ({aVerificar.length} itens)</div>
+                  <p className="mb-2 text-xs text-concreto-600">Se só alguns têm estoque, use o campo de cada item abaixo.</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(['cotacao', 'estoque'] as const).map((m) => (
+                      <FormAcao key={m} acao={verificarEstoqueLote}>
+                        <input type="hidden" name="solicitacao" value={id} /><input type="hidden" name="modo" value={m} />
+                        {aVerificar.map((i) => <input key={i.id} type="hidden" name="itens" value={i.id} />)}
+                        <Botao variante={m === 'cotacao' ? 'escuro' : 'sucesso'}>{m === 'cotacao' ? 'Nenhum tem estoque → todos para cotação' : 'Todos disponíveis em estoque'}</Botao>
+                      </FormAcao>))}
+                  </div>
+                </div>);
+            })()}
             <div className="space-y-4">
               {itens?.map((i) => {
                 const st = i.status as StatusMaterial;
