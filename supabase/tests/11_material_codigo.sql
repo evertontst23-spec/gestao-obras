@@ -26,7 +26,7 @@ grant execute on all functions in schema pg_temp to authenticated;
 -- ---------------------------------------------------------------- cadastro do cenário (RH)
 
 select pg_temp.como('00000000-0000-0000-0000-00000000000c');
-select criar_solicitacao('10000000-0000-0000-0000-000000000001', null, current_date + 3, 'normal', 'Teste código', null,
+select criar_solicitacao('10000000-0000-0000-0000-000000000001', null, current_date + 3, 'normal', 'Teste código', 'Uso geral da obra',
   '[{"material":"CIM-01 — qualquer nome","unidade":"saco","quantidade":10},
     {"material":"TUB-50 — Tubo PVC esgoto 50 mm","unidade":"barra","quantidade":4},
     {"material":"Luva  de raspa  cano longo","unidade":"par","quantidade":6}]'::jsonb) as sm \gset
@@ -36,7 +36,7 @@ select pg_temp.confere((select revisar and descricao = 'Tubo PVC esgoto 50 mm' a
   'código novo é cadastrado com o nome digitado (marcado para revisão)');
 select pg_temp.confere((select codigo ~ '^M[0-9]{4}$' and descricao = 'Luva de raspa cano longo' from insumos i join solicitacao_itens s on s.insumo_id = i.id
                          where s.solicitacao_id = :'sm' and s.quantidade = 6), 'material sem código recebe código automático');
-select criar_solicitacao('10000000-0000-0000-0000-000000000001', null, current_date + 3, 'normal', 'Segundo pedido', null,
+select criar_solicitacao('10000000-0000-0000-0000-000000000001', null, current_date + 3, 'normal', 'Segundo pedido', 'Uso geral da obra',
   '[{"material":"luva de raspa cano longo","unidade":"par","quantidade":2}]'::jsonb) as sm2 \gset
 select pg_temp.confere((select count(*) = 1 from insumos where lower(descricao) = 'luva de raspa cano longo'),
   'o segundo pedido do mesmo material usa o cadastro (não duplica)');

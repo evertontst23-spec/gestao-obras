@@ -15,6 +15,7 @@ function dadosTarefa(f: FormData) {
     encarregado_id: txt(f, 'encarregado_id'),
     prioridade: txt(f, 'prioridade') ?? 'normal',
     observacoes: txt(f, 'observacoes'),
+    ...(f.has('encarregado_func_id') ? { encarregado_func_id: txt(f, 'encarregado_func_id') } : {}),
     ...(f.has('planilha_item_id') ? { planilha_item_id: txt(f, 'planilha_item_id') } : {}),
   };
 }

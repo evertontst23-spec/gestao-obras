@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { exigirPapel } from '@/lib/sessao';
 import { Cabecalho, Cartao, Vazio } from '@/components/ui';
 import { FormAcao, Botao } from '@/components/formulario';
-import { CamposTarefa } from '@/components/FormTarefa';
+import { CamposTarefa, type FuncEquipe } from '@/components/FormTarefa';
 import { criarTarefa } from '../acoes';
 import type { Perfil } from '@/lib/dominio';
 
@@ -31,10 +31,11 @@ export default async function NovaTarefa({ searchParams }: { searchParams: Promi
   }
 
   const { data: pl } = await supabase.from('planilhas').select('id').eq('obra_id', obraSel).eq('ativa', true).maybeSingle();
-  const [{ data: itensPl }, { data: etapas }, { data: membros }] = await Promise.all([
+  const [{ data: itensPl }, { data: etapas }, { data: membros }, { data: equipe }] = await Promise.all([
     pl ? supabase.from('v_planilha_itens').select('id, codigo, descricao, unidade, saldo').eq('planilha_id', pl.id).eq('tipo', 'servico').order('ordem') : Promise.resolve({ data: [] }),
     supabase.from('etapas').select('id, nome').eq('obra_id', obraSel).order('ordem'),
     supabase.from('perfis').select('*').in('papel', ['encarregado', 'engenheiro', 'admin']).eq('ativo', true).order('nome'),
+    supabase.from('v_funcionarios').select('id, nome, funcao_nome, obra_id').eq('ativo', true).order('nome'),
   ]);
   const o = obras.find((x) => x.id === obraSel)!;
   return (
@@ -44,7 +45,7 @@ export default async function NovaTarefa({ searchParams }: { searchParams: Promi
       <Cartao>
         <FormAcao acao={criarTarefa} limparAoConcluir>
           <input type="hidden" name="obra_id" value={obraSel} />
-          <CamposTarefa tarefa={{ encarregado_id: o.encarregado_id ?? o.engenheiro_id ?? '' }} itens={(itensPl ?? []) as { id: string; codigo: string | null; descricao: string; unidade: string | null; saldo: number }[]} etapas={etapas ?? []} encarregados={(membros ?? []) as Perfil[]} comPrazo />
+          <CamposTarefa tarefa={{ encarregado_id: o.encarregado_id ?? o.engenheiro_id ?? '' }} itens={(itensPl ?? []) as { id: string; codigo: string | null; descricao: string; unidade: string | null; saldo: number }[]} etapas={etapas ?? []} encarregados={(membros ?? []) as Perfil[]} comPrazo equipe={(equipe ?? []) as FuncEquipe[]} obraId={obraSel} />
           <div className="mt-5 flex flex-wrap gap-2">
             <Botao>Criar e abrir tarefa</Botao>
             <Botao variante="secundario" name="continuar" value="1">Criar e cadastrar outra</Botao>

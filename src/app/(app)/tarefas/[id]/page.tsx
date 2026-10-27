@@ -34,6 +34,9 @@ export default async function DetalheTarefa({ params }: { params: Promise<{ id: 
   const { supabase, perfil } = await obterSessao();
   const { data: t } = await supabase.from('v_tarefas').select('*').eq('id', id).maybeSingle();
   if (!t) notFound();
+  const { data: tf } = await supabase.from('tarefas').select('encarregado_func_id').eq('id', id).maybeSingle();
+  const { data: encFunc } = tf?.encarregado_func_id
+    ? await supabase.from('v_funcionarios').select('nome, funcao_nome').eq('id', tf.encarregado_func_id).maybeSingle() : { data: null };
 
   const [{ data: eventos }, { data: reprogs }, { data: anexos }, { data: pedidos }, { data: pode }, { data: criador }] = await Promise.all([
     supabase.from('tarefa_eventos').select('*, perfis(nome)').eq('tarefa_id', id).order('criado_em', { ascending: false }),
@@ -74,7 +77,8 @@ export default async function DetalheTarefa({ params }: { params: Promise<{ id: 
         <div className="space-y-5 lg:col-span-2">
           <Cartao>
             <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <Info rotulo="Responsável">{t.encarregado_nome}</Info>
+              <Info rotulo="Engenheiro / responsável">{t.encarregado_nome}</Info>
+              <Info rotulo="Encarregado">{encFunc ? <>{encFunc.nome}{encFunc.funcao_nome && <div className="text-xs text-concreto-500">{encFunc.funcao_nome}</div>}</> : '—'}</Info>
               <Info rotulo="Etapa">{t.etapa_nome ?? '—'}</Info>
               <Info rotulo="Local">{t.local ?? '—'}</Info>
               <Info rotulo="Criada por">{criador?.nome ?? '—'}<div className="text-xs text-concreto-500">{dataHora(t.criado_em)}</div></Info>

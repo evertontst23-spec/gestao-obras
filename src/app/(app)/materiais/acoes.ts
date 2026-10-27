@@ -10,16 +10,24 @@ export async function criarSolicitacao(_: EstadoAcao, f: FormData): Promise<Esta
     material: String(m).trim(),
     especificacao: String(f.getAll('especificacao')[i] ?? '').trim(),
     unidade: String(f.getAll('unidade')[i] ?? '').trim(),
-    quantidade: Number(String(f.getAll('quantidade')[i] ?? '').replace(',', '.')),
+    quantidade: Number(String(f.getAll('quantidade')[i] ?? '').replace(/\./g, (m, o, t: string) => (t.includes(',') ? '' : m)).replace(',', '.')),
+    modalidade: String(f.getAll('modalidade')[i] ?? 'compra') === 'locacao' ? 'locacao' : 'compra',
+    locacao_inicio: String(f.getAll('locacao_inicio')[i] ?? '') || null,
+    locacao_fim: String(f.getAll('locacao_fim')[i] ?? '') || null,
   })).filter((i) => i.material);
   if (!itens.length) return { erro: 'Inclua pelo menos um material.' };
   const semNome = itens.find((i) => / —\s*$/.test(i.material));
   if (semNome) return { erro: `O código ${semNome.material.replace(/ —\s*$/, '')} não está no cadastro. Digite o nome do material para cadastrá-lo.` };
   if (itens.some((i) => !i.unidade || !(i.quantidade > 0))) return { erro: 'Cada material precisa de unidade e quantidade maior que zero.' };
+  const loc = itens.find((i) => i.modalidade === 'locacao' && (!i.locacao_inicio || !i.locacao_fim || i.locacao_fim < i.locacao_inicio));
+  if (loc) return { erro: `Informe o período da locação de ${loc.material} (o fim não pode ser antes do início).` };
+  const tarefa = txt(f, 'tarefa_id');
+  if (!tarefa) return { erro: 'Escolha a tarefa da planilha ligada a este pedido, ou “Sem vínculo”.' };
+  if (tarefa === 'sem' && (txt(f, 'observacoes') ?? '').length < 5) return { erro: 'Pedido sem vínculo: explique na observação para que é o material.' };
 
   const supabase = await criarClienteServidor();
   const { data, error } = await supabase.rpc('criar_solicitacao', {
-    p_obra: txt(f, 'obra_id'), p_tarefa: txt(f, 'tarefa_id'), p_data_necessidade: txt(f, 'data_necessidade'),
+    p_obra: txt(f, 'obra_id'), p_tarefa: tarefa === 'sem' ? null : tarefa, p_data_necessidade: txt(f, 'data_necessidade'),
     p_prioridade: txt(f, 'prioridade') ?? 'normal', p_justificativa: txt(f, 'justificativa'), p_observacoes: txt(f, 'observacoes'),
     p_itens: itens,
   });
@@ -64,4 +72,16 @@ export async function confirmarEntrega(_: EstadoAcao, f: FormData) {
 export async function cancelarItem(_: EstadoAcao, f: FormData) {
   const s = txt(f, 'solicitacao')!;
   return chamar('item_cancelar', { p_item: txt(f, 'item'), p_motivo: txt(f, 'motivo') }, s, 'Item cancelado.');
+}
+export async function devolverLocacao(_: EstadoAcao, f: FormData) {
+  const s = txt(f, 'solicitacao')!;
+  const r = await chamar('locacao_devolver', { p_item: txt(f, 'item'), p_data: txt(f, 'data'), p_obs: txt(f, 'observacao') }, s, 'Devolução registrada. A locação foi encerrada.');
+  revalidatePath('/suprimentos/locacoes');
+  return r;
+}
+export async function prorrogarLocacao(_: EstadoAcao, f: FormData) {
+  const s = txt(f, 'solicitacao')!;
+  const r = await chamar('locacao_prorrogar', { p_item: txt(f, 'item'), p_fim: txt(f, 'fim'), p_obs: txt(f, 'observacao') }, s, 'Locação prorrogada.');
+  revalidatePath('/suprimentos/locacoes');
+  return r;
 }

@@ -47,6 +47,7 @@ export const MENU: SecaoMenu[] = [
     { href: '/suprimentos/cotacoes', rotulo: 'Cotações', icone: '≋', papeis: ['admin', 'compras', 'financeiro'] },
     { href: '/suprimentos/ordens', rotulo: 'Ordens de compra', curto: 'OCs', icone: '⎙', papeis: ['admin', 'engenheiro', 'compras', 'almoxarifado', 'financeiro'] },
     { href: '/suprimentos/estoque', rotulo: 'Estoque', icone: '▣', papeis: ['admin', 'engenheiro', 'compras', 'almoxarifado'] },
+    { href: '/suprimentos/locacoes', rotulo: 'Controle de locações', curto: 'Locações', icone: '⟳', papeis: ['admin', 'engenheiro', 'compras', 'almoxarifado', 'financeiro'] },
   ] },
   { titulo: 'Cadastros', itens: [
     { href: '/cadastros/funcionarios', rotulo: 'Funcionários', curto: 'Equipe', icone: '◎', papeis: ['admin', 'engenheiro', 'rh', 'seguranca', 'financeiro'] },

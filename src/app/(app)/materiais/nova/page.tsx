@@ -3,6 +3,7 @@ import { obterSessao } from '@/lib/sessao';
 import { Cabecalho, Cartao, Campo, Vazio } from '@/components/ui';
 import { FormAcao, Botao } from '@/components/formulario';
 import { ItensMaterial } from '@/components/ItensMaterial';
+import { VinculoTarefa } from '@/components/VinculoTarefa';
 import { criarSolicitacao } from '../acoes';
 import { PRIORIDADES, TAREFA_ABERTA, codTarefa } from '@/lib/dominio';
 import { hojeISO, somarDias } from '@/lib/formato';
@@ -37,11 +38,10 @@ export default async function NovaSolicitacao({ searchParams }: { searchParams: 
     );
   }
 
-  let qt = supabase.from('v_tarefas').select('id, numero, titulo').eq('obra_id', obraId).in('status', TAREFA_ABERTA).order('numero');
-  if (perfil.papel === 'encarregado') qt = qt.eq('encarregado_id', perfil.id);
+  const qt = supabase.from('v_tarefas').select('id, numero, titulo, etapa_nome, local, encarregado_id').eq('obra_id', obraId).in('status', TAREFA_ABERTA).order('numero');
   const [{ data: obra }, { data: tarefas }, { data: insumos }] = await Promise.all([
     supabase.from('obras').select('id, nome, exige_aprovacao_material').eq('id', obraId).maybeSingle(),
-    tarefa ? Promise.resolve({ data: [] as { id: string; numero: number; titulo: string }[] }) : qt,
+    tarefa ? Promise.resolve({ data: [] as { id: string; numero: number; titulo: string; etapa_nome: string | null; local: string | null; encarregado_id: string }[] }) : qt,
     supabase.from('insumos').select('codigo, descricao, unidade').eq('ativo', true).order('codigo'),
   ]);
   if (!obra) return <Vazio>Obra não encontrada.</Vazio>;
@@ -53,14 +53,9 @@ export default async function NovaSolicitacao({ searchParams }: { searchParams: 
       <Cartao>
         <FormAcao acao={criarSolicitacao} className="space-y-4">
           <input type="hidden" name="obra_id" value={obra.id} />
-          {tarefa ? <input type="hidden" name="tarefa_id" value={tarefa.id} /> : (
-            <Campo rotulo="Serviço relacionado" dica="Vincule à tarefa sempre que possível — o pedido fica ligado ao serviço de origem.">
-              <select name="tarefa_id" defaultValue="" className="entrada">
-                <option value="">Sem vínculo (uso geral da obra)</option>
-                {tarefas?.map((t) => <option key={t.id} value={t.id}>{codTarefa(t.numero)} — {t.titulo}</option>)}
-              </select>
-            </Campo>
-          )}
+          {tarefa ? <input type="hidden" name="tarefa_id" value={tarefa.id} />
+            : <VinculoTarefa planilhaHref={`/tarefas/importar?obra=${obra.id}`}
+    tarefas={(tarefas ?? []).map((t) => ({ id: t.id, numero: t.numero, titulo: t.titulo, etapa_nome: t.etapa_nome, local: t.local, minha: t.encarregado_id === perfil.id }))} />}
           <div className="grid grid-cols-2 gap-3">
             <Campo rotulo="Preciso na obra até *"><input type="date" name="data_necessidade" required min={hoje} defaultValue={somarDias(hoje, 3)} className="entrada" /></Campo>
             <Campo rotulo="Prioridade">
@@ -71,7 +66,7 @@ export default async function NovaSolicitacao({ searchParams }: { searchParams: 
           </div>
           <ItensMaterial insumos={insumos ?? []} />
           <Campo rotulo="Justificativa"><input name="justificativa" className="entrada" placeholder="Para que será usado" /></Campo>
-          <Campo rotulo="Observações"><textarea name="observacoes" rows={2} className="entrada" /></Campo>
+          {tarefa && <Campo rotulo="Observações"><textarea name="observacoes" rows={2} className="entrada" /></Campo>}
           <p className="text-xs text-concreto-500">
             {obra.exige_aprovacao_material && perfil.papel === 'encarregado' ? 'O pedido vai para aprovação do engenheiro.' : 'O pedido segue direto para o almoxarifado.'} Fotos podem ser anexadas na próxima tela.
           </p>

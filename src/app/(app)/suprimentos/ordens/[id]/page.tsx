@@ -1,3 +1,4 @@
+import { SeloLocacao } from '@/components/Locacao';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { obterSessao } from '@/lib/sessao';
@@ -17,7 +18,7 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
   const { data: o } = await supabase.from('v_ordens_compra').select('*').eq('id', id).maybeSingle();
   if (!o) notFound();
   const [{ data: itens }, { data: docs }, { data: evs }, { data: empresa }] = await Promise.all([
-    supabase.from('oc_itens').select('*, solicitacao_itens(solicitacao_id, solicitacoes(numero))').eq('oc_id', id).order('descricao'),
+    supabase.from('oc_itens').select('*, solicitacao_itens(solicitacao_id, modalidade, locacao_inicio, locacao_fim, solicitacoes(numero))').eq('oc_id', id).order('descricao'),
     supabase.from('oc_documentos').select('*, perfis(nome)').eq('oc_id', id).order('criado_em'),
     supabase.from('oc_eventos').select('*, perfis(nome)').eq('oc_id', id).order('criado_em', { ascending: false }),
     supabase.from('obras').select('nome, endereco, cliente').eq('id', o.obra_id ?? '00000000-0000-0000-0000-000000000000').maybeSingle(),
@@ -63,7 +64,7 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
                 const sm = (i.solicitacao_itens as unknown as { solicitacao_id: string; solicitacoes: { numero: number } } | null);
                 return (
                   <tr key={i.id}>
-                    <td>{i.descricao}{sm && <Link href={`/materiais/${sm.solicitacao_id}`} className="nao-imprimir ml-1 text-xs text-sinal-700">({codSM(sm.solicitacoes.numero)})</Link>}</td>
+                    <td>{i.descricao}<SeloLocacao i={(i.solicitacao_itens ?? {}) as { modalidade?: string }} />{sm && <Link href={`/materiais/${sm.solicitacao_id}`} className="nao-imprimir ml-1 text-xs text-sinal-700">({codSM(sm.solicitacoes.numero)})</Link>}</td>
                     <td className="whitespace-nowrap text-right font-mono">{num(i.quantidade, 3)} {i.unidade}</td>
                     <td className="text-right font-mono">{reais(i.preco_unitario)}</td>
                     <td className="text-right font-mono">{reais(Number(i.preco_unitario) * Number(i.quantidade))}</td>

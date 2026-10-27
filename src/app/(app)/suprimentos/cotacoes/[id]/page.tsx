@@ -1,3 +1,4 @@
+import { SeloLocacao } from '@/components/Locacao';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { obterSessao } from '@/lib/sessao';
@@ -13,7 +14,7 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
   const { data: c } = await supabase.from('v_cotacoes').select('*').eq('id', id).maybeSingle();
   if (!c) notFound();
   const [{ data: itens }, { data: props }, { data: precos }, { data: forns }] = await Promise.all([
-    supabase.from('cotacao_itens').select('*').eq('cotacao_id', id).order('descricao'),
+    supabase.from('cotacao_itens').select('*, solicitacao_itens(modalidade, locacao_inicio, locacao_fim)').eq('cotacao_id', id).order('descricao'),
     supabase.from('cotacao_propostas').select('*, fornecedores(nome, telefone)').eq('cotacao_id', id).order('valor_total'),
     supabase.from('cotacao_precos').select('*, cotacao_propostas!inner(cotacao_id)').eq('cotacao_propostas.cotacao_id', id),
     supabase.from('fornecedores').select('id, nome, categoria').eq('ativo', true).order('nome'),
@@ -43,7 +44,7 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
             <tbody>
               {(itens ?? []).map((i) => (
                 <tr key={i.id}>
-                  <td>{i.descricao}{Number(i.estoque_no_momento) > 0 && <div className="text-[11px] font-semibold text-atencao-700">estoque no momento: {num(i.estoque_no_momento)}</div>}</td>
+                  <td>{i.descricao}<SeloLocacao i={(i.solicitacao_itens ?? {}) as { modalidade?: string }} />{Number(i.estoque_no_momento) > 0 && <div className="text-[11px] font-semibold text-atencao-700">estoque no momento: {num(i.estoque_no_momento)}</div>}</td>
                   <td className="whitespace-nowrap text-right font-mono">{num(i.quantidade, 3)} {i.unidade}</td>
                   {ps.map((p) => { const v = preco.get(`${p.id}:${i.id}`); const melhor = v !== undefined && v === menorItem.get(i.id) && ps.length > 1;
                     return <td key={p.id} className={`whitespace-nowrap text-right font-mono ${melhor ? 'font-bold text-ok-700' : ''}`}>{v === undefined ? '—' : <>{reais(v)}<div className="text-[11px] text-concreto-500">{reais(v * Number(i.quantidade))}</div></>}</td>; })}

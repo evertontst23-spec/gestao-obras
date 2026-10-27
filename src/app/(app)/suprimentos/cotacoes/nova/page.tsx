@@ -1,3 +1,4 @@
+import { SeloLocacao } from '@/components/Locacao';
 import Link from 'next/link';
 import { exigirPapel } from '@/lib/sessao';
 import { Cabecalho, Cartao, Campo, Vazio } from '@/components/ui';
@@ -41,7 +42,7 @@ export default async function NovaCotacao() {
                     <tr key={i.id}>
                       <td><input type="checkbox" name="solicitacao_item_id" value={i.id} defaultChecked className="h-5 w-5 accent-sinal-500" /></td>
                       <td><Link href={`/materiais/${i.solicitacao_id}`} className="link font-mono text-xs">{codSM(i.solicitacao_numero)}</Link></td>
-                      <td>{i.material}{i.especificacao && <div className="text-xs text-concreto-500">{i.especificacao}</div>}</td>
+                      <td>{i.material}{i.especificacao && <div className="text-xs text-concreto-500">{i.especificacao}</div>}<SeloLocacao i={i} /></td>
                       <td className="whitespace-nowrap text-right font-mono">{num(i.quantidade, 3)} {i.unidade}</td>
                       <td className={`whitespace-nowrap ${i.dias_para_necessidade <= 2 ? 'font-bold text-atraso-700' : ''}`}>{data(i.data_necessidade)}</td>
                       <td className="text-xs">{i.insumo_id && estoque.has(i.insumo_id)

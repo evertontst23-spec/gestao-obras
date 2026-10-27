@@ -5,6 +5,8 @@ import { Cabecalho, Cartao, Campo, Info, SeloMaterial, SeloPrioridade, SeloSolic
 import { FormAcao, Botao } from '@/components/formulario';
 import { FotoUpload } from '@/components/FotoUpload';
 import { Galeria } from '@/components/Galeria';
+import { SeloLocacao } from '@/components/Locacao';
+import { ControleLocacao } from '@/components/ControleLocacao';
 import { cancelarItem, confirmarEntrega, decidirSolicitacao, registrarEnvio, verificarEstoque } from '../acoes';
 import { STATUS_MATERIAL, codSM, codTarefa, type StatusMaterial } from '@/lib/dominio';
 import { data, dataHora, hojeISO, num } from '@/lib/formato';
@@ -84,6 +86,7 @@ export default async function DetalheSolicitacao({ params, searchParams }: { par
                         <div className="font-bold">{i.material}</div>
                         {i.especificacao && <div className="text-xs text-concreto-500">{i.especificacao}</div>}
                         {i.item_origem_id && <div className="text-xs text-concreto-500">↳ saldo encaminhado para compra</div>}
+                        <SeloLocacao i={i} comSituacao />
                       </div>
                       <SeloMaterial s={st} />
                     </div>
@@ -97,18 +100,30 @@ export default async function DetalheSolicitacao({ params, searchParams }: { par
                     {i.entrega_atrasada && <p className="mt-2 rounded bg-atraso-50 px-2 py-1 text-xs font-semibold text-atraso-700">⚠ Entrega atrasada pelo fornecedor</p>}
 
                     <div className="mt-3 space-y-2">
-                      {almox && st === 'aprovado' && (
-                        <FormAcao acao={verificarEstoque} className="flex flex-wrap items-end gap-2 rounded bg-teal-50 p-2">
-                          <input type="hidden" name="solicitacao" value={id} /><input type="hidden" name="item" value={i.id} />
-                          <Campo rotulo={`Disponível em estoque (${i.unidade})`} className="w-40"><input name="disponivel" inputMode="decimal" defaultValue={i.quantidade} required className="entrada" /></Campo>
-                          <input name="observacao" placeholder="Observação" className="entrada w-auto flex-1" />
-                          <Botao variante="escuro">Registrar verificação</Botao>
-                          <p className="w-full text-xs text-concreto-500">{i.insumo_id
-                            ? <>Saldo no sistema — <b>esta obra: {num(saldoObra.get(i.insumo_id) ?? 0, 3)}</b> • <b>depósito central: {num(saldoCentral.get(i.insumo_id) ?? 0, 3)}</b> {i.unidade}. </>
-                            : 'Item sem código de insumo (estoque não controlado). '}
-                            Informe 0 se não houver. O que faltar vai para cotação.</p>
-                        </FormAcao>
-                      )}
+                      {almox && st === 'aprovado' && (() => {
+                        const saldo = i.insumo_id ? Math.max(saldoObra.get(i.insumo_id) ?? 0, saldoCentral.get(i.insumo_id) ?? 0) : 0;
+                        const sugestao = Math.min(saldo, Number(i.quantidade));
+                        return (
+                          <div className="space-y-2 rounded bg-teal-50 p-2">
+                            <div className="text-xs font-bold uppercase tracking-wide text-teal-900">Verificar estoque</div>
+                            <p className="text-xs text-concreto-600">{i.insumo_id
+                              ? <>Saldo no sistema — <b>esta obra: {num(saldoObra.get(i.insumo_id) ?? 0, 3)}</b> • <b>depósito central: {num(saldoCentral.get(i.insumo_id) ?? 0, 3)}</b> {i.unidade}.</>
+                              : 'Item sem estoque controlado no sistema.'}</p>
+                            {saldo <= 0 && (
+                              <FormAcao acao={verificarEstoque} className="flex flex-wrap items-center gap-2 rounded border-2 border-atraso-500 bg-white p-2">
+                                <input type="hidden" name="solicitacao" value={id} /><input type="hidden" name="item" value={i.id} /><input type="hidden" name="disponivel" value="0" />
+                                <span className="flex-1 text-sm font-semibold text-atraso-700">Não há {i.material} em estoque.</span>
+                                <Botao variante="escuro">Sem estoque → enviar para cotação</Botao>
+                              </FormAcao>)}
+                            <FormAcao acao={verificarEstoque} className="flex flex-wrap items-end gap-2">
+                              <input type="hidden" name="solicitacao" value={id} /><input type="hidden" name="item" value={i.id} />
+                              <Campo rotulo={`${saldo <= 0 ? 'Mesmo assim tem? Quantidade' : 'Disponível em estoque'} (${i.unidade})`} className="w-48"><input name="disponivel" inputMode="decimal" defaultValue={sugestao > 0 ? sugestao : ''} required className="entrada" /></Campo>
+                              <input name="observacao" placeholder="Observação" className="entrada w-auto flex-1" />
+                              <Botao variante={saldo > 0 ? 'escuro' : 'secundario'}>Registrar verificação</Botao>
+                              <p className="w-full text-xs text-concreto-500">O que faltar vai para cotação.</p>
+                            </FormAcao>
+                          </div>);
+                      })()}
                       {st === 'em_cotacao' && !i.cotacao_id && (compras
                         ? <Link href="/suprimentos/cotacoes/nova" className="block rounded bg-atencao-50 p-2 text-sm font-semibold text-atencao-700">≋ Aguardando cotação — incluir em uma cotação →</Link>
                         : <p className="rounded bg-atencao-50 p-2 text-xs text-atencao-700">Sem estoque — aguardando cotação pelo comprador.</p>)}
@@ -133,6 +148,9 @@ export default async function DetalheSolicitacao({ params, searchParams }: { par
                           <Botao>Confirmar recebimento</Botao>
                         </FormAcao>
                       ))}
+                      {i.modalidade === 'locacao' && i.devolvido_em && <p className="rounded bg-concreto-100 p-2 text-xs">Devolvido em <b>{data(i.devolvido_em)}</b>{i.devolucao_obs ? ` — ${i.devolucao_obs}` : ''}</p>}
+                      {i.modalidade === 'locacao' && !i.devolvido_em && ['entregue', 'parcialmente_entregue'].includes(st) && (gere || almox || compras) && (
+                        <ControleLocacao item={i.id} solicitacao={id} fim={i.locacao_fim} hoje={hoje} />)}
                       {!['entregue', 'cancelado'].includes(st) && Number(i.quantidade_enviada) === 0 && Number(i.quantidade_recebida) === 0 &&
                         (gere || papel === 'compras' || s.solicitante_id === perfil.id) && (
                         <details className="text-sm"><summary className="cursor-pointer text-xs text-atraso-700">Cancelar item</summary>
@@ -169,7 +187,7 @@ export default async function DetalheSolicitacao({ params, searchParams }: { par
           <Cartao titulo="Fluxo do pedido">
             <ol className="space-y-1 text-xs text-concreto-600">
               {['Encarregado cria o pedido', 'Engenheiro aprova (quando exigido)', 'Almoxarifado verifica o estoque', 'Itens sem estoque seguem para compras',
-                'Compras registra fornecedor e previsão', 'Almoxarifado registra a saída para a obra', 'Encarregado confirma o recebimento'].map((p, k) => <li key={k}>{k + 1}. {p}</li>)}
+                'Compras cota com fornecedores (compra ou locação)', 'Diretoria aprova a cotação e a OC é emitida', 'Comprador / financeiro paga e acompanha a entrega', 'Almoxarifado registra a saída para a obra', 'Encarregado confirma o recebimento'].map((p, k) => <li key={k}>{k + 1}. {p}</li>)}
             </ol>
           </Cartao>
         </div>

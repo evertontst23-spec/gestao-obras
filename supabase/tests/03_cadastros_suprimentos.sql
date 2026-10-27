@@ -72,7 +72,7 @@ select pg_temp.espera_erro($$select estoque_lancar(null, 'e1000000-0000-0000-000
 
 -- ---------------------------------------------------------------- PEDIDO DA OBRA
 select pg_temp.como('00000000-0000-0000-0000-00000000000c');
-select criar_solicitacao(:obra, null, current_date + 5, 'alta', 'Reboco bloco B', null,
+select criar_solicitacao(:obra, null, current_date + 5, 'alta', 'Reboco bloco B', 'Uso geral do bloco B',
   '[{"material":"CIM-01 — Cimento","unidade":"saco","quantidade":150},{"material":"Bloco cerâmico 9x19x19","unidade":"un","quantidade":2000}]'::jsonb) as sm \gset
 select pg_temp.confere((select count(*) from solicitacao_itens where solicitacao_id = :'sm' and insumo_id is not null) = 2, 'itens reconhecidos pelo código e pela descrição do insumo');
 select pg_temp.como('00000000-0000-0000-0000-00000000000e');

@@ -2,8 +2,11 @@ import { Campo } from './ui';
 import { PRIORIDADES, UNIDADES, type Perfil } from '@/lib/dominio';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export function CamposTarefa({ tarefa, etapas, encarregados, comPrazo, itens = [] }:
-  { tarefa?: any; etapas: { id: string; nome: string }[]; encarregados: Perfil[]; comPrazo: boolean;
+export type FuncEquipe = { id: string; nome: string; funcao_nome: string | null; obra_id: string | null };
+const ehChefia = (f: FuncEquipe) => /encarreg|mestre|engenh|t[eé]cnic/i.test(f.funcao_nome ?? '');
+
+export function CamposTarefa({ tarefa, etapas, encarregados, comPrazo, itens = [], equipe = [], obraId }:
+  { tarefa?: any; etapas: { id: string; nome: string }[]; encarregados: Perfil[]; comPrazo: boolean; equipe?: FuncEquipe[]; obraId?: string;
     itens?: { id: string; codigo: string | null; descricao: string; unidade: string | null; saldo: number }[] }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -32,10 +35,17 @@ export function CamposTarefa({ tarefa, etapas, encarregados, comPrazo, itens = [
           {Object.entries(PRIORIDADES).map(([k, v]) => <option key={k} value={k}>{v.rotulo}</option>)}
         </select>
       </Campo>
-      <Campo rotulo="Responsável *" className="sm:col-span-2">
+      <Campo rotulo="Engenheiro / responsável *" dica="Quem acompanha a tarefa no sistema">
         <select name="encarregado_id" required defaultValue={tarefa?.encarregado_id ?? ''} className="entrada">
           <option value="" disabled>Selecionar…</option>
-          {encarregados.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+          {encarregados.map((p) => <option key={p.id} value={p.id}>{p.nome}{p.papel === 'admin' ? ' (diretoria)' : p.papel === 'engenheiro' ? ' (engenheiro)' : ' (encarregado)'}</option>)}
+        </select>
+      </Campo>
+      <Campo rotulo="Encarregado" dica="Encarregado da equipe (cadastro de funcionários)">
+        <select name="encarregado_func_id" defaultValue={tarefa?.encarregado_func_id ?? ''} className="entrada">
+          <option value="">—</option>
+          {[['Encarregados e mestres', equipe.filter(ehChefia)], ['Demais funcionários', equipe.filter((f) => !ehChefia(f))]].map(([rot, l]) => (l as FuncEquipe[]).length > 0 && (
+            <optgroup key={rot as string} label={rot as string}>{(l as FuncEquipe[]).map((f) => <option key={f.id} value={f.id}>{f.nome}{f.funcao_nome ? ` — ${f.funcao_nome}` : ''}{obraId && f.obra_id && f.obra_id !== obraId ? ' (outra obra)' : ''}</option>)}</optgroup>))}
         </select>
       </Campo>
       <Campo rotulo="Quantidade prevista">
