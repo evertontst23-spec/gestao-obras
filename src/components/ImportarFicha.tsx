@@ -24,7 +24,7 @@ export function ImportarFicha() {
   }
   return (
     <div className="space-y-3">
-      <label htmlFor="linhas" className="text-sm text-concreto-600">Uma linha por arquivo: <b>matrícula ; tipo ; link temporário</b> (tipos: Foto, RG (frente), RG (verso), CPF, CTPS, Comprovante de residência)</label>
+      <label htmlFor="linhas" className="text-sm text-concreto-600">Uma linha por arquivo: <b>matrícula ; tipo ; link temporário</b> (tipos: Foto, RG (frente), RG (verso), CPF, CTPS, Comprovante de residência, Currículo)</label>
       <textarea id="linhas" name="linhas" rows={14} value={texto} onChange={(e) => setTexto(e.target.value)} className="entrada font-mono text-xs" placeholder="1023 ; CPF ; https://…/fichas-admissao/…" />
       <button type="button" onClick={enviar} disabled={rodando} className="rounded-md bg-sinal-500 px-4 py-2 font-semibold text-white disabled:opacity-60">{rodando ? 'Guardando…' : 'Guardar nas pastas'}</button>
       {log.length > 0 && <ul id="resultado" className="space-y-1 rounded-md bg-concreto-50 p-3 text-sm">{log.map((l, k) => <li key={k}>{l}</li>)}</ul>}

@@ -24,6 +24,7 @@ export const PASTAS: Pasta[] = [
     { tipo: 'Certidão de nascimento/casamento', rotulo: 'Certidão de nascimento ou casamento' },
     { tipo: 'Comprovante de escolaridade', rotulo: 'Comprovante de escolaridade' },
     { tipo: 'Dados bancários', rotulo: 'Cartão do banco / PIX' },
+    { tipo: 'Currículo', rotulo: 'Currículo' },
   ] },
   { id: 'admissao', titulo: 'Admissão', slots: [
     { tipo: 'Ficha de registro', rotulo: 'Ficha de registro / admissão' },
