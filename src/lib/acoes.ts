@@ -9,6 +9,7 @@ export function mensagemErro(e: { message?: string; code?: string } | null | und
   if (m.includes('tarefas_prazo_ck') || m.includes('reprog_datas_ck')) return 'A data de conclusão deve ser igual ou posterior à data de início.';
   if (m.includes('obras_datas_ck')) return 'A conclusão prevista deve ser posterior ao início.';
   if (m.includes('lanc_tipo_cat_ck')) return 'A categoria não corresponde ao tipo (receita/despesa).';
+  if (m.includes('espera_celular_unico')) return 'Este celular já está no banco de espera.';
   if (m.includes('invalid input syntax')) return 'Algum campo foi preenchido em formato inválido.';
   return m;
 }

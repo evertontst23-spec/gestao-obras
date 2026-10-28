@@ -193,3 +193,39 @@ export async function importarDocumentosFicha(linhasBrutas: string[]): Promise<E
   revalidatePath('/cadastros/dossies');
   return erros.length ? { erro: `${ok} importado(s). Problemas: ${erros.join(' | ')}` } : { ok: `${ok} documento(s) guardado(s) nas pastas.` };
 }
+
+// ---------------------------------------------------------------- banco de espera
+export async function salvarEspera(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const id = txt(f, 'id');
+  const d: Record<string, unknown> = {
+    nome: txt(f, 'nome'), celular: txt(f, 'celular'), cpf: txt(f, 'cpf'), funcao_pretendida: txt(f, 'funcao_pretendida'),
+    bairro_cidade: txt(f, 'bairro_cidade'), experiencia: txt(f, 'experiencia'), indicado_por: txt(f, 'indicado_por'),
+    disponivel_em: txt(f, 'disponivel_em'), observacoes: txt(f, 'observacoes'),
+  };
+  if (f.has('status')) d.status = txt(f, 'status');
+  if (!d.nome || String(d.nome).trim().split(/\s+/).length < 2) return { erro: 'Informe o nome completo.' };
+  if (!d.celular) return { erro: 'Informe o celular com DDD.' };
+  const supabase = await criarClienteServidor();
+  const { error } = id ? await supabase.from('espera_candidatos').update(d).eq('id', id) : await supabase.from('espera_candidatos').insert(d);
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/cadastros/espera');
+  return { ok: id ? 'Cadastro atualizado.' : `${d.nome} entrou no banco de espera.` };
+}
+
+export async function mudarSituacaoEspera(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.from('espera_candidatos').update({ status: txt(f, 'status') }).eq('id', txt(f, 'id'));
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/cadastros/espera');
+  return { ok: 'Situação atualizada.' };
+}
+
+export async function contratarEspera(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { data, error } = await supabase.rpc('espera_contratar', {
+    p_id: txt(f, 'id'), p_funcao: txt(f, 'funcao_id'), p_obra: txt(f, 'obra_id'), p_empregador: txt(f, 'empregador_id'), p_admissao: txt(f, 'data_admissao'),
+  });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/cadastros/espera'); revalidatePath('/cadastros/funcionarios');
+  redirect(`/cadastros/funcionarios/${data}`);
+}
