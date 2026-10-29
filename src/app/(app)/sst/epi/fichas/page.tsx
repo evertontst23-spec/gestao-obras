@@ -13,7 +13,7 @@ export default async function FichasEPI({ searchParams }: { searchParams: Promis
   if (sp.obra) qf = qf.eq('obra_id', sp.obra);
   const [{ data: funcs }, { data: entregas }, { data: pend }, { data: obras }] = await Promise.all([
     qf,
-    supabase.from('epi_entregas').select('funcionario_id, data, epi_entrega_itens(count)'),
+    supabase.from('epi_entregas').select('funcionario_id, data, epi_entrega_itens(count)').is('anulada_em', null),
     supabase.from('epi_pendentes').select('funcionario_id, itens, confirmados').is('entrega_id', null),
     supabase.from('obras').select('id, codigo, nome').in('situacao', ['planejamento', 'em_andamento', 'paralisada']).order('nome'),
   ]);

@@ -22,7 +22,7 @@ export default async function FichaEPI({ params }: { params: Promise<{ id: strin
   const b = basico as { nome: string | null; matricula: string | null; obra_id: string | null } | null;
   if (!b?.nome) notFound();
   const [{ data: entregas }, { data: obra }, { data: f }, { data: pend }] = await Promise.all([
-    supabase.from('epi_entregas').select('*, epi_entrega_itens(*, insumos(codigo, descricao, unidade)), perfis(nome)').eq('funcionario_id', id).order('data').order('criado_em'),
+    supabase.from('epi_entregas').select('*, epi_entrega_itens(*, insumos(codigo, descricao, unidade)), perfis(nome)').eq('funcionario_id', id).is('anulada_em', null).order('data').order('criado_em'),
     b.obra_id ? supabase.from('obras').select('codigo, nome, cliente').eq('id', b.obra_id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from('v_funcionarios').select('cpf, funcao_nome, data_admissao, biometria_cadastrada, empregador_id, empregador_nome').eq('id', id).maybeSingle(),
     supabase.from('epi_pendentes').select('*').eq('funcionario_id', id).is('entrega_id', null).order('data'),

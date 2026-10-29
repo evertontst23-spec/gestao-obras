@@ -10,7 +10,7 @@ const MOTIVO: Record<string, string> = { admissao: 'Admissão', periodica: 'Troc
 export default async function EPI() {
   const { supabase } = await exigirPapel('admin', 'seguranca', 'almoxarifado', 'encarregado', 'engenheiro', 'rh');
   const [{ data: entregas }, { data: situacao }] = await Promise.all([
-    supabase.from('epi_entregas').select('*, epi_entrega_itens(quantidade, insumos(descricao)), perfis(nome)').order('criado_em', { ascending: false }).limit(60),
+    supabase.from('epi_entregas').select('*, epi_entrega_itens(quantidade, insumos(descricao)), perfis(nome)').is('anulada_em', null).order('criado_em', { ascending: false }).limit(60),
     supabase.from('v_epi_situacao').select('*').eq('ativo', true).order('proxima_troca'),
   ]);
   const vencidas = (situacao ?? []).filter((s) => s.troca_vencida);
