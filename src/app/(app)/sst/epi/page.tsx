@@ -27,7 +27,7 @@ export default async function EPI() {
       </div>
       {(pend ?? []).length > 0 && (
         <Cartao titulo={`Aguardando assinatura do funcionário (${pend!.length})`} className="mb-5 border-2 border-atencao-500">
-          <p className="mb-2 text-xs text-concreto-600">EPI já entregue em campo. Abra a ficha e peça para o funcionário confirmar pela assinatura ou pelo rosto.</p>
+          <p className="mb-2 text-xs text-concreto-600">EPI já entregue em campo. Abra a ficha e peça para o funcionário assinar cada EPI (assinatura ou rosto).</p>
           <ul className="grid gap-1 text-sm sm:grid-cols-2">{pend!.map((p) => (
             <li key={p.id}><Link href={`/sst/epi/ficha/${p.funcionario_id}`} className="link">{(p.funcionarios as unknown as { nome: string })?.nome}</Link> <span className="text-xs text-concreto-500">entrega de {data(p.data)}</span></li>))}</ul>
         </Cartao>)}

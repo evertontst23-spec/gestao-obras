@@ -38,7 +38,7 @@ select pg_temp.confere((select data = current_date - 1 and confirmacao = 'assina
   and (select quantidade = 2 and ca = '12345' from epi_entrega_itens where entrega_id = :'ent'), 'confirmação vira entrega da ficha com a data e o CA da entrega');
 select pg_temp.confere(saldo_estoque(:'epi', null) = 8, 'confirmar não dá baixa de novo');
 select pg_temp.espera_erro(format($$select epi_confirmar_pendente(%L, 'assinatura', 'x.png')$$, :'pend'), 'já foi confirmada');
-select pg_temp.como('00000000-0000-0000-0000-00000000000c');
-select pg_temp.espera_erro(format($$select epi_registrar_pendente(%L, null, '[{"insumo_id":"%s"}]'::jsonb)$$, :'func', :'epi'), 'Apenas Segurança');
+select pg_temp.como('00000000-0000-0000-0000-00000000000b');
+select pg_temp.espera_erro(format($$select epi_registrar_pendente(%L, null, '[{"insumo_id":"%s"}]'::jsonb)$$, :'func', :'epi'), 'Sem permissão para entregar EPI');
 \echo ''
 \echo '=========== TESTES DE EPI PENDENTE PASSARAM ==========='

@@ -92,3 +92,21 @@ export async function confirmarPendenteEPI(d: { pendente: string; funcionario: s
   revalidatePath('/sst/epi', 'layout');
   return { ok: 'Recebimento confirmado — a entrega entrou na ficha de EPI.' };
 }
+
+export async function assinarItemEPI(d: { pendente: string; insumo: string; confirmacao: 'assinatura' | 'facial'; assinatura: string | null; descritor: number[] | null }): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('epi_confirmar_item', { p_pend: d.pendente, p_insumo: d.insumo, p_confirmacao: d.confirmacao, p_assinatura: d.assinatura, p_descritor: d.descritor });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/sst/epi', 'layout');
+  return { ok: 'EPI assinado.' };
+}
+
+export async function registrarEntregaEPI(d: { funcionario: string; local: string | null; itens: { insumo_id: string; quantidade: number }[]; motivo: string; data: string | null; obs: string | null }): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { data, error } = await supabase.rpc('epi_registrar_pendente', {
+    p_func: d.funcionario, p_local: d.local, p_itens: d.itens, p_motivo: d.motivo, p_data: d.data, p_obs: d.obs, p_baixa: true,
+  });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/sst/epi', 'layout');
+  return { ok: 'Entrega registrada. Agora o funcionário assina cada EPI na ficha.', id: data as string };
+}
