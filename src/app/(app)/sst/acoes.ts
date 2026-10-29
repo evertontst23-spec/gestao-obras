@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { criarClienteServidor } from '@/lib/supabase/server';
-import { type EstadoAcao, mensagemErro } from '@/lib/acoes';
+import { type EstadoAcao, mensagemErro, paraNumero } from '@/lib/acoes';
 
 export type RespostaPonto = { reconhecido: boolean; duplicado?: boolean; nome?: string; matricula?: string; tipo?: string; hora?: string; confianca?: number; hash?: string; erro?: string };
 
@@ -109,4 +109,27 @@ export async function registrarEntregaEPI(d: { funcionario: string; local: strin
   if (error) return { erro: mensagemErro(error) };
   revalidatePath('/sst/epi', 'layout');
   return { ok: 'Entrega registrada. Agora o funcionário assina cada EPI na ficha.', id: data as string };
+}
+
+export async function lancarEstoqueEPI(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const tipo = String(f.get('tipo') ?? '');
+  const q = paraNumero(String(f.get('quantidade') ?? ''));
+  if (!q) return { erro: 'Informe a quantidade.' };
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('epi_estoque_lancar', {
+    p_obra: ((f.get('obra_id') as string) || 'central') === 'central' ? null : f.get('obra_id'), p_insumo: f.get('insumo_id'), p_tipo: tipo,
+    p_quantidade: tipo === 'ajuste' && f.get('sinal') === '-' ? -Math.abs(q) : q, p_observacao: f.get('observacao'),
+    p_destino: ((f.get('destino_id') as string) || 'central') === 'central' ? null : f.get('destino_id'),
+  });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/sst/epi', 'layout'); revalidatePath('/suprimentos/estoque');
+  return { ok: tipo === 'transferencia' ? 'Transferência registrada.' : 'Lançamento registrado no estoque de EPI.' };
+}
+
+export async function definirMinimoEPI(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('epi_definir_minimo', { p_insumo: f.get('insumo_id'), p_minimo: paraNumero(String(f.get('minimo') ?? '')) ?? 0 });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/sst/epi', 'layout');
+  return { ok: 'Mínimo salvo.' };
 }
