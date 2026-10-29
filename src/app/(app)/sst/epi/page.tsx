@@ -14,6 +14,7 @@ export default async function EPI() {
     supabase.from('v_epi_situacao').select('*').eq('ativo', true).order('proxima_troca'),
   ]);
   const vencidas = (situacao ?? []).filter((s) => s.troca_vencida);
+  const { data: pend } = await supabase.from('epi_pendentes').select('id, funcionario_id, data, funcionarios(nome)').is('entrega_id', null).order('data');
   const nomes = new Map((situacao ?? []).map((s) => [s.funcionario_id, s.funcionario_nome]));
   return (
     <>
@@ -24,6 +25,12 @@ export default async function EPI() {
         <Indicador rotulo="Trocas vencidas" valor={vencidas.length} tom={vencidas.length ? 'atraso' : 'ok'} detalhe="pela vida útil do EPI" />
         <Indicador rotulo="Funcionários com ficha" valor={new Set((situacao ?? []).map((s) => s.funcionario_id)).size} />
       </div>
+      {(pend ?? []).length > 0 && (
+        <Cartao titulo={`Aguardando assinatura do funcionário (${pend!.length})`} className="mb-5 border-2 border-atencao-500">
+          <p className="mb-2 text-xs text-concreto-600">EPI já entregue em campo. Abra a ficha e peça para o funcionário confirmar pela assinatura ou pelo rosto.</p>
+          <ul className="grid gap-1 text-sm sm:grid-cols-2">{pend!.map((p) => (
+            <li key={p.id}><Link href={`/sst/epi/ficha/${p.funcionario_id}`} className="link">{(p.funcionarios as unknown as { nome: string })?.nome}</Link> <span className="text-xs text-concreto-500">entrega de {data(p.data)}</span></li>))}</ul>
+        </Cartao>)}
       <div className="grid gap-5 lg:grid-cols-2">
         <Cartao titulo="Trocas vencidas / próximas">
           {!(situacao ?? []).filter((s) => s.proxima_troca).length ? <Vazio>Sem trocas programadas.</Vazio> : (

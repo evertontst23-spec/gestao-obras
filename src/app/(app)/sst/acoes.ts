@@ -84,3 +84,11 @@ export async function cienciaOS(os: string, assinatura: string): Promise<EstadoA
   revalidatePath(`/sst/os/${os}`);
   return { ok: 'Ciência registrada.' };
 }
+
+export async function confirmarPendenteEPI(d: { pendente: string; funcionario: string; confirmacao: 'assinatura' | 'facial'; assinatura: string | null; descritor: number[] | null }): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('epi_confirmar_pendente', { p_pend: d.pendente, p_confirmacao: d.confirmacao, p_assinatura: d.assinatura, p_descritor: d.descritor });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/sst/epi', 'layout');
+  return { ok: 'Recebimento confirmado — a entrega entrou na ficha de EPI.' };
+}
