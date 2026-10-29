@@ -4,13 +4,15 @@ import { obterSessao } from '@/lib/sessao';
 import { BotaoImprimir } from '@/components/BotaoImprimir';
 import { AbasSST } from '@/components/AbasSST';
 import { AssinarItemEPI } from '@/components/AssinarItemEPI';
+import { FormAcao, Botao } from '@/components/formulario';
+import { definirEntregadorEPI } from '../../../acoes';
 import { data, dataHora } from '@/lib/formato';
 
 export const metadata = { title: 'Ficha de EPI' };
 const MOTIVO: Record<string, string> = { admissao: 'Admissão', periodica: 'Troca periódica', desgaste: 'Desgaste', dano: 'Dano', perda: 'Perda', substituicao: 'Substituição', visitante: 'Visitante' };
 
 type Linha = {
-  chave: string; data: string; qtd: number; unidade: string; epi: string; ca: string; motivo: string; troca: string | null;
+  chave: string; data: string; qtd: number; unidade: string; epi: string; ca: string; motivo: string; troca: string | null; entregador: string;
   assinada?: { tipo: string; img?: string; dist?: number; em: string; numero: number; hash: string; por?: string };
   pendente?: { id: string; insumo: string };
 };
@@ -35,18 +37,23 @@ export default async function FichaEPI({ params }: { params: Promise<{ id: strin
   const { data: urls } = caminhos.length ? await supabase.storage.from('anexos').createSignedUrls(caminhos, 3600) : { data: [] };
   const url = new Map((urls ?? []).map((u) => [u.path, u.signedUrl]));
   const podeCadastrarRosto = ['admin', 'rh', 'seguranca'].includes(perfil.papel);
+  const { data: equipe } = await supabase.from('v_funcionarios').select('id, nome, funcao_nome').eq('ativo', true).order('nome');
+  const nomeFunc = new Map((equipe ?? []).map((x) => [x.id, x.nome]));
+  const faltaId = [...new Set([...(entregas ?? []).map((e) => e.entregue_por_func), ...(pend ?? []).map((p) => p.entregue_por_func)].filter((x) => x && !nomeFunc.has(x)))] as string[];
+  if (faltaId.length) { const { data: ex } = await supabase.from('v_funcionarios').select('id, nome').in('id', faltaId); (ex ?? []).forEach((x) => nomeFunc.set(x.id, x.nome)); }
   const podeAssinar = ['admin', 'seguranca', 'almoxarifado', 'encarregado', 'engenheiro'].includes(perfil.papel);
 
   const linhas: Linha[] = [];
   (entregas ?? []).forEach((e) => (e.epi_entrega_itens as unknown as { insumo_id: string; quantidade: number; ca: string; proxima_troca: string | null; insumos: { descricao: string; unidade: string } }[]).forEach((i) => linhas.push({
     chave: e.id + i.insumo_id, data: e.data, qtd: Number(i.quantidade), unidade: i.insumos.unidade, epi: i.insumos.descricao, ca: i.ca, motivo: e.motivo, troca: i.proxima_troca,
+    entregador: e.entregue_por_func ? (nomeFunc.get(e.entregue_por_func) ?? '—') : `${(e.perfis as unknown as { nome: string })?.nome ?? '—'} (lançou)`,
     assinada: { tipo: e.confirmacao, img: e.assinatura_caminho ? (url.get(e.assinatura_caminho) ?? undefined) : undefined, dist: Number(e.distancia_facial), em: e.criado_em, numero: e.numero, hash: e.hash, por: (e.perfis as unknown as { nome: string })?.nome },
   })));
   (pend ?? []).forEach((p) => (p.itens as { insumo_id: string; quantidade?: number }[]).forEach((i) => {
     if ((p.confirmados as Record<string, string>)?.[i.insumo_id]) return;
     const x = insMap.get(i.insumo_id);
     linhas.push({ chave: p.id + i.insumo_id, data: p.data, qtd: Number(i.quantidade ?? 1), unidade: x?.unidade ?? '', epi: x?.descricao ?? '—', ca: x?.ca ?? '—', motivo: p.motivo,
-      troca: null, pendente: { id: p.id, insumo: i.insumo_id } });
+      troca: null, entregador: p.entregue_por_func ? (nomeFunc.get(p.entregue_por_func) ?? '—') : '', pendente: { id: p.id, insumo: i.insumo_id } });
   }));
   linhas.sort((a, z) => a.data.localeCompare(z.data));
   const faltam = linhas.filter((l) => l.pendente).length;
@@ -63,6 +70,14 @@ export default async function FichaEPI({ params }: { params: Promise<{ id: strin
         </div>
       </div>
       {faltam > 0 && <p className="nao-imprimir mx-auto mb-3 max-w-5xl rounded-md bg-atencao-50 px-4 py-2 text-sm font-semibold text-atencao-800">⚠ {faltam} EPI(s) aguardando a assinatura do funcionário. Clique em “Assinar” em cada linha.</p>}
+      {podeAssinar && (pend ?? []).map((p) => (
+        <FormAcao key={p.id} acao={definirEntregadorEPI} className="nao-imprimir mx-auto mb-3 flex max-w-5xl flex-wrap items-center gap-2 rounded-md border border-concreto-200 bg-white px-4 py-2 text-sm">
+          <input type="hidden" name="pendente" value={p.id} />
+          <span>Entrega de <b>{data(p.data)}</b> — entregue por:</span>
+          <select name="entregador" defaultValue={p.entregue_por_func ?? ''} className="entrada w-auto min-w-[220px] py-1">
+            <option value="">— informar —</option>{(equipe ?? []).filter((x) => x.id !== id).map((x) => <option key={x.id} value={x.id}>{x.nome}{x.funcao_nome ? ` — ${x.funcao_nome}` : ''}</option>)}</select>
+          <Botao variante="secundario">Salvar</Botao>
+        </FormAcao>))}
       <article className="mx-auto max-w-5xl rounded-lg border border-concreto-200 bg-white p-6 text-sm print:max-w-none print:border-0 print:p-0">
         <header className="mb-3 grid grid-cols-[1fr_auto] items-end gap-4 border-b-2 border-concreto-800 pb-3">
           <div>
@@ -91,7 +106,7 @@ export default async function FichaEPI({ params }: { params: Promise<{ id: strin
         </p>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-xs">
-            <thead><tr className="bg-concreto-100">{['Data da entrega', 'Qtd.', 'EPI', 'Nº do CA', 'Motivo', 'Troca / devolução', 'Assinatura do empregado'].map((h) => <th key={h} className={`${cel} text-left`}>{h}</th>)}</tr></thead>
+            <thead><tr className="bg-concreto-100">{['Data da entrega', 'Qtd.', 'EPI', 'Nº do CA', 'Motivo', 'Entregue por', 'Troca / devolução', 'Assinatura do empregado'].map((h) => <th key={h} className={`${cel} text-left`}>{h}</th>)}</tr></thead>
             <tbody>{linhas.map((l) => (
               <tr key={l.chave} className={l.pendente ? 'bg-atencao-50/60 print:bg-white' : ''}>
                 <td className={`${cel} whitespace-nowrap`}>{data(l.data)}</td>
@@ -99,6 +114,7 @@ export default async function FichaEPI({ params }: { params: Promise<{ id: strin
                 <td className={cel}>{l.epi}</td>
                 <td className={`${cel} font-mono`}>{l.ca}</td>
                 <td className={cel}>{MOTIVO[l.motivo] ?? l.motivo}</td>
+                <td className={cel}>{l.entregador || <span className="text-atraso-700">informar</span>}</td>
                 <td className={`${cel} whitespace-nowrap`}>{l.troca ? `troca até ${data(l.troca)}` : ''}</td>
                 <td className={`${cel} min-w-[160px] align-middle`}>
                   {l.assinada ? (<>
@@ -114,7 +130,7 @@ export default async function FichaEPI({ params }: { params: Promise<{ id: strin
                   ) : <span className="text-atencao-800">aguardando assinatura</span>}
                 </td>
               </tr>))}
-              {!linhas.length && <tr><td colSpan={7} className={`${cel} py-4 text-center text-concreto-500`}>Nenhum EPI entregue.</td></tr>}
+              {!linhas.length && <tr><td colSpan={8} className={`${cel} py-4 text-center text-concreto-500`}>Nenhum EPI entregue.</td></tr>}
             </tbody>
           </table>
         </div>

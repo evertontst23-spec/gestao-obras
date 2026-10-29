@@ -31,7 +31,10 @@ select id as func from funcionarios where ativo order by criado_em offset 1 limi
 select pg_temp.como('00000000-0000-0000-0000-00000000000c');
 select epi_registrar_pendente(:'func', null, format('[{"insumo_id":"%s","quantidade":1},{"insumo_id":"%s","quantidade":2}]', :'a', :'b')::jsonb, 'admissao', current_date) as pend \gset
 select pg_temp.confere(:'pend' is not null, 'encarregado registra a entrega para assinar');
+select id as entregador from funcionarios where ativo and id <> :'func' limit 1 \gset
+select epi_pendente_definir_entregador(:'pend', :'entregador');
 select epi_confirmar_item(:'pend', :'a', 'assinatura', 'sst/epi/a.png') as e1 \gset
+select pg_temp.confere((select entregue_por_func = :'entregador' from epi_entregas where id = :'e1'), 'linha da ficha guarda o funcionário que entregou');
 select pg_temp.confere((select count(*) = 1 from epi_entrega_itens where entrega_id = :'e1' and insumo_id = :'a'), 'cada EPI assinado vira uma linha com a própria assinatura');
 select pg_temp.confere((select entrega_id is null from epi_pendentes where id = :'pend'), 'entrega continua aberta enquanto falta EPI para assinar');
 select pg_temp.espera_erro(format($$select epi_confirmar_item(%L, %L, 'assinatura', 'x.png')$$, :'pend', :'a'), 'já foi assinado');

@@ -21,6 +21,7 @@ export function EntregaEPI({ funcionarios, epis, locais, saldos, hoje, inicial }
   const [motivo, setMotivo] = useState('admissao');
   const [dataEntrega, setDataEntrega] = useState(hoje);
   const [obs, setObs] = useState('');
+  const [entregador, setEntregador] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [msg, setMsg] = useState<{ erro?: string; ok?: string } | null>(null);
   const saldo = (ins: string) => saldos[`${local || 'c'}:${ins}`] ?? 0;
@@ -30,9 +31,10 @@ export function EntregaEPI({ funcionarios, epis, locais, saldos, hoje, inicial }
     const itens = Object.entries(qtd).map(([id, q]) => ({ insumo_id: id, quantidade: Number(q.replace(',', '.')) })).filter((i) => i.quantidade > 0);
     if (!func) return setMsg({ erro: 'Selecione o funcionário.' });
     if (!itens.length) return setMsg({ erro: 'Informe a quantidade de pelo menos um EPI.' });
+    if (!entregador) return setMsg({ erro: 'Informe quem entregou o EPI.' });
     setEnviando(true);
     try {
-      const r = await registrarEntregaEPI({ funcionario: func, local: local || null, itens, motivo, data: dataEntrega || null, obs: obs || null });
+      const r = await registrarEntregaEPI({ funcionario: func, local: local || null, itens, motivo, data: dataEntrega || null, obs: obs || null, entregador });
       if (r?.erro) setMsg(r); else router.push(`/sst/epi/ficha/${func}`);
     } catch (er) { setMsg({ erro: textoFalha(er) }); } finally { setEnviando(false); }
   }
@@ -45,7 +47,10 @@ export function EntregaEPI({ funcionarios, epis, locais, saldos, hoje, inicial }
             <option value="">Selecionar…</option>{funcionarios.map((x) => <option key={x.id} value={x.id}>{x.nome} — {x.funcao}{x.biometria ? ' 🙂' : ''}</option>)}</select></label>
         <label className="block"><span className="mb-1 block text-sm font-semibold">Data da entrega *</span>
           <input type="date" value={dataEntrega} max={hoje} required onChange={(e) => setDataEntrega(e.target.value)} className="entrada" /></label>
-        <label className="block sm:col-span-3"><span className="mb-1 block text-sm font-semibold">Sai do estoque de</span>
+        <label className="block sm:col-span-2"><span className="mb-1 block text-sm font-semibold">Entregue por *</span>
+          <select value={entregador} onChange={(e) => setEntregador(e.target.value)} className="entrada" required>
+            <option value="">Quem entregou o EPI…</option>{funcionarios.filter((x) => x.id !== func).map((x) => <option key={x.id} value={x.id}>{x.nome} — {x.funcao}</option>)}</select></label>
+        <label className="block"><span className="mb-1 block text-sm font-semibold">Sai do estoque de</span>
           <select value={local} onChange={(e) => setLocal(e.target.value)} className="entrada">
             <option value="">Depósito central</option>{locais.map((l) => <option key={l.id} value={l.id}>{l.nome}</option>)}</select></label>
       </div>

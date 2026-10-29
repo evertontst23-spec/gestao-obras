@@ -101,12 +101,16 @@ export async function assinarItemEPI(d: { pendente: string; insumo: string; conf
   return { ok: 'EPI assinado.' };
 }
 
-export async function registrarEntregaEPI(d: { funcionario: string; local: string | null; itens: { insumo_id: string; quantidade: number }[]; motivo: string; data: string | null; obs: string | null }): Promise<EstadoAcao> {
+export async function registrarEntregaEPI(d: { funcionario: string; local: string | null; itens: { insumo_id: string; quantidade: number }[]; motivo: string; data: string | null; obs: string | null; entregador?: string | null }): Promise<EstadoAcao> {
   const supabase = await criarClienteServidor();
   const { data, error } = await supabase.rpc('epi_registrar_pendente', {
     p_func: d.funcionario, p_local: d.local, p_itens: d.itens, p_motivo: d.motivo, p_data: d.data, p_obs: d.obs, p_baixa: true,
   });
   if (error) return { erro: mensagemErro(error) };
+  if (d.entregador) {
+    const r = await supabase.rpc('epi_pendente_definir_entregador', { p_pend: data, p_func: d.entregador });
+    if (r.error) return { erro: mensagemErro(r.error) };
+  }
   revalidatePath('/sst/epi', 'layout');
   return { ok: 'Entrega registrada. Agora o funcionário assina cada EPI na ficha.', id: data as string };
 }
@@ -132,4 +136,12 @@ export async function definirMinimoEPI(_: EstadoAcao, f: FormData): Promise<Esta
   if (error) return { erro: mensagemErro(error) };
   revalidatePath('/sst/epi', 'layout');
   return { ok: 'Mínimo salvo.' };
+}
+
+export async function definirEntregadorEPI(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('epi_pendente_definir_entregador', { p_pend: f.get('pendente'), p_func: (f.get('entregador') as string) || null });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/sst/epi', 'layout');
+  return { ok: 'Quem entregou foi salvo.' };
 }
