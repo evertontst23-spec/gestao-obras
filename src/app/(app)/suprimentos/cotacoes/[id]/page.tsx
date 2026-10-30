@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { obterSessao } from '@/lib/sessao';
 import { Cabecalho, Cartao, Campo, Info, Selo } from '@/components/ui';
 import { FormAcao, Botao } from '@/components/formulario';
-import { cancelarCotacao, decidirCotacao, enviarAprovacao, salvarProposta } from '../../acoes';
+import { cancelarCotacao, decidirCotacao, enviarAprovacao, excluirCotacao, excluirProposta, reabrirCotacao, salvarProposta, voltarCorrecao } from '../../acoes';
 import { STATUS_COTACAO, codCot, reais } from '@/lib/dominio';
 import { dataHora, num } from '@/lib/formato';
 
@@ -28,7 +28,8 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
   const limite = Number(par?.limite_coordenador ?? 0);
   const dentroLimite = Number(c.valor_escolhido ?? 0) <= limite;
   const podeAprovar = perfil.papel === 'admin' || (!!perfil.coordenador_compras && dentroLimite);
-  const aberta = c.status === 'em_cotacao';
+  const { data: exc } = await supabase.from('cotacoes_excluidas').select('motivo, excluida_em, perfis(nome)').eq('cotacao_id', id).maybeSingle();
+  const aberta = c.status === 'em_cotacao' && !exc;
   const nomeForn = (p: (typeof ps)[number]) => (p.fornecedores as unknown as { nome: string })?.nome;
 
   return (
@@ -37,6 +38,8 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
         sub={<span className="flex flex-wrap items-center gap-2">{c.obra_codigo ? `${c.obra_codigo} — ${c.obra_nome}` : 'Reposição do depósito central'}
           <Selo cor={STATUS_COTACAO[c.status].cor}>{STATUS_COTACAO[c.status].rotulo}</Selo>
           {c.oc_id && <Link href={`/suprimentos/ordens/${c.oc_id}`} className="link">ver ordem de compra →</Link>}</span>} />
+
+      {exc && <p className="mb-4 rounded-md border-2 border-atraso-500 bg-atraso-50 px-4 py-3 text-sm text-atraso-700"><b>Cotação excluída</b> por {(exc.perfis as unknown as { nome: string })?.nome ?? '—'} em {dataHora(exc.excluida_em)} — motivo: {exc.motivo}. Os itens voltaram para a fila de cotação; este registro fica só no histórico.</p>}
 
       {c.justificativa_estoque && <p className="mb-4 rounded-md bg-atencao-50 px-4 py-2 text-sm text-atencao-700"><b>Compra com estoque existente — justificativa:</b> {c.justificativa_estoque}</p>}
 
@@ -87,6 +90,40 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
         )}
 
         {comprador && aberta && ps.length > 0 && (
+          <Cartao titulo="Propostas registradas — corrigir ou excluir" className="lg:col-span-2">
+            <div className="space-y-2">{ps.map((p) => (
+              <details key={p.id} className="rounded-md border border-concreto-200">
+                <summary className="flex cursor-pointer flex-wrap items-center gap-3 px-3 py-2">
+                  <b className="flex-1">{nomeForn(p)}</b><span className="font-mono font-bold">{reais(p.valor_total)}</span>
+                  <span className="text-xs font-semibold text-sinal-700">✎ corrigir valores</span>
+                </summary>
+                <div className="space-y-3 border-t border-concreto-100 p-3">
+                  <FormAcao acao={salvarProposta} className="space-y-2">
+                    <input type="hidden" name="cotacao_id" value={id} /><input type="hidden" name="fornecedor_id" value={p.fornecedor_id} />
+                    <div className="grid grid-cols-3 gap-2">
+                      <Campo rotulo="Prazo (dias)"><input name="prazo" required inputMode="numeric" defaultValue={p.prazo_entrega_dias} className="entrada" /></Campo>
+                      <Campo rotulo="Frete (R$)"><input name="frete" inputMode="decimal" defaultValue={Number(p.frete).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} className="entrada" /></Campo>
+                      <Campo rotulo="Pagamento"><input name="condicao" defaultValue={p.condicao_pagamento ?? ''} className="entrada" /></Campo>
+                    </div>
+                    {(itens ?? []).map((i) => (
+                      <div key={i.id} className="flex items-center gap-2">
+                        <input type="hidden" name="item_id" value={i.id} />
+                        <span className="flex-1 text-sm">{i.descricao} <span className="text-xs text-concreto-500">({num(i.quantidade, 3)} {i.unidade})</span></span>
+                        <input name="preco" required inputMode="decimal" defaultValue={preco.has(`${p.id}:${i.id}`) ? String(preco.get(`${p.id}:${i.id}`)).replace('.', ',') : ''} placeholder="R$ unit." className="entrada w-32" />
+                      </div>))}
+                    <input type="hidden" name="observacoes" value={p.observacoes ?? ''} />
+                    <Botao variante="secundario">Salvar correção</Botao>
+                  </FormAcao>
+                  <FormAcao acao={excluirProposta}>
+                    <input type="hidden" name="cotacao_id" value={id} /><input type="hidden" name="proposta_id" value={p.id} />
+                    <Botao variante="perigo">Excluir esta proposta</Botao>
+                  </FormAcao>
+                </div>
+              </details>))}</div>
+          </Cartao>
+        )}
+
+        {comprador && aberta && ps.length > 0 && (
           <Cartao titulo="Enviar para aprovação da diretoria">
             <FormAcao acao={enviarAprovacao} className="space-y-3">
               <input type="hidden" name="cotacao_id" value={id} />
@@ -130,11 +167,43 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
           </Cartao>
         )}
 
+        {comprador && c.status === 'aguardando_aprovacao' && (
+          <Cartao titulo="Precisa corrigir algum valor?">
+            <FormAcao acao={voltarCorrecao} className="flex flex-wrap gap-2">
+              <input type="hidden" name="cotacao_id" value={id} />
+              <input name="motivo" placeholder="O que vai corrigir (opcional)" className="entrada min-w-0 flex-1" />
+              <Botao variante="secundario">Voltar para correção</Botao>
+            </FormAcao>
+            <p className="mt-2 text-xs text-concreto-500">A cotação sai da aprovação e volta para você corrigir as propostas. Nada é perdido.</p>
+          </Cartao>)}
+
+        {comprador && c.status === 'cancelada' && !exc && (
+          <Cartao titulo="Cotação cancelada" className="border-2 border-sinal-500">
+            <p className="mb-3 text-sm">Cancelou por engano ou para corrigir um valor? Reabra: os itens e as propostas digitadas voltam como estavam.</p>
+            <FormAcao acao={reabrirCotacao}>
+              <input type="hidden" name="cotacao_id" value={id} />
+              <Botao>Reabrir cotação</Botao>
+            </FormAcao>
+          </Cartao>)}
+
         {c.parecer && <Cartao titulo="Decisão"><p className="text-sm">{c.parecer}</p><p className="text-xs text-concreto-500">{c.decidido_nome} • {dataHora(c.decidido_em)}</p></Cartao>}
 
-        {comprador && ['em_cotacao', 'aguardando_aprovacao'].includes(c.status) && (
+        {comprador && !exc && ['em_cotacao', 'aguardando_aprovacao', 'cancelada'].includes(c.status) && (
+          <details className="rounded-lg border border-atraso-200 bg-white text-sm lg:col-span-2">
+            <summary className="cursor-pointer px-4 py-3 font-semibold text-atraso-700">🗑 Excluir cotação</summary>
+            <p className="px-4 text-xs text-concreto-600">A cotação some da lista e os itens voltam para a fila de cotação. Fica guardado no histórico quem excluiu e o motivo.
+              {c.status !== 'cancelada' && ' Só quer corrigir um valor? Use “corrigir valores” na proposta — não precisa excluir.'}</p>
+            <FormAcao acao={excluirCotacao} className="flex flex-wrap gap-2 border-t border-concreto-100 p-4">
+              <input type="hidden" name="cotacao_id" value={id} />
+              <input name="motivo" required minLength={5} placeholder="Motivo da exclusão (ex.: criei duplicada)" className="entrada min-w-0 flex-1" />
+              <Botao variante="perigo">Excluir</Botao>
+            </FormAcao>
+          </details>)}
+
+        {comprador && !exc && ['em_cotacao', 'aguardando_aprovacao'].includes(c.status) && (
           <details className="rounded-lg border border-concreto-200 bg-white text-sm lg:col-span-2">
             <summary className="cursor-pointer px-4 py-3 text-atraso-700">Cancelar cotação</summary>
+            <p className="px-4 text-xs text-concreto-500">Para corrigir um valor errado não precisa cancelar: use “corrigir valores” na proposta.</p>
             <FormAcao acao={cancelarCotacao} className="flex gap-2 border-t border-concreto-100 p-4">
               <input type="hidden" name="cotacao_id" value={id} />
               <input name="motivo" required minLength={5} placeholder="Motivo" className="entrada flex-1" />
@@ -142,6 +211,7 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
             </FormAcao>
           </details>)}
       </div>
+      {c.status === 'aprovada' && comprador && <p className="mt-4 text-xs text-concreto-500">Errou algo depois da aprovação? Abra a ordem de compra e use “Desfazer OC”: ela volta como uma nova cotação para corrigir.</p>}
       {c.oc_id && <p className="mt-4 text-sm">Gerou a <Link href={`/suprimentos/ordens/${c.oc_id}`} className="link">ordem de compra</Link>.</p>}
     </>
   );

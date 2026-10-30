@@ -6,7 +6,7 @@ import { Cabecalho, Cartao, Campo, Info, Selo } from '@/components/ui';
 import { FormAcao, Botao } from '@/components/formulario';
 import { UploadArquivo } from '@/components/UploadArquivo';
 import { BotaoImprimir } from '@/components/BotaoImprimir';
-import { anexarDocumentoOC, cancelarOC, liberarColeta, receberOC } from '../../acoes';
+import { anexarDocumentoOC, anularDocumentoOC, cancelarOC, desfazerOC, estornarRecebimentoOC, liberarColeta, receberOC, voltarPagamentoOC } from '../../acoes';
 import { STATUS_OC, codOC, codSM, reais } from '@/lib/dominio';
 import { data, dataHora, num } from '@/lib/formato';
 
@@ -29,6 +29,19 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
   const p = perfil.papel;
   const podeDoc = ['compras', 'financeiro', 'almoxarifado', 'admin', 'engenheiro', 'encarregado'].includes(p) && o.status !== 'cancelada';
   const aReceber = ['emitida', 'pronta_coleta', 'recebida_parcial'].includes(o.status);
+  const docsAtivos = (docs ?? []).filter((d) => !d.anulado_em), docsExcluidos = (docs ?? []).filter((d) => d.anulado_em);
+  const recebeuAlgo = (itens ?? []).some((i) => Number(i.quantidade_recebida) > 0);
+  const podeExcluirDoc = ['compras', 'financeiro', 'almoxarifado', 'admin'].includes(p);
+  const Desfazer = ({ titulo, texto, acao, botao, ph }: { titulo: string; texto: string; acao: typeof desfazerOC; botao: string; ph: string }) => (
+    <details className="rounded-lg border border-atraso-200 bg-white text-sm">
+      <summary className="cursor-pointer px-4 py-3 font-semibold text-atraso-700">↩ {titulo}</summary>
+      <p className="px-4 text-xs text-concreto-600">{texto}</p>
+      <FormAcao acao={acao} className="flex flex-wrap gap-2 border-t border-concreto-100 p-4">
+        <input type="hidden" name="oc_id" value={id} />
+        <input name="motivo" required minLength={5} placeholder={ph} className="entrada min-w-0 flex-1" />
+        <Botao variante="perigo">{botao}</Botao>
+      </FormAcao>
+    </details>);
 
   return (
     <>
@@ -83,15 +96,31 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
             </div>
           </section>
 
-          <Cartao titulo={`Documentos (${docs?.length ?? 0})`} className="nao-imprimir">
-            {!docs?.length ? <p className="text-sm text-concreto-500">Nenhum documento. Anexe NF, boleto e comprovante pela câmera do celular.</p> : (
-              <ul className="divide-y divide-concreto-100 text-sm">{docs.map((d) => (
-                <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <span><b>{DOC[d.tipo]}</b> {d.numero && `nº ${d.numero}`} {d.valor && `• ${reais(d.valor)}`} {d.vencimento && `• vence ${data(d.vencimento)}`}
-                    <span className="block text-xs text-concreto-500">{(d.perfis as unknown as { nome: string })?.nome} • {dataHora(d.criado_em)}</span></span>
-                  {d.caminho && url.get(d.caminho) && <a href={url.get(d.caminho) ?? undefined} target="_blank" rel="noreferrer" className="link">abrir</a>}
+          <Cartao titulo={`Documentos (${docsAtivos.length})`} className="nao-imprimir">
+            {!docsAtivos.length ? <p className="text-sm text-concreto-500">Nenhum documento. Anexe NF, boleto e comprovante pela câmera do celular.</p> : (
+              <ul className="divide-y divide-concreto-100 text-sm">{docsAtivos.map((d) => (
+                <li key={d.id} className="py-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span><b>{DOC[d.tipo]}</b> {d.numero && `nº ${d.numero}`} {d.valor && `• ${reais(d.valor)}`} {d.vencimento && `• vence ${data(d.vencimento)}`}
+                      <span className="block text-xs text-concreto-500">{(d.perfis as unknown as { nome: string })?.nome} • {dataHora(d.criado_em)}</span></span>
+                    {d.caminho && url.get(d.caminho) && <a href={url.get(d.caminho) ?? undefined} target="_blank" rel="noreferrer" className="link">abrir</a>}
+                  </div>
+                  {podeExcluirDoc && (
+                    <details className="mt-1 text-xs">
+                      <summary className="cursor-pointer text-atraso-700">🗑 excluir (lançado errado)</summary>
+                      <FormAcao acao={anularDocumentoOC} className="mt-2 flex flex-wrap gap-2">
+                        <input type="hidden" name="doc_id" value={d.id} />
+                        <input name="motivo" required minLength={5} placeholder="Motivo (ex.: valor digitado errado)" className="entrada min-w-0 flex-1 py-1" />
+                        <Botao variante="perigo" className="px-3 py-1 text-xs">Excluir documento</Botao>
+                      </FormAcao>
+                    </details>)}
                 </li>))}
               </ul>)}
+            {docsExcluidos.length > 0 && (
+              <details className="mt-3 text-xs text-concreto-500"><summary className="cursor-pointer">Documentos excluídos ({docsExcluidos.length})</summary>
+                <ul className="mt-1 space-y-1">{docsExcluidos.map((d) => (
+                  <li key={d.id}><s>{DOC[d.tipo]} {d.numero && `nº ${d.numero}`} {d.valor && `• ${reais(d.valor)}`}</s> — excluído em {dataHora(d.anulado_em)}: {d.anulado_motivo}</li>))}</ul>
+              </details>)}
           </Cartao>
 
           <Cartao titulo="Histórico" className="nao-imprimir">
@@ -142,6 +171,18 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
               </UploadArquivo>
               <p className="mt-2 text-xs text-concreto-500">A NF é conferida automaticamente com o valor da OC.</p>
             </Cartao>)}
+
+          {['compras', 'admin'].includes(p) && ['emitida', 'pronta_coleta'].includes(o.status) && !recebeuAlgo && (
+            <Desfazer titulo="Desfazer OC (voltar para a cotação)" acao={desfazerOC} botao="Desfazer OC" ph="O que estava errado (ex.: preço do item 2)"
+              texto="Errou preço, fornecedor ou quantidade? A OC é cancelada (e a conta a pagar dela também) e a cotação volta como uma nova cotação, com os itens e as propostas já digitados, para você corrigir e mandar aprovar de novo." />)}
+
+          {['compras', 'financeiro', 'admin'].includes(p) && o.status === 'pronta_coleta' && (
+            <Desfazer titulo="Desfazer pago / faturado" acao={voltarPagamentoOC} botao="Desfazer pagamento" ph="Motivo (ex.: marquei pago por engano)"
+              texto="A OC volta a aguardar pagamento/faturamento e a conta a pagar volta a ficar em aberto." />)}
+
+          {['almoxarifado', 'compras', 'admin'].includes(p) && ['recebida', 'recebida_parcial'].includes(o.status) && (
+            <Desfazer titulo="Estornar entrada da nota (recebimento)" acao={estornarRecebimentoOC} botao="Estornar recebimento" ph="Motivo (ex.: lancei a quantidade errada)"
+              texto="Tudo o que foi recebido nesta OC sai do estoque e a OC volta a aguardar entrega; depois é só lançar o recebimento certo. Não funciona se o material já foi enviado ao encarregado ou usado." />)}
 
           {p === 'admin' && ['emitida', 'pronta_coleta'].includes(o.status) && (
             <details className="rounded-lg border border-concreto-200 bg-white text-sm">

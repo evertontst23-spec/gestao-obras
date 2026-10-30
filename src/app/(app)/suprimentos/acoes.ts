@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { criarClienteServidor } from '@/lib/supabase/server';
-import { type EstadoAcao, dinheiro, mensagemErro, numero, txt } from '@/lib/acoes';
+import { type EstadoAcao, dinheiro, mensagemErro, numero, paraNumero, txt } from '@/lib/acoes';
 
 const rev = () => { revalidatePath('/suprimentos', 'layout'); revalidatePath('/materiais', 'layout'); };
 
@@ -35,7 +35,7 @@ export async function criarCotacao(_: EstadoAcao, f: FormData): Promise<EstadoAc
 
 export async function salvarProposta(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
   const cot = txt(f, 'cotacao_id')!;
-  const precos = f.getAll('item_id').map((id, i) => ({ cotacao_item_id: String(id), preco_unitario: String(f.getAll('preco')[i] ?? '').replace(',', '.') }));
+  const precos = f.getAll('item_id').map((id, i) => ({ cotacao_item_id: String(id), preco_unitario: (() => { const v = paraNumero(String(f.getAll('preco')[i] ?? '')); return v == null ? '' : String(v); })() }));
   const supabase = await criarClienteServidor();
   const { error } = await supabase.rpc('cotacao_proposta_salvar', {
     p_cotacao: cot, p_fornecedor: txt(f, 'fornecedor_id'), p_prazo: numero(f, 'prazo'), p_condicao: txt(f, 'condicao'),
@@ -110,4 +110,72 @@ export async function cancelarOC(_: EstadoAcao, f: FormData): Promise<EstadoAcao
   if (error) return { erro: mensagemErro(error) };
   rev();
   return { ok: 'OC cancelada; os itens voltaram para cotação.' };
+}
+
+export async function reabrirCotacao(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const cot = txt(f, 'cotacao_id')!;
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('cotacao_reabrir', { p_cotacao: cot });
+  if (error) return { erro: mensagemErro(error) };
+  rev(); revalidatePath(`/suprimentos/cotacoes/${cot}`);
+  return { ok: 'Cotação reaberta com os itens e as propostas. Corrija o que precisar.' };
+}
+
+export async function excluirProposta(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const cot = txt(f, 'cotacao_id')!;
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('cotacao_proposta_excluir', { p_proposta: txt(f, 'proposta_id') });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath(`/suprimentos/cotacoes/${cot}`);
+  return { ok: 'Proposta excluída.' };
+}
+
+export async function voltarCorrecao(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const cot = txt(f, 'cotacao_id')!;
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('cotacao_voltar_correcao', { p_cotacao: cot, p_motivo: txt(f, 'motivo') });
+  if (error) return { erro: mensagemErro(error) };
+  rev(); revalidatePath(`/suprimentos/cotacoes/${cot}`);
+  return { ok: 'Cotação de volta para o comprador corrigir.' };
+}
+
+export async function excluirCotacao(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const cot = txt(f, 'cotacao_id')!;
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('cotacao_excluir', { p_cotacao: cot, p_motivo: txt(f, 'motivo') });
+  if (error) return { erro: mensagemErro(error) };
+  rev(); revalidatePath(`/suprimentos/cotacoes/${cot}`);
+  redirect('/suprimentos/cotacoes');
+}
+
+export async function desfazerOC(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { data, error } = await supabase.rpc('oc_desfazer', { p_oc: txt(f, 'oc_id'), p_motivo: txt(f, 'motivo') });
+  if (error) return { erro: mensagemErro(error) };
+  rev();
+  redirect(`/suprimentos/cotacoes/${data}`);
+}
+
+export async function voltarPagamentoOC(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('oc_voltar_pagamento', { p_oc: txt(f, 'oc_id'), p_motivo: txt(f, 'motivo') });
+  if (error) return { erro: mensagemErro(error) };
+  rev();
+  return { ok: 'Pagamento desfeito: a OC voltou a aguardar pagamento/faturamento.' };
+}
+
+export async function anularDocumentoOC(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('oc_documento_anular', { p_doc: txt(f, 'doc_id'), p_motivo: txt(f, 'motivo') });
+  if (error) return { erro: mensagemErro(error) };
+  rev();
+  return { ok: 'Documento excluído da OC (fica registrado no histórico).' };
+}
+
+export async function estornarRecebimentoOC(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('oc_estornar_recebimento', { p_oc: txt(f, 'oc_id'), p_motivo: txt(f, 'motivo') });
+  if (error) return { erro: mensagemErro(error) };
+  rev();
+  return { ok: 'Recebimento estornado: o material saiu do estoque e a OC voltou a aguardar entrega.' };
 }
