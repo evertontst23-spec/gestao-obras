@@ -12,6 +12,7 @@ export async function AbasDP({ atual, mes }: { atual: string; mes?: string }) {
     ['correcoes', `Pedidos de correção${count ? ` (${count})` : ''}`, '/dp/correcoes', ['admin', 'rh']],
     ['folha', 'Folha', `/dp/folha${q}`, ['admin', 'rh', 'financeiro']],
     ['pag', 'Pagamentos', '/dp/pagamentos', ['admin', 'rh', 'financeiro']],
+    ['benef', 'Benefícios', '/dp/beneficios', ['admin', 'rh', 'financeiro']],
     ['he', 'Horas extras e faltas', `/dp/horas-extras${q}`, ['admin', 'rh', 'financeiro']],
     ['atestados', 'Atestados', '/dp/atestados', ['admin', 'rh']],
     ['mov', 'Admissões e desligamentos', '/dp/movimentacao', ['admin', 'rh', 'financeiro']],

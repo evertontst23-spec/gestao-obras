@@ -14,7 +14,7 @@ npm install
 npm run dev
 ```
 Banco: aplique `supabase/migrations/*.sql` (ver docs/IMPLANTACAO.md).
-Testes: `npm run test:db` (430 verificações das regras no banco) · `npm run test:planilha` (leitor de planilhas).
+Testes: `npm run test:db` (437 verificações das regras no banco) · `npm run test:planilha` (leitor de planilhas).
 Para experimentar a importação: `docs/EXEMPLO_planilha_orcamentaria.xlsx` (dados fictícios).
 
 ## Estrutura
@@ -49,7 +49,8 @@ supabase/
     …0034_cotacao_whatsapp_pagamento.sql forma de pagamento na proposta (vai para a OC), pedido de cotação pelo WhatsApp e PDF/foto do orçamento do fornecedor
     …0035_cotacao_tirar_itens.sql      tirar itens de uma cotação (voltam para a fila) e voltar item da fila para a verificação de estoque
     …0036_alcada_aviso.sql             até o limite, o pedido de aprovação vai só para o coordenador de compras (diretoria só acima do limite)
-  tests/                  25 cenários com 430 verificações (dados de teste prefixados "TESTE")
+    …0037_beneficios.sql               RH/DP: benefícios do mês (alimentação e passagem) por obra, editáveis, com total por obra e geral
+  tests/                  26 cenários com 437 verificações (dados de teste prefixados "TESTE")
 src/
   middleware.ts           sessão e proteção de rotas
   lib/                    clientes Supabase, sessão, rótulos do domínio, formatação
