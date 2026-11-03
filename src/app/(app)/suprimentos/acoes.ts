@@ -219,8 +219,10 @@ export type LeituraProposta = {
 
 /** Lê o PDF/foto do orçamento do fornecedor e devolve os dados para conferir antes de salvar a proposta. */
 export async function lerPropostaArquivo(cotacao: string, caminho: string, mime: string | null): Promise<LeituraProposta> {
+  // No Netlify, a IA vem pelo AI Gateway do próprio plano (chave e endereço injetados automaticamente; cobra em créditos do Netlify)
   const chave = process.env.ANTHROPIC_API_KEY;
-  if (!chave) return { erro: 'A leitura automática ainda não está ligada: falta cadastrar a chave da API (ANTHROPIC_API_KEY) no Netlify. Enquanto isso, lance os preços à mão.' };
+  const base = process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com';
+  if (!chave) return { erro: 'A leitura automática não está disponível agora. Lance os preços à mão.' };
   const supabase = await criarClienteServidor();
   const { data: { user } } = await supabase.auth.getUser();
   const { data: perfil } = await supabase.from('perfis').select('papel').eq('id', user?.id ?? '').maybeSingle();
@@ -262,14 +264,18 @@ export async function lerPropostaArquivo(cotacao: string, caminho: string, mime:
   };
   let r: Response;
   try {
-    r = await fetch('https://api.anthropic.com/v1/messages', {
+    r = await fetch(`${base.replace(/\/+$/, '')}/v1/messages`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': chave, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ model: process.env.ANTHROPIC_MODELO || 'claude-haiku-5-5', max_tokens: 2000, tools: [ferramenta],
         tool_choice: { type: 'tool', name: 'registrar_proposta' }, messages: [{ role: 'user', content: [bloco, { type: 'text', text: prompt }] }] }),
     });
   } catch { return { erro: 'Não consegui falar com o serviço de leitura agora. Tente de novo ou lance à mão.' }; }
-  if (!r.ok) return { erro: `A leitura automática falhou (${r.status}). Tente de novo ou lance os preços à mão.` };
+  if (!r.ok) {
+    const det = await r.text().catch(() => '');
+    console.error('leitura proposta', r.status, det.slice(0, 500));
+    return { erro: r.status === 429 ? 'Muitas leituras seguidas: espere um minuto e tente de novo.' : `A leitura automática falhou (${r.status}). Tente de novo ou lance os preços à mão.` };
+  }
   const j = await r.json();
   const dados = (j.content ?? []).find((c: { type: string }) => c.type === 'tool_use')?.input as Record<string, unknown> | undefined;
   if (!dados) return { erro: 'Não consegui ler o orçamento. Confira se a foto está nítida ou lance à mão.' };
