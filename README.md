@@ -14,7 +14,7 @@ npm install
 npm run dev
 ```
 Banco: aplique `supabase/migrations/*.sql` (ver docs/IMPLANTACAO.md).
-Testes: `npm run test:db` (401 verificações das regras no banco) · `npm run test:planilha` (leitor de planilhas).
+Testes: `npm run test:db` (410 verificações das regras no banco) · `npm run test:planilha` (leitor de planilhas).
 Para experimentar a importação: `docs/EXEMPLO_planilha_orcamentaria.xlsx` (dados fictícios).
 
 ## Estrutura
@@ -45,7 +45,8 @@ supabase/
     …0024–0030                         EPI: entrega sem estoque, pendente, assinatura por EPI, anulação, estoque de EPI, quem entregou
     …0031_compras_desfazer.sql         compras: excluir cotação/proposta, voltar para correção, desfazer OC, desfazer pagamento, excluir NF, estornar recebimento (tudo com motivo e histórico)
     …0032_comprovante_pagamento.sql    comprovante de pagamento anexado depois da baixa (contas a pagar/receber)
-  tests/                  21 cenários com 401 verificações (dados de teste prefixados "TESTE")
+    …0033_pedido_editar.sql            editar pedido de material (data, prioridade, serviço, observação), editar/renomear item e incluir item
+  tests/                  22 cenários com 410 verificações (dados de teste prefixados "TESTE")
 src/
   middleware.ts           sessão e proteção de rotas
   lib/                    clientes Supabase, sessão, rótulos do domínio, formatação

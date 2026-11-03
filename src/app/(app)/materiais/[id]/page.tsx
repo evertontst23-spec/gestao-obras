@@ -7,8 +7,8 @@ import { FotoUpload } from '@/components/FotoUpload';
 import { Galeria } from '@/components/Galeria';
 import { SeloLocacao } from '@/components/Locacao';
 import { ControleLocacao } from '@/components/ControleLocacao';
-import { cancelarItem, confirmarEntrega, decidirSolicitacao, registrarEnvio, verificarEstoque, verificarEstoqueLote } from '../acoes';
-import { STATUS_MATERIAL, codSM, codTarefa, type StatusMaterial } from '@/lib/dominio';
+import { adicionarItem, cancelarItem, confirmarEntrega, decidirSolicitacao, editarItem, editarSolicitacao, registrarEnvio, verificarEstoque, verificarEstoqueLote } from '../acoes';
+import { STATUS_MATERIAL, TAREFA_ABERTA, codSM, codTarefa, type StatusMaterial } from '@/lib/dominio';
 import { data, dataHora, hojeISO, num } from '@/lib/formato';
 
 
@@ -37,6 +37,13 @@ export default async function DetalheSolicitacao({ params, searchParams }: { par
   const compras = papel === 'compras' || papel === 'admin';
   const recebe = ['encarregado', 'engenheiro', 'admin'].includes(papel);
   const hoje = hojeISO();
+  const podeEditar = !['concluida', 'cancelada', 'rejeitada'].includes(s.status) && (gere || compras || s.solicitante_id === perfil.id);
+  const { data: tarefasObra } = podeEditar
+    ? await supabase.from('v_tarefas').select('id, numero, titulo').eq('obra_id', s.obra_id).in('status', TAREFA_ABERTA).order('numero')
+    : { data: [] };
+  const itemEditavel = (i: { status: string; cotacao_id: string | null; oc_id: string | null; quantidade_enviada: number | string; quantidade_recebida: number | string }) =>
+    podeEditar && ['solicitado', 'aguardando_aprovacao', 'aprovado', 'em_cotacao'].includes(i.status) && !i.cotacao_id && !i.oc_id
+    && Number(i.quantidade_enviada) === 0 && Number(i.quantidade_recebida) === 0;
 
   return (
     <>
@@ -58,6 +65,25 @@ export default async function DetalheSolicitacao({ params, searchParams }: { par
             {s.observacoes && <p className="mt-1 text-sm text-concreto-600"><b>Obs.:</b> {s.observacoes}</p>}
             {s.parecer && <p className="mt-1 text-sm text-concreto-600"><b>Parecer:</b> {s.parecer}</p>}
           </Cartao>
+
+          {podeEditar && (
+            <details className="rounded-lg border border-concreto-200 bg-white">
+              <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-sinal-700">✎ Editar pedido (data, prioridade, serviço, observação)</summary>
+              <FormAcao acao={editarSolicitacao} className="grid gap-3 border-t border-concreto-100 p-4 sm:grid-cols-3">
+                <input type="hidden" name="solicitacao" value={id} />
+                <Campo rotulo="Necessário na obra"><input type="date" name="data_necessidade" required defaultValue={s.data_necessidade ?? ''} className="entrada" /></Campo>
+                <Campo rotulo="Prioridade"><select name="prioridade" defaultValue={s.prioridade} className="entrada">
+                  <option value="baixa">Baixa</option><option value="normal">Normal</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></Campo>
+                <Campo rotulo="Serviço (tarefa)"><select name="tarefa_id" defaultValue={s.tarefa_id ?? 'sem'} className="entrada">
+                  <option value="sem">Sem vínculo (explique na observação)</option>
+                  {s.tarefa_id && !(tarefasObra ?? []).some((t) => t.id === s.tarefa_id) && <option value={s.tarefa_id}>{codTarefa(s.tarefa_numero)} {s.tarefa_titulo}</option>}
+                  {(tarefasObra ?? []).map((t) => <option key={t.id} value={t.id}>{codTarefa(t.numero)} {t.titulo}</option>)}</select></Campo>
+                <Campo rotulo="Observação" className="sm:col-span-3"><input name="observacoes" defaultValue={s.observacoes ?? ''} className="entrada" /></Campo>
+                <Campo rotulo="Justificativa" className="sm:col-span-3"><input name="justificativa" defaultValue={s.justificativa ?? ''} className="entrada" /></Campo>
+                <div className="sm:col-span-3"><Botao>Salvar alterações</Botao>
+                  <span className="ml-3 text-xs text-concreto-500">A alteração fica registrada no histórico de cada item.</span></div>
+              </FormAcao>
+            </details>)}
 
           {gere && s.status === 'aguardando_aprovacao' && (
             <FormAcao acao={decidirSolicitacao} className="space-y-3 rounded-lg border-2 border-sinal-500 bg-sinal-50 p-4">
@@ -182,6 +208,24 @@ export default async function DetalheSolicitacao({ params, searchParams }: { par
                       {i.modalidade === 'locacao' && i.devolvido_em && <p className="rounded bg-concreto-100 p-2 text-xs">Devolvido em <b>{data(i.devolvido_em)}</b>{i.devolucao_obs ? ` — ${i.devolucao_obs}` : ''}</p>}
                       {i.modalidade === 'locacao' && !i.devolvido_em && ['entregue', 'parcialmente_entregue'].includes(st) && (gere || almox || compras) && (
                         <ControleLocacao item={i.id} solicitacao={id} fim={i.locacao_fim} hoje={hoje} />)}
+                      {itemEditavel(i) && (
+                        <details className="text-sm" open={false}><summary className="cursor-pointer text-xs font-semibold text-sinal-700">✎ Editar item (renomear, quantidade, unidade…)</summary>
+                          <FormAcao acao={editarItem} className="mt-2 grid gap-2 rounded bg-concreto-50 p-2 sm:grid-cols-4">
+                            <input type="hidden" name="solicitacao" value={id} /><input type="hidden" name="item" value={i.id} />
+                            <Campo rotulo="Material" className="sm:col-span-2"><input name="material" required defaultValue={i.material} className="entrada" /></Campo>
+                            <Campo rotulo="Quantidade"><input name="quantidade" required inputMode="decimal" defaultValue={String(Number(i.quantidade)).replace('.', ',')} className="entrada" /></Campo>
+                            <Campo rotulo="Unidade"><input name="unidade" required defaultValue={i.unidade} className="entrada" /></Campo>
+                            <Campo rotulo="Especificação" className="sm:col-span-2"><input name="especificacao" defaultValue={i.especificacao ?? ''} className="entrada" /></Campo>
+                            <Campo rotulo="Necessário em"><input type="date" name="data_necessidade" defaultValue={i.data_necessidade ?? ''} className="entrada" /></Campo>
+                            {i.modalidade === 'locacao' ? <div className="grid grid-cols-2 gap-1">
+                              <Campo rotulo="Locação: início"><input type="date" name="locacao_inicio" defaultValue={i.locacao_inicio ?? ''} className="entrada" /></Campo>
+                              <Campo rotulo="Fim"><input type="date" name="locacao_fim" defaultValue={i.locacao_fim ?? ''} className="entrada" /></Campo></div> : <div />}
+                            <div className="sm:col-span-4"><Botao variante="secundario">Salvar item</Botao>
+                              <span className="ml-2 text-xs text-concreto-500">Para usar um material do cadastro, digite “CÓDIGO — nome” (ex.: PM-001 — Meio-fio).</span></div>
+                          </FormAcao>
+                        </details>)}
+                      {i.cotacao_id && !i.oc_id && !['entregue', 'cancelado'].includes(st) && podeEditar && (
+                        <p className="text-xs text-concreto-500">Este item já está numa cotação: para corrigir nome ou quantidade, o comprador corrige na cotação (ou cancele o item e inclua outro).</p>)}
                       {!['entregue', 'cancelado'].includes(st) && Number(i.quantidade_enviada) === 0 && Number(i.quantidade_recebida) === 0 &&
                         (gere || papel === 'compras' || s.solicitante_id === perfil.id) && (
                         <details className="text-sm"><summary className="cursor-pointer text-xs text-atraso-700">Cancelar item</summary>
@@ -206,6 +250,22 @@ export default async function DetalheSolicitacao({ params, searchParams }: { par
                 );
               })}
             </div>
+            {podeEditar && (
+              <details className="mt-3 rounded-md border border-dashed border-sinal-400">
+                <summary className="cursor-pointer px-3 py-2 text-sm font-semibold text-sinal-700">+ Incluir item neste pedido</summary>
+                <FormAcao acao={adicionarItem} limparAoConcluir className="grid gap-2 border-t border-concreto-100 p-3 sm:grid-cols-4">
+                  <input type="hidden" name="solicitacao" value={id} />
+                  <Campo rotulo="Material" className="sm:col-span-2"><input name="material" required placeholder="Nome ou CÓDIGO — nome" className="entrada" /></Campo>
+                  <Campo rotulo="Quantidade"><input name="quantidade" required inputMode="decimal" className="entrada" /></Campo>
+                  <Campo rotulo="Unidade"><input name="unidade" required defaultValue="un" className="entrada" /></Campo>
+                  <Campo rotulo="Especificação" className="sm:col-span-2"><input name="especificacao" className="entrada" /></Campo>
+                  <Campo rotulo="Compra ou locação"><select name="modalidade" className="entrada"><option value="compra">Compra</option><option value="locacao">Locação</option></select></Campo>
+                  <div className="grid grid-cols-2 gap-1">
+                    <Campo rotulo="Locação: início"><input type="date" name="locacao_inicio" className="entrada" /></Campo>
+                    <Campo rotulo="Fim"><input type="date" name="locacao_fim" className="entrada" /></Campo></div>
+                  <div className="sm:col-span-4"><Botao>Incluir item</Botao></div>
+                </FormAcao>
+              </details>)}
           </Cartao>
         </div>
 

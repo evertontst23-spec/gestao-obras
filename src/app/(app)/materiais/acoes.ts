@@ -97,3 +97,31 @@ export async function verificarEstoqueLote(_: EstadoAcao, f: FormData): Promise<
   revalidatePath('/suprimentos'); revalidatePath('/campo'); revalidatePath('/painel');
   return { ok: modo === 'estoque' ? `${data} item(ns) separados do estoque.` : `${data} item(ns) enviados para cotação.` };
 }
+
+const qtd = (v: string | null) => (v ? Number(v.replace(/\./g, (m, _o, t: string) => (t.includes(',') ? '' : m)).replace(',', '.')) : null);
+
+export async function editarSolicitacao(_: EstadoAcao, f: FormData) {
+  const s = txt(f, 'solicitacao')!;
+  const tarefa = txt(f, 'tarefa_id');
+  return chamar('solicitacao_editar', {
+    p_sol: s, p_data_necessidade: txt(f, 'data_necessidade'), p_prioridade: txt(f, 'prioridade') ?? 'normal',
+    p_tarefa: tarefa && tarefa !== 'sem' ? tarefa : null, p_justificativa: txt(f, 'justificativa'), p_observacoes: txt(f, 'observacoes'),
+  }, s, 'Pedido atualizado.');
+}
+export async function editarItem(_: EstadoAcao, f: FormData) {
+  const s = txt(f, 'solicitacao')!;
+  return chamar('item_editar', {
+    p_item: txt(f, 'item'), p_material: txt(f, 'material'), p_especificacao: txt(f, 'especificacao'), p_unidade: txt(f, 'unidade'),
+    p_quantidade: qtd(txt(f, 'quantidade')), p_data_necessidade: txt(f, 'data_necessidade'),
+    p_locacao_inicio: txt(f, 'locacao_inicio'), p_locacao_fim: txt(f, 'locacao_fim'),
+  }, s, 'Item atualizado.');
+}
+export async function adicionarItem(_: EstadoAcao, f: FormData) {
+  const s = txt(f, 'solicitacao')!;
+  return chamar('item_adicionar', {
+    p_sol: s, p_item: {
+      material: txt(f, 'material'), especificacao: txt(f, 'especificacao'), unidade: txt(f, 'unidade'), quantidade: qtd(txt(f, 'quantidade')),
+      modalidade: txt(f, 'modalidade') ?? 'compra', locacao_inicio: txt(f, 'locacao_inicio'), locacao_fim: txt(f, 'locacao_fim'),
+    },
+  }, s, 'Item incluído no pedido.');
+}
