@@ -5,12 +5,13 @@ import { obterSessao } from '@/lib/sessao';
 import { Cabecalho, Cartao, Campo, Info, Selo } from '@/components/ui';
 import { FormAcao, Botao } from '@/components/formulario';
 import { UploadArquivo } from '@/components/UploadArquivo';
+import { CamposDocumentoOC } from '@/components/CamposDocumentoOC';
 import { BotaoImprimir } from '@/components/BotaoImprimir';
 import { anexarDocumentoOC, anularDocumentoOC, cancelarOC, desfazerColetaOC, desfazerOC, registrarColetaOC, estornarRecebimentoOC, liberarColeta, receberOC, voltarPagamentoOC } from '../../acoes';
 import { FORMA_PAGAMENTO, STATUS_OC, codOC, codSM, reais } from '@/lib/dominio';
 import { data, dataHora, hojeISO, num } from '@/lib/formato';
 
-const DOC: Record<string, string> = { nf: 'Nota fiscal', boleto: 'Boleto', comprovante: 'Comprovante de pagamento', outro: 'Outro' };
+const DOC: Record<string, string> = { nf: 'Nota fiscal', boleto: 'Boleto', comprovante: 'Comprovante de pagamento (PIX/transferência)', outro: 'Outro' };
 
 export default async function DetalheOC({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -23,7 +24,8 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
     supabase.from('oc_eventos').select('*, perfis(nome)').eq('oc_id', id).order('criado_em', { ascending: false }),
     supabase.from('obras').select('nome, endereco, cliente').eq('id', o.obra_id ?? '00000000-0000-0000-0000-000000000000').maybeSingle(),
   ]);
-  const { data: col } = await supabase.from('ordens_compra').select('coletado_em, coletado_por, coleta_obs, coleta_foto').eq('id', id).maybeSingle();
+  const { data: col } = await supabase.from('ordens_compra').select('coletado_em, coletado_por, coleta_obs, coleta_foto, forma_pagamento').eq('id', id).maybeSingle();
+  const forma: string | null = col?.forma_pagamento ?? null;
   const urlColeta = col?.coleta_foto ? (await supabase.storage.from('anexos').createSignedUrl(col.coleta_foto, 3600)).data?.signedUrl : null;
   const caminhos = (docs ?? []).map((d) => d.caminho).filter(Boolean) as string[];
   const { data: urls } = caminhos.length ? await supabase.storage.from('anexos').createSignedUrls(caminhos, 3600) : { data: [] };
@@ -92,12 +94,12 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
             <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-concreto-200 pb-3">
               <div><div className="text-xs font-bold uppercase tracking-[0.2em] text-sinal-700">Ordem de compra</div>
                 <div className="font-mono text-2xl font-black">{codOC(o.numero)}</div>
-                <div className="text-xs text-concreto-500">Emitida em {dataHora(o.emitida_em)} • aprovada pela diretoria • {o.cotacao_codigo}</div></div>
+                <div className="text-xs text-concreto-500">Emitida em {dataHora(o.emitida_em)} • aprovada • {o.cotacao_codigo}</div></div>
               <div className="text-right text-sm"><b>{o.obra_nome}</b><div className="text-xs text-concreto-500">{empresa?.endereco ?? ''}</div></div>
             </div>
             <dl className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Info rotulo="Fornecedor">{o.fornecedor_nome}<div className="text-xs text-concreto-500">{o.fornecedor_documento} {o.fornecedor_telefone}</div></Info>
-              <Info rotulo="Pagamento">{o.forma_pagamento ? <b>{FORMA_PAGAMENTO[o.forma_pagamento]}</b> : null}{o.forma_pagamento && o.condicao_pagamento ? ' • ' : ''}{o.condicao_pagamento ?? (o.forma_pagamento ? '' : '—')}{o.pagamento && <div className="text-xs font-semibold text-ok-700">{o.pagamento === 'pago' ? 'Pago' : 'Faturado'} {dataHora(o.pago_em)}</div>}</Info>
+              <Info rotulo="Pagamento">{forma ? <b>{FORMA_PAGAMENTO[forma]}</b> : null}{forma && o.condicao_pagamento ? ' • ' : ''}{o.condicao_pagamento ?? (forma ? '' : '—')}{o.pagamento && <div className="text-xs font-semibold text-ok-700">{o.pagamento === 'pago' ? 'Pago' : 'Faturado'} {dataHora(o.pago_em)}</div>}</Info>
               <Info rotulo={o.modalidade === 'retirada' ? 'Retirada por' : 'Entrega'}>{o.modalidade === 'retirada' ? (o.retirante ?? '— a definir') : 'Fornecedor entrega na obra'}</Info>
               <Info rotulo="Previsão">{data(o.previsao_entrega)}</Info>
             </dl>
@@ -214,15 +216,10 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
             </Cartao>)}
 
           {podeDoc && (
-            <Cartao titulo="Anexar NF / boleto / comprovante">
+            <Cartao titulo={forma && forma !== 'boleto' ? 'Anexar NF / comprovante' : 'Anexar NF / boleto / comprovante'}>
               <UploadArquivo pasta={`sup/oc/${id}`} acao={anexarDocumentoOC} rotuloBotao="Anexar à OC">
                 <input type="hidden" name="oc_id" value={id} />
-                <Campo rotulo="Tipo"><select name="tipo" className="entrada">{Object.entries(DOC).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Campo>
-                <div className="grid grid-cols-2 gap-2">
-                  <Campo rotulo="Número"><input name="numero" className="entrada" /></Campo>
-                  <Campo rotulo="Valor (R$)"><input name="valor" inputMode="decimal" className="entrada" /></Campo>
-                </div>
-                <Campo rotulo="Vencimento (boleto)"><input type="date" name="vencimento" className="entrada" /></Campo>
+                <CamposDocumentoOC forma={forma} />
               </UploadArquivo>
               <p className="mt-2 text-xs text-concreto-500">A NF é conferida automaticamente com o valor da OC.</p>
             </Cartao>)}
