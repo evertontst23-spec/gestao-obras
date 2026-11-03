@@ -44,5 +44,11 @@ select pg_temp.como('00000000-0000-0000-0000-00000000000a');
 select beneficio_competencia_situacao(:'comp', false);
 select beneficio_linha_remover(:l1);
 select pg_temp.confere((select count(*) = 1 from beneficio_linhas where competencia_id = :'comp'), 'linha removida depois de reabrir');
+-- dias para todos e crédito
+select beneficio_aplicar_dias(:'comp', null, 'alimentacao', 20) as n \gset
+select pg_temp.confere(:n = 1 and (select dias = 20 and valor_total = 22 * 0 + (20 + 3) * 22.8 from beneficio_linhas where competencia_id = :'comp' and tipo = 'alimentacao'), 'aplicar dias para todos muda os dias e recalcula');
+select beneficio_linha_salvar(jsonb_build_object('competencia_id', :'comp', 'funcionario_id', 'f1000000-0000-0000-0000-000000000002',
+  'tipo', 'alimentacao', 'dias', 20, 'dias_retroativos', 2, 'adicional_tipo', 'credito', 'valor_unitario', 22.8));
+select pg_temp.confere((select adicional_tipo = 'credito' from beneficio_linhas where competencia_id = :'comp' and tipo = 'alimentacao'), 'dias a mais marcados como crédito');
 \echo ''
 \echo '=========== TESTES DE BENEFÍCIOS PASSARAM ==========='
