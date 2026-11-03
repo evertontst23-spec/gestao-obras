@@ -4,9 +4,11 @@ import { notFound } from 'next/navigation';
 import { obterSessao } from '@/lib/sessao';
 import { Cabecalho, Cartao, Campo, Info, Selo } from '@/components/ui';
 import { FormAcao, Botao } from '@/components/formulario';
-import { cancelarCotacao, decidirCotacao, enviarAprovacao, excluirCotacao, excluirProposta, reabrirCotacao, salvarProposta, voltarCorrecao } from '../../acoes';
-import { STATUS_COTACAO, codCot, reais } from '@/lib/dominio';
-import { dataHora, num } from '@/lib/formato';
+import { EnvioWhatsApp } from '@/components/EnvioWhatsApp';
+import { UploadArquivo } from '@/components/UploadArquivo';
+import { anexarArquivoProposta, cancelarCotacao, decidirCotacao, enviarAprovacao, excluirCotacao, excluirProposta, reabrirCotacao, salvarProposta, voltarCorrecao } from '../../acoes';
+import { FORMA_PAGAMENTO, STATUS_COTACAO, codCot, reais } from '@/lib/dominio';
+import { data, dataHora, num } from '@/lib/formato';
 
 export default async function DetalheCotacao({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,12 +16,21 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
   const { data: c } = await supabase.from('v_cotacoes').select('*').eq('id', id).maybeSingle();
   if (!c) notFound();
   const [{ data: itens }, { data: props }, { data: precos }, { data: forns }] = await Promise.all([
-    supabase.from('cotacao_itens').select('*, solicitacao_itens(modalidade, locacao_inicio, locacao_fim)').eq('cotacao_id', id).order('descricao'),
+    supabase.from('cotacao_itens').select('*, solicitacao_itens(modalidade, locacao_inicio, locacao_fim, data_necessidade)').eq('cotacao_id', id).order('descricao'),
     supabase.from('cotacao_propostas').select('*, fornecedores(nome, telefone)').eq('cotacao_id', id).order('valor_total'),
     supabase.from('cotacao_precos').select('*, cotacao_propostas!inner(cotacao_id)').eq('cotacao_propostas.cotacao_id', id),
-    supabase.from('fornecedores').select('id, nome, categoria').eq('ativo', true).order('nome'),
+    supabase.from('fornecedores').select('id, nome, categoria, telefone').eq('ativo', true).order('nome'),
   ]);
   const ps = props ?? [];
+  const { data: envios } = await supabase.from('cotacao_envios').select('id, telefone, enviado_em, fornecedores(nome), perfis(nome)').eq('cotacao_id', id).order('enviado_em', { ascending: false });
+  const anexos = ps.map((p) => p.anexo_caminho).filter(Boolean) as string[];
+  const { data: urlsAnexo } = anexos.length ? await supabase.storage.from('anexos').createSignedUrls(anexos, 3600) : { data: [] };
+  const urlAnexo = new Map((urlsAnexo ?? []).map((u) => [u.path, u.signedUrl]));
+  const necessidades = (itens ?? []).map((i) => (i.solicitacao_itens as unknown as { data_necessidade?: string } | null)?.data_necessidade).filter(Boolean) as string[];
+  const prazoObra = necessidades.length ? data(necessidades.sort()[0]) : null;
+  const SelForma = ({ v }: { v?: string | null }) => (
+    <select name="forma" required defaultValue={v ?? ''} className="entrada"><option value="">Escolher…</option>
+      {Object.entries(FORMA_PAGAMENTO).map(([k, r]) => <option key={k} value={k}>{r}</option>)}</select>);
   const preco = new Map((precos ?? []).map((p) => [`${p.proposta_id}:${p.cotacao_item_id}`, Number(p.preco_unitario)]));
   const menorItem = new Map<string, number>();
   (itens ?? []).forEach((i) => { const vs = ps.map((p) => preco.get(`${p.id}:${i.id}`)).filter((v): v is number => v !== undefined); if (vs.length) menorItem.set(i.id, Math.min(...vs)); });
@@ -47,7 +58,8 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
         <div className="overflow-x-auto">
           <table className="tabela">
             <thead><tr><th>Item</th><th className="text-right">Qtd.</th>
-              {ps.map((p) => <th key={p.id} className={`text-right ${p.id === c.proposta_escolhida_id ? 'bg-ok-50' : ''}`}>{nomeForn(p)}<div className="font-normal normal-case">{p.prazo_entrega_dias} dia(s) • {p.condicao_pagamento ?? '—'}</div></th>)}</tr></thead>
+              {ps.map((p) => <th key={p.id} className={`text-right ${p.id === c.proposta_escolhida_id ? 'bg-ok-50' : ''}`}>{nomeForn(p)}<div className="font-normal normal-case">{p.prazo_entrega_dias} dia(s) • {p.forma_pagamento ? FORMA_PAGAMENTO[p.forma_pagamento] : 'forma ?'}{p.condicao_pagamento ? ` • ${p.condicao_pagamento}` : ''}</div>
+                {p.anexo_caminho && urlAnexo.get(p.anexo_caminho) && <a href={urlAnexo.get(p.anexo_caminho) ?? undefined} target="_blank" rel="noreferrer" className="font-normal normal-case text-sinal-700 underline">📎 proposta do fornecedor</a>}</th>)}</tr></thead>
             <tbody>
               {(itens ?? []).map((i) => (
                 <tr key={i.id}>
@@ -64,17 +76,29 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
         </div>
       </Cartao>
 
+      {comprador && aberta && (
+        <Cartao titulo="📲 Pedir cotação ao fornecedor pelo WhatsApp" className="mb-5">
+          <EnvioWhatsApp cotacao={id} codigo={codCot(c.numero)} obra={c.obra_nome ?? 'Depósito central'} prazo={prazoObra}
+            itens={(itens ?? []).map((i) => ({ descricao: i.descricao, quantidade: Number(i.quantidade), unidade: i.unidade }))}
+            fornecedores={(forns ?? []).map((f) => ({ id: f.id, nome: f.nome, telefone: f.telefone }))} linkPdf={`/suprimentos/cotacoes/${id}/pedido`} />
+          {(envios?.length ?? 0) > 0 && (
+            <div className="mt-3 border-t border-concreto-100 pt-2 text-xs text-concreto-600"><b>Enviado para:</b>{' '}
+              {envios!.map((e) => `${(e.fornecedores as unknown as { nome: string } | null)?.nome ?? (e.telefone ? `+${e.telefone}` : 'contato escolhido no WhatsApp')} (${dataHora(e.enviado_em)})`).join(' • ')}</div>)}
+          <p className="mt-2 text-xs text-concreto-500">Quando o fornecedor responder, lance os preços em “Registrar proposta” e anexe a foto ou o PDF do orçamento dele na proposta.</p>
+        </Cartao>)}
+
       <div className="grid gap-5 lg:grid-cols-2">
         {comprador && aberta && (
-          <Cartao titulo="Registrar proposta de fornecedor">
+          <Cartao titulo="Registrar proposta de fornecedor (manual)">
             <FormAcao acao={salvarProposta} limparAoConcluir className="space-y-3">
               <input type="hidden" name="cotacao_id" value={id} />
               <Campo rotulo="Fornecedor"><select name="fornecedor_id" required className="entrada"><option value="">Selecionar…</option>
                 {forns?.map((f) => <option key={f.id} value={f.id}>{f.nome}{f.categoria ? ` — ${f.categoria}` : ''}</option>)}</select></Campo>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <Campo rotulo="Prazo (dias)"><input name="prazo" required inputMode="numeric" className="entrada" /></Campo>
                 <Campo rotulo="Frete (R$)"><input name="frete" inputMode="decimal" defaultValue="0" className="entrada" /></Campo>
-                <Campo rotulo="Pagamento"><input name="condicao" className="entrada" placeholder="28 dias" /></Campo>
+                <Campo rotulo="Forma de pagamento *"><SelForma /></Campo>
+                <Campo rotulo="Condição / parcelas"><input name="condicao" className="entrada" placeholder="à vista, 28 dias, 3x" /></Campo>
               </div>
               {(itens ?? []).map((i) => (
                 <div key={i.id} className="flex items-center gap-2">
@@ -95,15 +119,17 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
               <details key={p.id} className="rounded-md border border-concreto-200">
                 <summary className="flex cursor-pointer flex-wrap items-center gap-3 px-3 py-2">
                   <b className="flex-1">{nomeForn(p)}</b><span className="font-mono font-bold">{reais(p.valor_total)}</span>
-                  <span className="text-xs font-semibold text-sinal-700">✎ corrigir valores</span>
+                  {p.anexo_caminho ? <span className="text-xs text-ok-700">📎 com PDF/foto</span> : <span className="text-xs text-atencao-800">sem PDF/foto</span>}
+                  <span className="text-xs font-semibold text-sinal-700">✎ corrigir / anexar</span>
                 </summary>
                 <div className="space-y-3 border-t border-concreto-100 p-3">
                   <FormAcao acao={salvarProposta} className="space-y-2">
                     <input type="hidden" name="cotacao_id" value={id} /><input type="hidden" name="fornecedor_id" value={p.fornecedor_id} />
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                       <Campo rotulo="Prazo (dias)"><input name="prazo" required inputMode="numeric" defaultValue={p.prazo_entrega_dias} className="entrada" /></Campo>
                       <Campo rotulo="Frete (R$)"><input name="frete" inputMode="decimal" defaultValue={Number(p.frete).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} className="entrada" /></Campo>
-                      <Campo rotulo="Pagamento"><input name="condicao" defaultValue={p.condicao_pagamento ?? ''} className="entrada" /></Campo>
+                      <Campo rotulo="Forma de pagamento *"><SelForma v={p.forma_pagamento} /></Campo>
+                      <Campo rotulo="Condição / parcelas"><input name="condicao" defaultValue={p.condicao_pagamento ?? ''} className="entrada" /></Campo>
                     </div>
                     {(itens ?? []).map((i) => (
                       <div key={i.id} className="flex items-center gap-2">
@@ -114,6 +140,13 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
                     <input type="hidden" name="observacoes" value={p.observacoes ?? ''} />
                     <Botao variante="secundario">Salvar correção</Botao>
                   </FormAcao>
+                  <div className="rounded-md bg-concreto-50 p-2">
+                    <div className="mb-1 text-xs font-bold uppercase tracking-wide text-concreto-600">📎 PDF ou foto do orçamento do fornecedor</div>
+                    {p.anexo_caminho && urlAnexo.get(p.anexo_caminho) && <a href={urlAnexo.get(p.anexo_caminho) ?? undefined} target="_blank" rel="noreferrer" className="link mb-2 block text-sm">Abrir o arquivo anexado</a>}
+                    <UploadArquivo pasta={`sup/cot/${id}`} acao={anexarArquivoProposta} rotuloBotao={p.anexo_caminho ? 'Trocar arquivo' : 'Anexar arquivo'}>
+                      <input type="hidden" name="proposta_id" value={p.id} /><input type="hidden" name="cotacao_id" value={id} />
+                    </UploadArquivo>
+                  </div>
                   <FormAcao acao={excluirProposta}>
                     <input type="hidden" name="cotacao_id" value={id} /><input type="hidden" name="proposta_id" value={p.id} />
                     <Botao variante="perigo">Excluir esta proposta</Botao>
@@ -130,7 +163,7 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
               <div className="space-y-2">{ps.map((p, k) => (
                 <label key={p.id} className="flex cursor-pointer items-center gap-3 rounded-md border border-concreto-200 p-3 has-[:checked]:border-sinal-500 has-[:checked]:bg-sinal-50">
                   <input type="radio" name="proposta_id" value={p.id} defaultChecked={k === 0} className="h-5 w-5 accent-sinal-500" />
-                  <span className="flex-1"><b>{nomeForn(p)}</b><span className="block text-xs text-concreto-500">{p.prazo_entrega_dias} dia(s) • {p.condicao_pagamento ?? '—'}</span></span>
+                  <span className="flex-1"><b>{nomeForn(p)}</b><span className="block text-xs text-concreto-500">{p.prazo_entrega_dias} dia(s) • {p.forma_pagamento ? FORMA_PAGAMENTO[p.forma_pagamento] : 'forma de pagamento não informada'}{p.condicao_pagamento ? ` • ${p.condicao_pagamento}` : ''}</span></span>
                   <span className="font-mono font-bold">{reais(p.valor_total)}</span>{k === 0 && <Selo cor="bg-ok-50 text-ok-700">menor</Selo>}
                 </label>))}</div>
               <Campo rotulo="Justificativa (obrigatória se não for a de menor valor)"><textarea name="justificativa" rows={2} className="entrada" /></Campo>

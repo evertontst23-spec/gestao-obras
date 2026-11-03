@@ -140,3 +140,6 @@ export function situacaoLanc(l: { status: string; vencimento: string; tipo: stri
   if (l.vencimento === hoje) return { rotulo: 'Vence hoje', cor: 'bg-atencao-100 text-atencao-800' };
   return { rotulo: 'Em aberto', cor: 'bg-sky-100 text-sky-800' };
 }
+
+/** Forma de pagamento combinada com o fornecedor (cotação → OC) */
+export const FORMA_PAGAMENTO: Record<string, string> = { pix: 'PIX', boleto: 'Boleto', cartao_credito: 'Cartão de crédito', dinheiro: 'Dinheiro' };

@@ -37,11 +37,15 @@ export async function salvarProposta(_: EstadoAcao, f: FormData): Promise<Estado
   const cot = txt(f, 'cotacao_id')!;
   const precos = f.getAll('item_id').map((id, i) => ({ cotacao_item_id: String(id), preco_unitario: (() => { const v = paraNumero(String(f.getAll('preco')[i] ?? '')); return v == null ? '' : String(v); })() }));
   const supabase = await criarClienteServidor();
-  const { error } = await supabase.rpc('cotacao_proposta_salvar', {
+  const forma = txt(f, 'forma');
+  if (!forma) return { erro: 'Escolha a forma de pagamento (PIX, boleto, cartão de crédito ou dinheiro).' };
+  const { data: prop, error } = await supabase.rpc('cotacao_proposta_salvar', {
     p_cotacao: cot, p_fornecedor: txt(f, 'fornecedor_id'), p_prazo: numero(f, 'prazo'), p_condicao: txt(f, 'condicao'),
     p_frete: dinheiro(f, 'frete') ?? 0, p_precos: precos, p_obs: txt(f, 'observacoes'),
   });
   if (error) return { erro: mensagemErro(error) };
+  const { error: e2 } = await supabase.rpc('cotacao_proposta_complementar', { p_proposta: prop, p_forma: forma });
+  if (e2) return { erro: mensagemErro(e2) };
   revalidatePath(`/suprimentos/cotacoes/${cot}`);
   return { ok: 'Proposta registrada.' };
 }
@@ -178,4 +182,19 @@ export async function estornarRecebimentoOC(_: EstadoAcao, f: FormData): Promise
   if (error) return { erro: mensagemErro(error) };
   rev();
   return { ok: 'Recebimento estornado: o material saiu do estoque e a OC voltou a aguardar entrega.' };
+}
+
+export async function registrarEnvioCotacao(cotacao: string, fornecedor: string | null, telefone: string | null) {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('cotacao_registrar_envio', { p_cotacao: cotacao, p_fornecedor: fornecedor, p_telefone: telefone });
+  if (!error) revalidatePath(`/suprimentos/cotacoes/${cotacao}`);
+  return error ? { erro: mensagemErro(error) } : { ok: 'Envio registrado.' };
+}
+
+export async function anexarArquivoProposta(c: Record<string, string | null>): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('cotacao_proposta_complementar', { p_proposta: c.proposta_id, p_anexo: c.caminho });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath(`/suprimentos/cotacoes/${c.cotacao_id}`);
+  return { ok: 'PDF/foto da proposta anexado.' };
 }

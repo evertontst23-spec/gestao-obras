@@ -7,7 +7,7 @@ import { FormAcao, Botao } from '@/components/formulario';
 import { UploadArquivo } from '@/components/UploadArquivo';
 import { BotaoImprimir } from '@/components/BotaoImprimir';
 import { anexarDocumentoOC, anularDocumentoOC, cancelarOC, desfazerOC, estornarRecebimentoOC, liberarColeta, receberOC, voltarPagamentoOC } from '../../acoes';
-import { STATUS_OC, codOC, codSM, reais } from '@/lib/dominio';
+import { FORMA_PAGAMENTO, STATUS_OC, codOC, codSM, reais } from '@/lib/dominio';
 import { data, dataHora, num } from '@/lib/formato';
 
 const DOC: Record<string, string> = { nf: 'Nota fiscal', boleto: 'Boleto', comprovante: 'Comprovante de pagamento', outro: 'Outro' };
@@ -67,7 +67,7 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
             </div>
             <dl className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Info rotulo="Fornecedor">{o.fornecedor_nome}<div className="text-xs text-concreto-500">{o.fornecedor_documento} {o.fornecedor_telefone}</div></Info>
-              <Info rotulo="Pagamento">{o.condicao_pagamento ?? '—'}{o.pagamento && <div className="text-xs font-semibold text-ok-700">{o.pagamento === 'pago' ? 'Pago' : 'Faturado'} {dataHora(o.pago_em)}</div>}</Info>
+              <Info rotulo="Pagamento">{o.forma_pagamento ? <b>{FORMA_PAGAMENTO[o.forma_pagamento]}</b> : null}{o.forma_pagamento && o.condicao_pagamento ? ' • ' : ''}{o.condicao_pagamento ?? (o.forma_pagamento ? '' : '—')}{o.pagamento && <div className="text-xs font-semibold text-ok-700">{o.pagamento === 'pago' ? 'Pago' : 'Faturado'} {dataHora(o.pago_em)}</div>}</Info>
               <Info rotulo={o.modalidade === 'retirada' ? 'Retirada por' : 'Entrega'}>{o.modalidade === 'retirada' ? (o.retirante ?? '— a definir') : 'Fornecedor entrega na obra'}</Info>
               <Info rotulo="Previsão">{data(o.previsao_entrega)}</Info>
             </dl>
