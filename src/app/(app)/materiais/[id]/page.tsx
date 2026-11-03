@@ -89,25 +89,39 @@ export default async function DetalheSolicitacao({ params, searchParams }: { par
                   </div>
                 </div>);
             })()}
-            <div className="space-y-4">
+            {(itens?.length ?? 0) > 0 && (
+              <div className="mb-1 flex items-center gap-2 px-3 text-[11px] font-semibold uppercase tracking-wide text-concreto-400">
+                <span className="w-3" /><span className="flex-1">Material — clique para ver detalhes e ações</span>
+                <span className="w-28 text-right">Quantidade</span><span className="hidden w-24 sm:block">Previsão</span><span>Status</span>
+              </div>)}
+            <div className="space-y-1.5">
               {itens?.map((i) => {
                 const st = i.status as StatusMaterial;
                 const restante = Number(i.quantidade) - Number(i.quantidade_enviada);
                 const minhasEntregas = (entregas ?? []).filter((e) => e.item_id === i.id);
                 const pendentes = minhasEntregas.filter((e) => !e.recebido_em);
                 const evs = (eventos ?? []).filter((e) => e.item_id === i.id);
+                // Abre sozinho só quando há algo a fazer neste item (ou alerta); o resto fica numa linha compacta.
+                const temAcao = (almox && st === 'aprovado')
+                  || (almox && (i.oc_id ? ['disponivel_estoque', 'parcialmente_entregue'] : ['disponivel_estoque', 'comprado', 'em_transporte', 'parcialmente_entregue']).includes(st) && restante > 0)
+                  || (recebe && pendentes.length > 0)
+                  || Boolean(i.risco_atraso) || Boolean(i.entrega_atrasada);
                 return (
-                  <div key={i.id} className={`rounded-md border p-3 ${i.risco_atraso ? 'border-atraso-500' : 'border-concreto-200'}`}>
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="font-bold">{i.material}</div>
-                        {i.especificacao && <div className="text-xs text-concreto-500">{i.especificacao}</div>}
-                        {i.item_origem_id && <div className="text-xs text-concreto-500">↳ saldo encaminhado para compra</div>}
-                        <SeloLocacao i={i} comSituacao />
+                  <details key={i.id} open={temAcao} className={`group rounded-md border ${i.risco_atraso ? 'border-atraso-500' : 'border-concreto-200'}`}>
+                    <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-sm hover:bg-concreto-50 [&::-webkit-details-marker]:hidden">
+                      <span className="w-3 shrink-0 text-xs text-concreto-400 transition-transform group-open:rotate-90">▸</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-semibold">{i.material}</div>
+                        {(i.especificacao || i.modalidade === 'locacao') && <div className="truncate text-xs text-concreto-500">{i.modalidade === 'locacao' ? '🔁 Locação' : ''}{i.modalidade === 'locacao' && i.especificacao ? ' · ' : ''}{i.especificacao}</div>}
                       </div>
-                      <SeloMaterial s={st} />
-                    </div>
-                    <div className="mt-2 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+                      <span className="w-28 shrink-0 text-right font-mono text-xs"><b>{num(i.quantidade)}</b> {i.unidade}{Number(i.quantidade_recebida) > 0 && <span className="block text-concreto-500">recebido {num(i.quantidade_recebida)}</span>}</span>
+                      <span className={`hidden w-24 shrink-0 text-xs sm:block ${i.risco_atraso || i.entrega_atrasada ? 'font-bold text-atraso-700' : 'text-concreto-500'}`}>{i.previsao_entrega ? data(i.previsao_entrega) : '—'}</span>
+                      <span className="shrink-0">{(i.risco_atraso || i.entrega_atrasada) && <span className="mr-1 font-bold text-atraso-700">⚠</span>}<SeloMaterial s={st} /></span>
+                    </summary>
+                    <div className="border-t border-concreto-100 px-3 pb-3 pt-2">
+                    {i.item_origem_id && <div className="text-xs text-concreto-500">↳ saldo encaminhado para compra</div>}
+                    <SeloLocacao i={i} comSituacao />
+                    <div className="mt-1 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
                       <div><span className="text-xs text-concreto-500">Pedido</span><div className="font-mono font-semibold">{num(i.quantidade)} {i.unidade}</div></div>
                       <div><span className="text-xs text-concreto-500">Recebido</span><div className="font-mono font-semibold">{num(i.quantidade_recebida)} {i.unidade}</div></div>
                       <div><span className="text-xs text-concreto-500">Fornecedor</span><div>{i.fornecedor ?? '—'}</div></div>
@@ -187,7 +201,8 @@ export default async function DetalheSolicitacao({ params, searchParams }: { par
                         {minhasEntregas.filter((e) => e.recebido_em).map((e) => <li key={e.id}><b>{dataHora(e.recebido_em)}</b> — recebido por {(e.recebeu as unknown as { nome: string })?.nome}: {num(e.quantidade_recebida)} de {num(e.quantidade_enviada)} {e.observacao_recebimento ?? ''}</li>)}
                       </ul>
                     </details>
-                  </div>
+                    </div>
+                  </details>
                 );
               })}
             </div>
