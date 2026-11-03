@@ -307,3 +307,20 @@ export async function lerPropostaArquivo(cotacao: string, caminho: string, mime:
     observacoes: (dados.observacoes as string) ?? null, precos, avisos: (dados.avisos as string[]) ?? [],
   };
 }
+
+export async function registrarColetaOC(c: Record<string, string | null>): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const quando = c.quando ? new Date(`${c.quando}:00-03:00`).toISOString() : null;
+  const { error } = await supabase.rpc('oc_registrar_coleta', { p_oc: c.oc_id, p_quem: c.quem, p_quando: quando, p_obs: c.obs, p_foto: c.caminho });
+  if (error) return { erro: mensagemErro(error) };
+  rev();
+  return { ok: 'Coleta registrada. Agora é só dar entrada no estoque quando o material chegar.' };
+}
+
+export async function desfazerColetaOC(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('oc_desfazer_coleta', { p_oc: txt(f, 'oc_id'), p_motivo: txt(f, 'motivo') });
+  if (error) return { erro: mensagemErro(error) };
+  rev();
+  return { ok: 'Coleta desfeita.' };
+}

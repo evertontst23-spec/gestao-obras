@@ -6,9 +6,9 @@ import { Cabecalho, Cartao, Campo, Info, Selo } from '@/components/ui';
 import { FormAcao, Botao } from '@/components/formulario';
 import { UploadArquivo } from '@/components/UploadArquivo';
 import { BotaoImprimir } from '@/components/BotaoImprimir';
-import { anexarDocumentoOC, anularDocumentoOC, cancelarOC, desfazerOC, estornarRecebimentoOC, liberarColeta, receberOC, voltarPagamentoOC } from '../../acoes';
+import { anexarDocumentoOC, anularDocumentoOC, cancelarOC, desfazerColetaOC, desfazerOC, registrarColetaOC, estornarRecebimentoOC, liberarColeta, receberOC, voltarPagamentoOC } from '../../acoes';
 import { FORMA_PAGAMENTO, STATUS_OC, codOC, codSM, reais } from '@/lib/dominio';
-import { data, dataHora, num } from '@/lib/formato';
+import { data, dataHora, hojeISO, num } from '@/lib/formato';
 
 const DOC: Record<string, string> = { nf: 'Nota fiscal', boleto: 'Boleto', comprovante: 'Comprovante de pagamento', outro: 'Outro' };
 
@@ -18,11 +18,13 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
   const { data: o } = await supabase.from('v_ordens_compra').select('*').eq('id', id).maybeSingle();
   if (!o) notFound();
   const [{ data: itens }, { data: docs }, { data: evs }, { data: empresa }] = await Promise.all([
-    supabase.from('oc_itens').select('*, solicitacao_itens(solicitacao_id, modalidade, locacao_inicio, locacao_fim, solicitacoes(numero))').eq('oc_id', id).order('descricao'),
+    supabase.from('oc_itens').select('*, solicitacao_itens(solicitacao_id, status, modalidade, locacao_inicio, locacao_fim, solicitacoes(numero))').eq('oc_id', id).order('descricao'),
     supabase.from('oc_documentos').select('*, perfis!oc_documentos_enviado_por_fkey(nome)').eq('oc_id', id).order('criado_em'),
     supabase.from('oc_eventos').select('*, perfis(nome)').eq('oc_id', id).order('criado_em', { ascending: false }),
     supabase.from('obras').select('nome, endereco, cliente').eq('id', o.obra_id ?? '00000000-0000-0000-0000-000000000000').maybeSingle(),
   ]);
+  const { data: col } = await supabase.from('ordens_compra').select('coletado_em, coletado_por, coleta_obs, coleta_foto').eq('id', id).maybeSingle();
+  const urlColeta = col?.coleta_foto ? (await supabase.storage.from('anexos').createSignedUrl(col.coleta_foto, 3600)).data?.signedUrl : null;
   const caminhos = (docs ?? []).map((d) => d.caminho).filter(Boolean) as string[];
   const { data: urls } = caminhos.length ? await supabase.storage.from('anexos').createSignedUrls(caminhos, 3600) : { data: [] };
   const url = new Map((urls ?? []).map((u) => [u.path, u.signedUrl]));
@@ -31,6 +33,20 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
   const aReceber = ['emitida', 'pronta_coleta', 'recebida_parcial'].includes(o.status);
   const docsAtivos = (docs ?? []).filter((d) => !d.anulado_em), docsExcluidos = (docs ?? []).filter((d) => d.anulado_em);
   const recebeuAlgo = (itens ?? []).some((i) => Number(i.quantidade_recebida) > 0);
+  const retirada = o.modalidade === 'retirada';
+  const sis = (itens ?? []).map((i) => i.solicitacao_itens as unknown as { status?: string } | null).filter((x) => x?.status);
+  const entregue = sis.length > 0 && sis.every((x) => x!.status === 'entregue');
+  const etapas: { t: string; feito: boolean; det?: string }[] = [
+    { t: 'OC emitida (compra aprovada)', feito: true, det: dataHora(o.emitida_em) },
+    { t: 'Pago / faturado', feito: !!o.pagamento, det: o.pagamento ? `${o.pagamento === 'pago' ? 'Pago' : 'Faturado'} ${dataHora(o.pago_em)}` : undefined },
+    { t: retirada ? 'Coletado no fornecedor' : 'Saiu para entrega', feito: !!col?.coletado_em || ['recebida', 'recebida_parcial'].includes(o.status),
+      det: col?.coletado_em ? `${dataHora(col.coletado_em)}${col.coletado_por ? ` • ${col.coletado_por}` : ''}` : undefined },
+    { t: 'Entrada no estoque', feito: o.status === 'recebida', det: o.status === 'recebida_parcial' ? 'parcial' : undefined },
+    { t: 'Entregue na obra', feito: entregue, det: sis.length ? undefined : 'reposição do estoque' },
+  ];
+  const atual = etapas.findIndex((e) => !e.feito);
+  const podeColeta = ['compras', 'almoxarifado', 'financeiro', 'admin', 'engenheiro', 'encarregado'].includes(p) && ['emitida', 'pronta_coleta'].includes(o.status) && !col?.coletado_em;
+  const podeEntrada = ['almoxarifado', 'admin', 'compras'].includes(p);
   const podeExcluirDoc = ['compras', 'financeiro', 'almoxarifado', 'admin'].includes(p);
   const Desfazer = ({ titulo, texto, acao, botao, ph }: { titulo: string; texto: string; acao: typeof desfazerOC; botao: string; ph: string }) => (
     <details className="rounded-lg border border-atraso-200 bg-white text-sm">
@@ -54,6 +70,20 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
           acoes={<><BotaoImprimir rotulo="🖨 Imprimir OC (vai com o retirante)" />
             {['compras', 'admin', 'financeiro'].includes(p) && <Link href={`/suprimentos/cotacoes/${o.cotacao_id}`} className="inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold">Cotação {o.cotacao_codigo}</Link>}</>} />
       </div>
+
+      {o.status === 'cancelada'
+        ? <p className="nao-imprimir mb-5 rounded-md border-2 border-atraso-500 bg-atraso-50 px-4 py-2 text-sm font-semibold text-atraso-700">OC cancelada.</p>
+        : (
+        <ol className="nao-imprimir mb-5 grid gap-2 sm:grid-cols-5">
+          {etapas.map((e, k) => (
+            <li key={k} className={`relative rounded-lg border-2 px-3 py-2 text-sm ${e.feito ? 'border-ok-500 bg-ok-50' : k === atual ? 'border-sinal-500 bg-sinal-50' : 'border-concreto-200 bg-white text-concreto-400'}`}>
+              <div className="flex items-center gap-2 font-bold">
+                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs text-white ${e.feito ? 'bg-ok-600' : k === atual ? 'bg-sinal-500' : 'bg-concreto-300'}`}>{e.feito ? '✓' : k + 1}</span>
+                <span className={e.feito ? 'text-ok-800' : k === atual ? 'text-sinal-800' : ''}>{e.t}</span></div>
+              {e.det && <div className="mt-0.5 pl-8 text-[11px] text-concreto-600">{e.det}</div>}
+              {k === atual && <div className="mt-0.5 pl-8 text-[11px] font-semibold text-sinal-700">← próxima etapa</div>}
+            </li>))}
+        </ol>)}
 
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">
@@ -142,8 +172,33 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
               </FormAcao>
             </Cartao>)}
 
-          {aReceber && ['almoxarifado', 'admin'].includes(p) && (
-            <Cartao titulo="Recebimento na obra" className="border-2 border-ok-500">
+          {podeColeta && (
+            <Cartao titulo={retirada ? '🚚 Registrar coleta do material' : '🚚 Registrar saída para entrega'} className={`border-2 ${o.pagamento ? 'border-sinal-500' : 'border-concreto-200'}`}>
+              {!o.pagamento && <p className="mb-2 rounded bg-atencao-50 px-2 py-1 text-xs text-atencao-800">A OC ainda não foi marcada como paga/faturada.</p>}
+              <UploadArquivo pasta={`sup/oc/${id}`} acao={registrarColetaOC} exigirArquivo={false} rotuloBotao={retirada ? '✔ Material coletado' : '✔ Saiu para entrega'}>
+                <input type="hidden" name="oc_id" value={id} />
+                <Campo rotulo={retirada ? 'Quem coletou *' : 'Motorista / transportadora'}><input name="quem" defaultValue={o.retirante ?? ''} className="entrada" /></Campo>
+                <Campo rotulo="Data e hora"><input type="datetime-local" name="quando" max={`${hojeISO()}T23:59`} className="entrada" /></Campo>
+                <Campo rotulo="Observação"><input name="obs" placeholder="Ex.: faltou 1 item, nº do canhoto…" className="entrada" /></Campo>
+                <p className="text-xs text-concreto-500">Foto do canhoto ou da nota (opcional). Sem data = agora.</p>
+              </UploadArquivo>
+            </Cartao>)}
+
+          {col?.coletado_em && (
+            <Cartao titulo={retirada ? 'Coleta' : 'Saída para entrega'}>
+              <p className="text-sm"><b>{dataHora(col.coletado_em)}</b>{col.coletado_por ? ` • ${col.coletado_por}` : ''}</p>
+              {col.coleta_obs && <p className="text-sm text-concreto-600">{col.coleta_obs}</p>}
+              {urlColeta && <a href={urlColeta} target="_blank" rel="noreferrer" className="link text-sm">📎 foto do canhoto / nota</a>}
+              {['compras', 'almoxarifado', 'admin'].includes(p) && ['emitida', 'pronta_coleta'].includes(o.status) && (
+                <details className="mt-2 text-xs"><summary className="cursor-pointer text-atraso-700">↩ desfazer coleta</summary>
+                  <FormAcao acao={desfazerColetaOC} className="mt-2 flex gap-2"><input type="hidden" name="oc_id" value={id} />
+                    <input name="motivo" required minLength={5} placeholder="Motivo" className="entrada flex-1 py-1" /><Botao variante="perigo" className="px-2 py-1 text-xs">Desfazer</Botao></FormAcao>
+                </details>)}
+            </Cartao>)}
+
+          {aReceber && podeEntrada && (
+            <Cartao titulo="📦 Dar entrada no estoque (recebimento)" className={`border-2 ${col?.coletado_em || o.status === 'recebida_parcial' ? 'border-ok-500' : 'border-concreto-200'}`}>
+              {!col?.coletado_em && o.status !== 'recebida_parcial' && <p className="mb-2 text-xs text-concreto-500">Normalmente depois da coleta/entrega. Se o material já chegou, pode lançar direto.</p>}
               <FormAcao acao={receberOC} className="space-y-3">
                 <input type="hidden" name="oc_id" value={id} />
                 {(itens ?? []).filter((i) => Number(i.quantidade_recebida) < Number(i.quantidade)).map((i) => (
@@ -153,8 +208,8 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
                     <input name="qtd" inputMode="decimal" defaultValue={Number(i.quantidade) - Number(i.quantidade_recebida)} className="entrada w-24" />
                   </div>))}
                 <Campo rotulo="Observação"><input name="observacao" className="entrada" placeholder="Avarias, falta, nº do romaneio…" /></Campo>
-                <Botao grande variante="sucesso">Lançar recebimento</Botao>
-                <p className="text-xs text-concreto-500">Entra no estoque da obra e libera os itens para o encarregado.</p>
+                <Botao grande variante="sucesso">Dar entrada no estoque</Botao>
+                <p className="text-xs text-concreto-500">Entra no estoque da obra (ou do depósito central) e libera os itens para o almoxarifado enviar ao encarregado.</p>
               </FormAcao>
             </Cartao>)}
 
