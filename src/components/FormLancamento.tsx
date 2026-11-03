@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { UploadArquivo } from './UploadArquivo';
 import { Campo } from './ui';
 import { CATEGORIAS_DESPESA, CATEGORIAS_RECEITA } from '@/lib/dominio';
-import { criarLancamento, liquidarLancamento } from '@/app/(app)/financeiro/acoes';
+import { anexarComprovante, criarLancamento, liquidarLancamento } from '@/app/(app)/financeiro/acoes';
 
 type Op = { id: string; codigo?: string; nome: string };
 export function FormLancamento({ obras, fornecedores, hoje, obraFixa }: { obras: Op[]; fornecedores: Op[]; hoje: string; obraFixa?: string }) {
@@ -50,6 +50,16 @@ export function FormBaixa({ id, tipo, valor, hoje }: { id: string; tipo: string;
       </div>
       <Campo rotulo="Forma"><select name="forma" className="entrada"><option>PIX</option><option>Boleto</option><option>TED</option><option>Dinheiro</option><option>Cartão</option><option>Cheque</option></select></Campo>
       <p className="text-xs text-concreto-500">Anexe o comprovante (foto ou PDF).</p>
+    </UploadArquivo>
+  );
+}
+
+/** Comprovante de pagamento anexado depois da baixa (foto ou PDF). */
+export function FormComprovante({ id, temComprovante }: { id: string; temComprovante: boolean }) {
+  return (
+    <UploadArquivo pasta="fin/comprovantes" acao={anexarComprovante} rotuloBotao={temComprovante ? 'Trocar comprovante' : 'Anexar comprovante'}>
+      <input type="hidden" name="id" value={id} />
+      <p className="text-xs text-concreto-500">Tire a foto ou escolha o PDF do comprovante. Fica guardado aqui no lançamento.</p>
     </UploadArquivo>
   );
 }

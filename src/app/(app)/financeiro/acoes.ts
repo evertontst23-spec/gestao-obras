@@ -97,3 +97,11 @@ export async function validarDiario(_: EstadoAcao, f: FormData): Promise<EstadoA
   revalidatePath(`/obras/${txt(f, 'obra_id')}/diario`, 'layout');
   return { ok: 'Diário validado.' };
 }
+
+export async function anexarComprovante(c: Record<string, string | null>): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('lancamento_anexar_comprovante', { p_id: c.id, p_caminho: c.caminho });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/financeiro', 'layout');
+  return { ok: 'Comprovante anexado.' };
+}

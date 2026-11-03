@@ -60,7 +60,10 @@ export default async function Lancamentos({ searchParams }: { searchParams: Prom
                       <div className="text-xs text-concreto-500">{codLanc(l.numero)} • {CATEGORIAS_FIN[l.categoria]}{(l.fornecedores as unknown as { nome: string } | null)?.nome ? ` • ${(l.fornecedores as unknown as { nome: string }).nome}` : l.favorecido ? ` • ${l.favorecido}` : ''}{l.origem !== 'manual' && ` • via ${ORIGEM_LANC[l.origem]}`}</div></td>
                     <td className="whitespace-nowrap text-xs">{nomeObra(l)}</td>
                     <td className={`whitespace-nowrap text-right font-mono font-semibold ${l.tipo === 'receita' ? 'text-ok-700' : 'text-atraso-700'}`}>{l.tipo === 'receita' ? '+' : '−'}{reais(l.valor)}</td>
-                    <td><Selo cor={s.cor}>{s.rotulo}</Selo></td>
+                    <td className="whitespace-nowrap"><Selo cor={s.cor}>{s.rotulo}</Selo>
+                      {l.status === 'liquidado' && l.tipo === 'despesa' && (l.comprovante_caminho
+                        ? <span className="ml-1 text-xs text-ok-700" title="Comprovante anexado">📎</span>
+                        : <Link href={`/financeiro/lancamentos/${l.id}`} className="ml-1 text-[11px] font-semibold text-atencao-800">sem comprovante</Link>)}</td>
                   </tr>);
               })}
                 <tr className="bg-concreto-50 font-semibold"><td colSpan={3}>Totais da lista</td><td className="whitespace-nowrap text-right font-mono"><div className="text-ok-700">+{reais(tot('receita'))}</div><div className="text-atraso-700">−{reais(tot('despesa'))}</div></td><td /></tr>
