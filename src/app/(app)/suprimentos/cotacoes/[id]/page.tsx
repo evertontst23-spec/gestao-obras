@@ -6,6 +6,7 @@ import { Cabecalho, Cartao, Campo, Info, Selo } from '@/components/ui';
 import { FormAcao, Botao } from '@/components/formulario';
 import { EnvioWhatsApp } from '@/components/EnvioWhatsApp';
 import { LeitorProposta } from '@/components/LeitorProposta';
+import { PrecosItens } from '@/components/PrecosItens';
 import { UploadArquivo } from '@/components/UploadArquivo';
 import { anexarArquivoProposta, tirarItensCotacao, cancelarCotacao, decidirCotacao, enviarAprovacao, excluirCotacao, excluirProposta, reabrirCotacao, salvarProposta, voltarCorrecao } from '../../acoes';
 import { FORMA_PAGAMENTO, STATUS_COTACAO, codCot, reais } from '@/lib/dominio';
@@ -108,12 +109,7 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
                 <Campo rotulo="Forma de pagamento *"><SelForma /></Campo>
                 <Campo rotulo="Condição / parcelas"><input name="condicao" className="entrada" placeholder="à vista, 28 dias, 3x" /></Campo>
               </div>
-              {(itens ?? []).map((i) => (
-                <div key={i.id} className="flex items-center gap-2">
-                  <input type="hidden" name="item_id" value={i.id} />
-                  <span className="flex-1 text-sm">{i.descricao} <span className="text-xs text-concreto-500">({num(i.quantidade, 3)} {i.unidade})</span></span>
-                  <input name="preco" required inputMode="decimal" placeholder="R$ unit." className="entrada w-32" />
-                </div>))}
+              <PrecosItens itens={(itens ?? []).map((i) => ({ id: i.id, descricao: i.descricao, quantidade: Number(i.quantidade), unidade: i.unidade }))} />
               <Campo rotulo="Observações"><input name="observacoes" className="entrada" /></Campo>
               <Botao>Salvar proposta</Botao>
               <p className="text-xs text-concreto-500">Fornecedor novo? <Link href="/cadastros/fornecedores" className="link">Cadastre aqui</Link>.</p>
@@ -139,12 +135,8 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
                       <Campo rotulo="Forma de pagamento *"><SelForma v={p.forma_pagamento} /></Campo>
                       <Campo rotulo="Condição / parcelas"><input name="condicao" defaultValue={p.condicao_pagamento ?? ''} className="entrada" /></Campo>
                     </div>
-                    {(itens ?? []).map((i) => (
-                      <div key={i.id} className="flex items-center gap-2">
-                        <input type="hidden" name="item_id" value={i.id} />
-                        <span className="flex-1 text-sm">{i.descricao} <span className="text-xs text-concreto-500">({num(i.quantidade, 3)} {i.unidade})</span></span>
-                        <input name="preco" required inputMode="decimal" defaultValue={preco.has(`${p.id}:${i.id}`) ? String(preco.get(`${p.id}:${i.id}`)).replace('.', ',') : ''} placeholder="R$ unit." className="entrada w-32" />
-                      </div>))}
+                    <PrecosItens itens={(itens ?? []).map((i) => ({ id: i.id, descricao: i.descricao, quantidade: Number(i.quantidade), unidade: i.unidade }))}
+                      iniciais={Object.fromEntries((itens ?? []).filter((i) => preco.has(`${p.id}:${i.id}`)).map((i) => [i.id, String(preco.get(`${p.id}:${i.id}`)).replace('.', ',')]))} />
                     <input type="hidden" name="observacoes" value={p.observacoes ?? ''} />
                     <Botao variante="secundario">Salvar correção</Botao>
                   </FormAcao>
@@ -183,7 +175,8 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
           <p className="text-xs text-concreto-500 lg:col-span-2"><b>Retirados desta cotação (voltaram para a fila):</b> {retirados!.map((r) => `${r.descricao} (${num(r.quantidade, 3)} ${r.unidade})`).join(' • ')}</p>)}
 
         {comprador && aberta && ps.length > 0 && (
-          <Cartao titulo="Enviar para aprovação da diretoria">
+          <Cartao titulo="Escolher a proposta e aprovar">
+            <p className="mb-3 rounded bg-concreto-50 px-3 py-2 text-xs text-concreto-700">Até <b>{reais(limite)}</b> quem aprova é o <b>coordenador de compras</b> (sem passar pela diretoria). Acima disso, só a diretoria.</p>
             <FormAcao acao={enviarAprovacao} className="space-y-3">
               <input type="hidden" name="cotacao_id" value={id} />
               <div className="space-y-2">{ps.map((p, k) => (
@@ -193,7 +186,17 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
                   <span className="font-mono font-bold">{reais(p.valor_total)}</span>{k === 0 && <Selo cor="bg-ok-50 text-ok-700">menor</Selo>}
                 </label>))}</div>
               <Campo rotulo="Justificativa (obrigatória se não for a de menor valor)"><textarea name="justificativa" rows={2} className="entrada" /></Campo>
-              <Botao>Enviar para aprovação</Botao>
+              {(perfil.papel === 'admin' || perfil.coordenador_compras) && (
+                <div className="grid grid-cols-2 gap-2 rounded-md bg-ok-50 p-2">
+                  <Campo rotulo="Recebimento"><select name="modalidade" className="entrada"><option value="entrega">Fornecedor entrega na obra</option><option value="retirada">Retirada por funcionário</option></select></Campo>
+                  <Campo rotulo="Quem retira (se retirada)"><input name="retirante" className="entrada" /></Campo>
+                </div>)}
+              <div className="flex flex-wrap gap-2">
+                {(perfil.papel === 'admin' || perfil.coordenador_compras) && (
+                  <Botao variante="sucesso" name="direto" value="1">{perfil.papel === 'admin' ? 'Aprovar e emitir OC' : `Aprovar e emitir OC (até ${reais(limite)})`}</Botao>)}
+                <Botao variante={perfil.papel === 'admin' || perfil.coordenador_compras ? 'secundario' : undefined}>Enviar para aprovação</Botao>
+              </div>
+              {perfil.coordenador_compras && perfil.papel !== 'admin' && <p className="text-xs text-concreto-500">Acima de {reais(limite)}, use “Enviar para aprovação”: vai para a diretoria.</p>}
             </FormAcao>
           </Cartao>
         )}

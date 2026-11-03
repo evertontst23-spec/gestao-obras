@@ -55,8 +55,17 @@ export async function enviarAprovacao(_: EstadoAcao, f: FormData): Promise<Estad
   const supabase = await criarClienteServidor();
   const { error } = await supabase.rpc('cotacao_enviar_aprovacao', { p_cotacao: cot, p_proposta: txt(f, 'proposta_id'), p_justificativa: txt(f, 'justificativa') });
   if (error) return { erro: mensagemErro(error) };
+  if (f.get('direto') === '1') {
+    // coordenador (até o limite) ou diretoria aprovam na mesma hora e a OC é emitida
+    const { data: oc, error: e2 } = await supabase.rpc('cotacao_decidir', {
+      p_cotacao: cot, p_aprovar: true, p_parecer: null, p_modalidade: txt(f, 'modalidade') ?? 'entrega', p_retirante: txt(f, 'retirante'),
+    });
+    rev();
+    if (e2) return { erro: `${mensagemErro(e2)} A cotação ficou aguardando aprovação.` };
+    redirect(`/suprimentos/ordens/${oc}`);
+  }
   rev();
-  return { ok: 'Enviado para aprovação da diretoria.' };
+  return { ok: 'Enviado para aprovação.' };
 }
 
 export async function decidirCotacao(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {

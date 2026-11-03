@@ -38,8 +38,8 @@ select pg_temp.confere((select count(*) = 1 from notificacoes where usuario_id =
 select id as ci_p from cotacao_itens where cotacao_id = :'cot_p' \gset
 select cotacao_proposta_salvar(:'cot_p', 'e2000000-0000-0000-0000-000000000002', 3, 'à vista', 0, format('[{"cotacao_item_id":"%s","preco_unitario":38}]', :'ci_p')::jsonb) as pp \gset
 select cotacao_enviar_aprovacao(:'cot_p', :'pp');
-select pg_temp.confere((select mensagem like '%dentro do limite do coordenador%' from notificacoes where usuario_id = '00000000-0000-0000-0000-00000000000a' and tipo = 'cotacao_aprovar' and link like '%' || :'cot_p'),
-  'aviso de aprovação informa que está dentro do limite do coordenador');
+select pg_temp.confere(not exists (select 1 from notificacoes where usuario_id = '00000000-0000-0000-0000-00000000000a' and tipo = 'cotacao_aprovar' and link like '%' || :'cot_p'),
+  'até o limite a diretoria não recebe pedido de aprovação (o coordenador aprova)');
 select cotacao_decidir(:'cot_p', true, 'Ok', 'entrega', null) as oc_p \gset
 select pg_temp.confere(:'oc_p' is not null, 'coordenador de compras aprova compra até o limite (R$ 380)');
 select pg_temp.confere((select count(*) = 1 from notificacoes where usuario_id = '00000000-0000-0000-0000-00000000000a' and titulo like 'Compra aprovada pelo coordenador%'),

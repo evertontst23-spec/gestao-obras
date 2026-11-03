@@ -7,6 +7,7 @@ import { comprimirImagem } from './UploadArquivo';
 import { FormAcao, Botao } from './formulario';
 import { lerPropostaArquivo, salvarProposta, type LeituraProposta } from '@/app/(app)/suprimentos/acoes';
 import { FORMA_PAGAMENTO } from '@/lib/dominio';
+import { PrecosItens } from './PrecosItens';
 
 type Item = { id: string; descricao: string; quantidade: number; unidade: string };
 type Forn = { id: string; nome: string };
@@ -68,12 +69,9 @@ export function LeitorProposta({ cotacao, itens, fornecedores }: { cotacao: stri
                 {Object.entries(FORMA_PAGAMENTO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
             <label className="block text-sm font-semibold">Condição / parcelas<input name="condicao" defaultValue={lido.condicao ?? ''} className="entrada mt-1" /></label>
           </div>
-          <div className="space-y-1">{itens.map((i) => (
-            <div key={i.id} className="flex items-center gap-2">
-              <input type="hidden" name="item_id" value={i.id} />
-              <span className="flex-1 text-sm">{i.descricao} <span className="text-xs text-concreto-500">({br(i.quantidade, 0)} {i.unidade})</span></span>
-              <input name="preco" required inputMode="decimal" defaultValue={br(lido.precos?.[i.id])} placeholder="R$ unit." className={`entrada w-32 ${lido.precos?.[i.id] == null ? 'border-atencao-500 bg-atencao-50' : ''}`} />
-            </div>))}</div>
+          <PrecosItens key={lido.caminho} itens={itens}
+            iniciais={Object.fromEntries(itens.filter((i) => lido.precos?.[i.id] != null).map((i) => [i.id, br(lido.precos![i.id])]))}
+            faltando={Object.fromEntries(itens.map((i) => [i.id, lido.precos?.[i.id] == null]))} />
           {faltando > 0 && <p className="text-xs font-semibold text-atencao-800">{faltando} item(ns) sem preço no orçamento (em amarelo): preencha ou peça ao fornecedor.</p>}
           <label className="block text-sm font-semibold">Observações<input name="observacoes" defaultValue={lido.observacoes ?? ''} className="entrada mt-1" /></label>
           <Botao>Salvar proposta (com o arquivo anexado)</Botao>
