@@ -34,7 +34,7 @@ select pg_temp.como('00000000-0000-0000-0000-00000000000c');
 select pg_temp.espera_erro(format($$select espera_contratar(%L, null, null, null, null)$$, :'c1'), 'Apenas RH');
 select pg_temp.como('00000000-0000-0000-0000-00000000000a');
 select espera_contratar(:'c1', null, '10000000-0000-0000-0000-000000000001', null, current_date) as f1 \gset
-select pg_temp.confere((select nome = 'TESTE Maria da Silva' and telefone = '(81) 99999-1234' and ativo from funcionarios where id = :'f1')
+select pg_temp.confere((select nome = 'TESTE MARIA DA SILVA' and telefone = '(81) 99999-1234' and ativo from funcionarios where id = :'f1')
   and (select status = 'contratado' and funcionario_id = :'f1' from espera_candidatos where id = :'c1'), 'contratar cria o funcionário e marca o candidato');
 select pg_temp.espera_erro(format($$select espera_contratar(%L, null, null, null, null)$$, :'c1'), 'já foi contratado');
 \echo ''

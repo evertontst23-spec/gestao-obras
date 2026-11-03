@@ -36,7 +36,7 @@ insert into funcionarios (nome, funcao_id, empregador_id, obra_id, data_admissao
 -- ---------------------------------------------------------------- pagamento só da obra F9
 select pagamento_criar_obra('2026-08-20', 'Adiantamento agosto', 'adiantamento', null, null, null,
                             '10000000-0000-0000-0000-0000000000f9') as pg \gset
-select pg_temp.confere((select obra_id = '10000000-0000-0000-0000-0000000000f9' and titulo like '%TESTE-F9%' from pagamentos where id = :'pg'),
+select pg_temp.confere((select obra_id = '10000000-0000-0000-0000-0000000000f9' and titulo ilike '%TESTE-F9%' from pagamentos where id = :'pg'),
   'pagamento por obra guarda a obra e leva o código no título');
 select pagamento_gerar(:'pg', false) as n \gset
 select pg_temp.confere((select count(*) = 0 from pagamento_itens i join funcionarios f on f.id = i.funcionario_id

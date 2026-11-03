@@ -47,7 +47,7 @@ select pg_temp.como('00000000-0000-0000-0000-00000000000c');
 select pg_temp.espera_erro($$select face_descritor from funcionarios$$, 'permission denied');
 select pg_temp.confere((ponto_registrar_facial(pg_temp.rosto(0.5))->>'reconhecido')::boolean = false, 'rosto desconhecido não registra ponto');
 select ponto_registrar_facial(pg_temp.rosto(0.1, 0.002), :obra, -8.05, -34.9, 12) as r1 \gset
-select pg_temp.confere((:'r1'::jsonb->>'tipo') = 'entrada' and (:'r1'::jsonb->>'nome') like 'TESTE José%', 'reconhece o rosto e registra ENTRADA');
+select pg_temp.confere((:'r1'::jsonb->>'tipo') = 'entrada' and (:'r1'::jsonb->>'nome') ilike 'TESTE José%', 'reconhece o rosto e registra ENTRADA');
 select pg_temp.confere((ponto_registrar_facial(pg_temp.rosto(0.1, 0.003))->>'duplicado')::boolean, 'batida repetida em 2 min é ignorada');
 select pg_temp.confere((select count(*) from registros_ponto where funcionario_id = :jose) = 1, 'apenas um registro gravado');
 select pg_temp.espera_erro(format($$select ponto_registrar_manual(%L, now() - interval '9 hours', 'entrada', 'esqueceu')$$, :jose), 'Lançamento manual');

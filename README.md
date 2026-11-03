@@ -52,6 +52,7 @@ supabase/
     …0037_beneficios.sql               RH/DP: benefícios do mês (alimentação e passagem) por obra, editáveis, com total por obra e geral
     …0038_beneficios_lote.sql          benefícios: dias para todos de uma vez e dias a mais marcados como retroativo ou crédito
     …0039_oc_coleta.sql                OC: registrar coleta/saída para entrega (quem, quando, foto) e entrada no estoque também pelo comprador
+    …0040_obra_arquivada_nomes.sql     obra arquivada some de todas as telas (Campo do Café); nomes de funcionários sempre em MAIÚSCULAS
   tests/                  27 cenários com 444 verificações (dados de teste prefixados "TESTE")
 src/
   middleware.ts           sessão e proteção de rotas
