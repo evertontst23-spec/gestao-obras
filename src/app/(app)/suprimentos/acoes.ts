@@ -44,7 +44,7 @@ export async function salvarProposta(_: EstadoAcao, f: FormData): Promise<Estado
     p_frete: dinheiro(f, 'frete') ?? 0, p_precos: precos, p_obs: txt(f, 'observacoes'),
   });
   if (error) return { erro: mensagemErro(error) };
-  const { error: e2 } = await supabase.rpc('cotacao_proposta_complementar', { p_proposta: prop, p_forma: forma });
+  const { error: e2 } = await supabase.rpc('cotacao_proposta_complementar', { p_proposta: prop, p_forma: forma, p_anexo: txt(f, 'anexo') });
   if (e2) return { erro: mensagemErro(e2) };
   revalidatePath(`/suprimentos/cotacoes/${cot}`);
   return { ok: 'Proposta registrada.' };
@@ -208,4 +208,87 @@ export async function tirarItensCotacao(_: EstadoAcao, f: FormData): Promise<Est
   if (error) return { erro: mensagemErro(error) };
   rev(); revalidatePath(`/suprimentos/cotacoes/${cot}`);
   return { ok: `${data} item(ns) voltaram para a fila de cotação.` };
+}
+
+export type LeituraProposta = {
+  erro?: string;
+  fornecedor_nome?: string | null; fornecedor_documento?: string | null; fornecedor_id?: string | null;
+  prazo_entrega_dias?: number | null; frete?: number | null; forma_pagamento?: string | null; condicao?: string | null;
+  observacoes?: string | null; precos?: Record<string, number | null>; avisos?: string[];
+};
+
+/** Lê o PDF/foto do orçamento do fornecedor e devolve os dados para conferir antes de salvar a proposta. */
+export async function lerPropostaArquivo(cotacao: string, caminho: string, mime: string | null): Promise<LeituraProposta> {
+  const chave = process.env.ANTHROPIC_API_KEY;
+  if (!chave) return { erro: 'A leitura automática ainda não está ligada: falta cadastrar a chave da API (ANTHROPIC_API_KEY) no Netlify. Enquanto isso, lance os preços à mão.' };
+  const supabase = await criarClienteServidor();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: perfil } = await supabase.from('perfis').select('papel').eq('id', user?.id ?? '').maybeSingle();
+  if (!perfil || !['compras', 'admin'].includes(perfil.papel)) return { erro: 'Apenas o comprador ou a diretoria usam a leitura automática.' };
+
+  const [{ data: itens }, { data: forns }, arq] = await Promise.all([
+    supabase.from('cotacao_itens').select('id, descricao, quantidade, unidade').eq('cotacao_id', cotacao).is('removido_em', null).order('descricao'),
+    supabase.from('fornecedores').select('id, nome, documento').eq('ativo', true),
+    supabase.storage.from('anexos').download(caminho),
+  ]);
+  if (arq.error || !arq.data) return { erro: 'Não consegui abrir o arquivo enviado. Tente de novo.' };
+  if (!itens?.length) return { erro: 'Cotação sem itens.' };
+  const tipo = (mime || arq.data.type || '').toLowerCase();
+  const base64 = Buffer.from(await arq.data.arrayBuffer()).toString('base64');
+  const bloco = tipo === 'application/pdf'
+    ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
+    : ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(tipo)
+      ? { type: 'image', source: { type: 'base64', media_type: tipo, data: base64 } }
+      : null;
+  if (!bloco) return { erro: 'Formato não suportado para leitura: envie PDF ou foto (JPG/PNG).' };
+
+  const lista = itens.map((i, k) => `${k + 1}. ${i.descricao} — ${Number(i.quantidade)} ${i.unidade}`).join('\n');
+  const prompt = `Este arquivo é o orçamento/proposta de um fornecedor de materiais de construção, em resposta a esta cotação:\n${lista}\n\n`
+    + 'Extraia os dados chamando a ferramenta registrar_proposta. Regras: preco_unitario é o preço por unidade do item da cotação, em reais '
+    + '(se o orçamento só trouxer o total da linha, divida pela quantidade; se a unidade for diferente, converta e avise em "avisos"). '
+    + 'Use o número do item da lista da cotação. Item que o fornecedor não cotou: preco_unitario null. Não invente valores. '
+    + 'forma_pagamento só pode ser pix, boleto, cartao_credito ou dinheiro (null se não estiver escrito). prazo_entrega_dias em dias corridos.';
+  const ferramenta = {
+    name: 'registrar_proposta', description: 'Registra os dados lidos do orçamento do fornecedor',
+    input_schema: { type: 'object', properties: {
+      fornecedor_nome: { type: ['string', 'null'] }, fornecedor_documento: { type: ['string', 'null'], description: 'CNPJ ou CPF' },
+      prazo_entrega_dias: { type: ['number', 'null'] }, frete: { type: ['number', 'null'], description: 'valor do frete em reais; 0 se grátis' },
+      forma_pagamento: { type: ['string', 'null'], enum: ['pix', 'boleto', 'cartao_credito', 'dinheiro', null] },
+      condicao: { type: ['string', 'null'], description: 'ex.: à vista, 28 dias, 3x' },
+      observacoes: { type: ['string', 'null'], description: 'validade da proposta e outras condições importantes' },
+      itens: { type: 'array', items: { type: 'object', properties: { numero: { type: 'integer' }, preco_unitario: { type: ['number', 'null'] } }, required: ['numero', 'preco_unitario'] } },
+      avisos: { type: 'array', items: { type: 'string' }, description: 'dúvidas para o comprador conferir' },
+    }, required: ['itens'] },
+  };
+  let r: Response;
+  try {
+    r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': chave, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: process.env.ANTHROPIC_MODELO || 'claude-haiku-5-5', max_tokens: 2000, tools: [ferramenta],
+        tool_choice: { type: 'tool', name: 'registrar_proposta' }, messages: [{ role: 'user', content: [bloco, { type: 'text', text: prompt }] }] }),
+    });
+  } catch { return { erro: 'Não consegui falar com o serviço de leitura agora. Tente de novo ou lance à mão.' }; }
+  if (!r.ok) return { erro: `A leitura automática falhou (${r.status}). Tente de novo ou lance os preços à mão.` };
+  const j = await r.json();
+  const dados = (j.content ?? []).find((c: { type: string }) => c.type === 'tool_use')?.input as Record<string, unknown> | undefined;
+  if (!dados) return { erro: 'Não consegui ler o orçamento. Confira se a foto está nítida ou lance à mão.' };
+
+  const precos: Record<string, number | null> = {};
+  for (const it of (dados.itens as { numero: number; preco_unitario: number | null }[]) ?? []) {
+    const alvo = itens[it.numero - 1];
+    if (alvo) precos[alvo.id] = typeof it.preco_unitario === 'number' && it.preco_unitario >= 0 ? Math.round(it.preco_unitario * 10000) / 10000 : null;
+  }
+  const so = (s: unknown) => String(s ?? '').toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g, '');
+  const doc = String(dados.fornecedor_documento ?? '').replace(/\D/g, '');
+  const nome = so(dados.fornecedor_nome);
+  const achado = (forns ?? []).find((f) => doc && (f.documento ?? '').replace(/\D/g, '') === doc)
+    ?? (nome.length >= 4 ? (forns ?? []).find((f) => { const n = so(f.nome); return n && (n.includes(nome) || nome.includes(n)); }) : undefined);
+  const forma = ['pix', 'boleto', 'cartao_credito', 'dinheiro'].includes(String(dados.forma_pagamento)) ? String(dados.forma_pagamento) : null;
+  return {
+    fornecedor_nome: (dados.fornecedor_nome as string) ?? null, fornecedor_documento: (dados.fornecedor_documento as string) ?? null,
+    fornecedor_id: achado?.id ?? null, prazo_entrega_dias: typeof dados.prazo_entrega_dias === 'number' ? Math.round(dados.prazo_entrega_dias) : null,
+    frete: typeof dados.frete === 'number' ? dados.frete : null, forma_pagamento: forma, condicao: (dados.condicao as string) ?? null,
+    observacoes: (dados.observacoes as string) ?? null, precos, avisos: (dados.avisos as string[]) ?? [],
+  };
 }

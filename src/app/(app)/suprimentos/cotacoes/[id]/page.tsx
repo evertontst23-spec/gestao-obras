@@ -5,6 +5,7 @@ import { obterSessao } from '@/lib/sessao';
 import { Cabecalho, Cartao, Campo, Info, Selo } from '@/components/ui';
 import { FormAcao, Botao } from '@/components/formulario';
 import { EnvioWhatsApp } from '@/components/EnvioWhatsApp';
+import { LeitorProposta } from '@/components/LeitorProposta';
 import { UploadArquivo } from '@/components/UploadArquivo';
 import { anexarArquivoProposta, tirarItensCotacao, cancelarCotacao, decidirCotacao, enviarAprovacao, excluirCotacao, excluirProposta, reabrirCotacao, salvarProposta, voltarCorrecao } from '../../acoes';
 import { FORMA_PAGAMENTO, STATUS_COTACAO, codCot, reais } from '@/lib/dominio';
@@ -85,7 +86,13 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
           {(envios?.length ?? 0) > 0 && (
             <div className="mt-3 border-t border-concreto-100 pt-2 text-xs text-concreto-600"><b>Enviado para:</b>{' '}
               {envios!.map((e) => `${(e.fornecedores as unknown as { nome: string } | null)?.nome ?? (e.telefone ? `+${e.telefone}` : 'contato escolhido no WhatsApp')} (${dataHora(e.enviado_em)})`).join(' • ')}</div>)}
-          <p className="mt-2 text-xs text-concreto-500">Quando o fornecedor responder, lance os preços em “Registrar proposta” e anexe a foto ou o PDF do orçamento dele na proposta.</p>
+          <p className="mt-2 text-xs text-concreto-500">Quando o fornecedor responder, envie o PDF ou a foto do orçamento no quadro de leitura automática abaixo — ou lance à mão.</p>
+        </Cartao>)}
+
+      {comprador && aberta && (
+        <Cartao titulo="📄 Proposta do fornecedor por PDF ou foto (leitura automática)" className="mb-5 border-2 border-sinal-400">
+          <LeitorProposta cotacao={id} itens={(itens ?? []).map((i) => ({ id: i.id, descricao: i.descricao, quantidade: Number(i.quantidade), unidade: i.unidade }))}
+            fornecedores={(forns ?? []).map((f) => ({ id: f.id, nome: f.nome }))} />
         </Cartao>)}
 
       <div className="grid gap-5 lg:grid-cols-2">
