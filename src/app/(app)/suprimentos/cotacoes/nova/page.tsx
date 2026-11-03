@@ -1,5 +1,6 @@
 import { SeloLocacao } from '@/components/Locacao';
 import Link from 'next/link';
+import { MarcarTodos } from '@/components/MarcarTodos';
 import { exigirPapel } from '@/lib/sessao';
 import { Cabecalho, Cartao, Campo, Vazio } from '@/components/ui';
 import { FormAcao, Botao } from '@/components/formulario';
@@ -36,11 +37,12 @@ export default async function NovaCotacao() {
             <Cartao key={obra} titulo={`${itens[0].obra_codigo} — ${itens[0].obra_nome}`}>
               <FormAcao acao={criarCotacao} className="space-y-3">
                 <input type="hidden" name="obra_id" value={obra} />
+                <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-concreto-500">Marque só os itens que vão nesta cotação.</span><MarcarTodos nome="solicitacao_item_id" /></div>
                 <div className="overflow-x-auto"><table className="tabela">
                   <thead><tr><th></th><th>Pedido</th><th>Material</th><th className="text-right">Qtd.</th><th>Necessário</th><th>Estoque existente</th></tr></thead>
                   <tbody>{itens.map((i) => (
                     <tr key={i.id}>
-                      <td><input type="checkbox" name="solicitacao_item_id" value={i.id} defaultChecked className="h-5 w-5 accent-sinal-500" /></td>
+                      <td><input type="checkbox" name="solicitacao_item_id" value={i.id} className="h-5 w-5 accent-sinal-500" /></td>
                       <td><Link href={`/materiais/${i.solicitacao_id}`} className="link font-mono text-xs">{codSM(i.solicitacao_numero)}</Link></td>
                       <td>{i.material}{i.especificacao && <div className="text-xs text-concreto-500">{i.especificacao}</div>}<SeloLocacao i={i} /></td>
                       <td className="whitespace-nowrap text-right font-mono">{num(i.quantidade, 3)} {i.unidade}</td>

@@ -6,7 +6,7 @@ import { Cabecalho, Cartao, Campo, Info, Selo } from '@/components/ui';
 import { FormAcao, Botao } from '@/components/formulario';
 import { EnvioWhatsApp } from '@/components/EnvioWhatsApp';
 import { UploadArquivo } from '@/components/UploadArquivo';
-import { anexarArquivoProposta, cancelarCotacao, decidirCotacao, enviarAprovacao, excluirCotacao, excluirProposta, reabrirCotacao, salvarProposta, voltarCorrecao } from '../../acoes';
+import { anexarArquivoProposta, tirarItensCotacao, cancelarCotacao, decidirCotacao, enviarAprovacao, excluirCotacao, excluirProposta, reabrirCotacao, salvarProposta, voltarCorrecao } from '../../acoes';
 import { FORMA_PAGAMENTO, STATUS_COTACAO, codCot, reais } from '@/lib/dominio';
 import { data, dataHora, num } from '@/lib/formato';
 
@@ -16,12 +16,13 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
   const { data: c } = await supabase.from('v_cotacoes').select('*').eq('id', id).maybeSingle();
   if (!c) notFound();
   const [{ data: itens }, { data: props }, { data: precos }, { data: forns }] = await Promise.all([
-    supabase.from('cotacao_itens').select('*, solicitacao_itens!cotacao_itens_solicitacao_item_id_fkey(modalidade, locacao_inicio, locacao_fim, data_necessidade)').eq('cotacao_id', id).order('descricao'),
+    supabase.from('cotacao_itens').select('*, solicitacao_itens!cotacao_itens_solicitacao_item_id_fkey(modalidade, locacao_inicio, locacao_fim, data_necessidade)').eq('cotacao_id', id).is('removido_em', null).order('descricao'),
     supabase.from('cotacao_propostas').select('*, fornecedores(nome, telefone)').eq('cotacao_id', id).order('valor_total'),
     supabase.from('cotacao_precos').select('*, cotacao_propostas!inner(cotacao_id)').eq('cotacao_propostas.cotacao_id', id),
     supabase.from('fornecedores').select('id, nome, categoria, telefone').eq('ativo', true).order('nome'),
   ]);
   const ps = props ?? [];
+  const { data: retirados } = await supabase.from('cotacao_itens').select('id, descricao, quantidade, unidade, removido_em').eq('cotacao_id', id).not('removido_em', 'is', null).order('removido_em');
   const { data: envios } = await supabase.from('cotacao_envios').select('id, telefone, enviado_em, fornecedores(nome), perfis(nome)').eq('cotacao_id', id).order('enviado_em', { ascending: false });
   const anexos = ps.map((p) => p.anexo_caminho).filter(Boolean) as string[];
   const { data: urlsAnexo } = anexos.length ? await supabase.storage.from('anexos').createSignedUrls(anexos, 3600) : { data: [] };
@@ -155,6 +156,24 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
               </details>))}</div>
           </Cartao>
         )}
+
+        {comprador && aberta && (itens?.length ?? 0) > 1 && (
+          <details className="rounded-lg border border-concreto-200 bg-white text-sm lg:col-span-2">
+            <summary className="cursor-pointer px-4 py-3 font-semibold text-sinal-700">↩ Tirar itens desta cotação (voltam para a fila, sem cancelar a cotação)</summary>
+            <FormAcao acao={tirarItensCotacao} className="space-y-2 border-t border-concreto-100 p-4">
+              <input type="hidden" name="cotacao_id" value={id} />
+              <p className="text-xs text-concreto-600">Marque o que entrou sem querer. Esses itens voltam para “Itens aguardando cotação” e podem entrar em outra cotação; os preços já digitados deles saem das propostas.</p>
+              {(itens ?? []).map((i) => (
+                <label key={i.id} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-concreto-50">
+                  <input type="checkbox" name="itens" value={i.id} className="h-5 w-5 accent-sinal-500" />
+                  <span className="flex-1">{i.descricao}</span><span className="font-mono text-xs">{num(i.quantidade, 3)} {i.unidade}</span>
+                </label>))}
+              <div className="flex flex-wrap gap-2"><input name="motivo" placeholder="Motivo (opcional)" className="entrada min-w-0 flex-1" /><Botao variante="secundario">Voltar marcados para a fila</Botao></div>
+            </FormAcao>
+          </details>)}
+
+        {(retirados?.length ?? 0) > 0 && (
+          <p className="text-xs text-concreto-500 lg:col-span-2"><b>Retirados desta cotação (voltaram para a fila):</b> {retirados!.map((r) => `${r.descricao} (${num(r.quantidade, 3)} ${r.unidade})`).join(' • ')}</p>)}
 
         {comprador && aberta && ps.length > 0 && (
           <Cartao titulo="Enviar para aprovação da diretoria">

@@ -15,7 +15,7 @@ export default async function PedidoCotacao({ params }: { params: Promise<{ id: 
   const { data: c } = await supabase.from('v_cotacoes').select('*').eq('id', id).maybeSingle();
   if (!c) notFound();
   const [{ data: itens }, { data: emp }] = await Promise.all([
-    supabase.from('cotacao_itens').select('id, descricao, unidade, quantidade, solicitacao_itens!cotacao_itens_solicitacao_item_id_fkey(data_necessidade, especificacao)').eq('cotacao_id', id).order('descricao'),
+    supabase.from('cotacao_itens').select('id, descricao, unidade, quantidade, solicitacao_itens!cotacao_itens_solicitacao_item_id_fkey(data_necessidade, especificacao)').eq('cotacao_id', id).is('removido_em', null).order('descricao'),
     supabase.from('empregadores').select('razao_social, cnpj').eq('nome', 'CAD').maybeSingle(),
   ]);
   const nec = (itens ?? []).map((i) => (i.solicitacao_itens as unknown as { data_necessidade?: string } | null)?.data_necessidade).filter(Boolean).sort()[0];

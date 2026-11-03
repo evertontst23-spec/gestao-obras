@@ -198,3 +198,14 @@ export async function anexarArquivoProposta(c: Record<string, string | null>): P
   revalidatePath(`/suprimentos/cotacoes/${c.cotacao_id}`);
   return { ok: 'PDF/foto da proposta anexado.' };
 }
+
+export async function tirarItensCotacao(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const cot = txt(f, 'cotacao_id')!;
+  const itens = f.getAll('itens').map(String);
+  if (!itens.length) return { erro: 'Marque os itens que vão voltar para a fila.' };
+  const supabase = await criarClienteServidor();
+  const { data, error } = await supabase.rpc('cotacao_remover_itens', { p_cotacao: cot, p_itens: itens, p_motivo: txt(f, 'motivo') });
+  if (error) return { erro: mensagemErro(error) };
+  rev(); revalidatePath(`/suprimentos/cotacoes/${cot}`);
+  return { ok: `${data} item(ns) voltaram para a fila de cotação.` };
+}

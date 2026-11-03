@@ -7,7 +7,7 @@ import { FotoUpload } from '@/components/FotoUpload';
 import { Galeria } from '@/components/Galeria';
 import { SeloLocacao } from '@/components/Locacao';
 import { ControleLocacao } from '@/components/ControleLocacao';
-import { adicionarItem, cancelarItem, confirmarEntrega, decidirSolicitacao, editarItem, editarSolicitacao, registrarEnvio, verificarEstoque, verificarEstoqueLote } from '../acoes';
+import { adicionarItem, voltarVerificacao, cancelarItem, confirmarEntrega, decidirSolicitacao, editarItem, editarSolicitacao, registrarEnvio, verificarEstoque, verificarEstoqueLote } from '../acoes';
 import { STATUS_MATERIAL, TAREFA_ABERTA, codSM, codTarefa, type StatusMaterial } from '@/lib/dominio';
 import { data, dataHora, hojeISO, num } from '@/lib/formato';
 
@@ -181,6 +181,14 @@ export default async function DetalheSolicitacao({ params, searchParams }: { par
                             </FormAcao>
                           </div>);
                       })()}
+                      {st === 'em_cotacao' && !i.cotacao_id && !i.item_origem_id && (almox || compras) && (
+                        <details className="text-sm"><summary className="cursor-pointer text-xs font-semibold text-sinal-700">↩ Foi para cotação sem querer? Voltar para a verificação de estoque</summary>
+                          <FormAcao acao={voltarVerificacao} className="mt-2 flex flex-wrap gap-2">
+                            <input type="hidden" name="solicitacao" value={id} /><input type="hidden" name="item" value={i.id} />
+                            <input name="motivo" placeholder="Motivo (opcional)" className="entrada min-w-0 flex-1" />
+                            <Botao variante="secundario">Voltar para verificação</Botao>
+                          </FormAcao>
+                        </details>)}
                       {st === 'em_cotacao' && !i.cotacao_id && (compras
                         ? <Link href="/suprimentos/cotacoes/nova" className="block rounded bg-atencao-50 p-2 text-sm font-semibold text-atencao-700">≋ Aguardando cotação — incluir em uma cotação →</Link>
                         : <p className="rounded bg-atencao-50 p-2 text-xs text-atencao-700">Sem estoque — aguardando cotação pelo comprador.</p>)}

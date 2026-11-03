@@ -125,3 +125,7 @@ export async function adicionarItem(_: EstadoAcao, f: FormData) {
     },
   }, s, 'Item incluído no pedido.');
 }
+export async function voltarVerificacao(_: EstadoAcao, f: FormData) {
+  const s = txt(f, 'solicitacao')!;
+  return chamar('item_voltar_verificacao', { p_item: txt(f, 'item'), p_motivo: txt(f, 'motivo') }, s, 'Item voltou para a verificação de estoque.');
+}
