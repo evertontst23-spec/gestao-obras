@@ -149,8 +149,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
                 <div className="space-y-6">{tiposVisiveis.map(([t, rotulo]) => {
                   const lt = ls.filter((l) => l.tipo === t);
                   if (!lt.length) return null;
-                  const pass = t === 'passagem';
-                  const g = `grid grid-cols-2 items-center gap-2 ${pass ? 'sm:grid-cols-[minmax(0,1.5fr)_60px_150px_60px_64px_84px_104px_minmax(0,1fr)_auto]' : 'sm:grid-cols-[minmax(0,1.5fr)_60px_150px_60px_84px_104px_minmax(0,1fr)_auto]'}`;
+                  const g = 'grid grid-cols-2 items-center gap-2 sm:grid-cols-[minmax(0,1.5fr)_60px_150px_60px_84px_104px_minmax(0,1fr)_auto]';
                   return (
                     <section key={t}>
                       <div className="mb-2 flex items-center justify-between border-b-2 border-concreto-200 pb-1">
@@ -158,7 +157,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
                         <b className="font-mono">{reais(lt.reduce((s, l) => s + Number(l.valor_total), 0))}</b>
                       </div>
                       <div className={`${g} mb-1 hidden text-[11px] font-semibold uppercase tracking-wide text-concreto-400 sm:grid`}>
-                        <span>Funcionário</span><span>Dias</span><span>+ Retroativo / crédito</span><span>− Faltas</span>{pass && <span>Pass./dia</span>}<span>{pass ? 'R$ / pass.' : 'R$ / dia'}</span><span className="text-right">Total</span><span>Obs.</span><span />
+                        <span>Funcionário</span><span>Dias</span><span>+ Retroativo / crédito</span><span>− Faltas</span><span>R$ / dia</span><span className="text-right">Total</span><span>Obs.</span><span />
                       </div>
                       <div className="divide-y divide-concreto-100">{lt.map((l) => {
                         const ex = Number(l.dias_retroativos) > 0;
@@ -168,7 +167,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
                               <FormAcao acao={salvarLinhaBeneficio} className={g}>
                                 <input type="hidden" name="competencia_id" value={comp.id} /><input type="hidden" name="funcionario_id" value={l.funcionario_id} />
                                 <input type="hidden" name="obra_id" value={l.obra_id ?? ''} /><input type="hidden" name="tipo" value={l.tipo} />
-                                {!pass && <input type="hidden" name="qtd_dia" value="1" />}
+                                <input type="hidden" name="qtd_dia" value={String(l.qtd_dia)} />
                                 <span className="col-span-2 text-sm font-semibold sm:col-span-1">{l.funcionarios?.nome}
                                   {ex && <span className={`ml-1 rounded px-1.5 py-0.5 text-[10px] font-bold ${ADIC[l.adicional_tipo].cor}`}>{ADIC[l.adicional_tipo].rotulo} +{nf(l.dias_retroativos)}</span>}
                                   <span className="block text-[11px] font-normal text-concreto-500">{l.funcionarios?.funcoes?.nome}</span></span>
@@ -178,7 +177,6 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
                                   <select name="adicional_tipo" defaultValue={l.adicional_tipo} className="entrada px-1 py-1 text-xs" aria-label="Tipo"><option value="retroativo">retroativo</option><option value="credito">crédito</option></select>
                                 </span>
                                 <input name="dias_desconto" inputMode="decimal" defaultValue={nf(l.dias_desconto)} className="entrada px-2 py-1" aria-label="Faltas" />
-                                {pass && <input name="qtd_dia" inputMode="decimal" defaultValue={nf(l.qtd_dia)} className="entrada px-2 py-1" aria-label="Passagens por dia" />}
                                 <input name="valor_unitario" inputMode="decimal" defaultValue={Number(l.valor_unitario).toFixed(2).replace('.', ',')} className="entrada px-2 py-1" aria-label="Valor" />
                                 <span className="text-right font-mono text-sm font-bold">{reais(l.valor_total)}</span>
                                 <input name="observacao" defaultValue={l.observacao ?? ''} className="entrada px-2 py-1 text-xs" aria-label="Observação" />
@@ -190,7 +188,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
                               <div className={`${g} text-sm`}>
                                 <span className="col-span-2 font-semibold sm:col-span-1">{l.funcionarios?.nome}{ex && <span className={`ml-1 rounded px-1.5 py-0.5 text-[10px] font-bold ${ADIC[l.adicional_tipo].cor}`}>{ADIC[l.adicional_tipo].rotulo} +{nf(l.dias_retroativos)}</span>}</span>
                                 <span>{nf(l.dias)}</span><span>{ex ? `+${nf(l.dias_retroativos)} ${ADIC[l.adicional_tipo].rotulo.toLowerCase()}` : '—'}</span><span>{Number(l.dias_desconto) ? `−${nf(l.dias_desconto)}` : '—'}</span>
-                                {pass && <span>{nf(l.qtd_dia)}</span>}<span>{reais(l.valor_unitario)}</span>
+                                <span>{reais(Number(l.valor_unitario) * Number(l.qtd_dia))}</span>
                                 <span className="text-right font-mono font-bold">{reais(l.valor_total)}</span><span className="text-xs text-concreto-500">{l.observacao}</span><span />
                               </div>)}
                             {editavel && (
@@ -217,8 +215,8 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
                       <Campo rotulo="+ Dias a mais"><input name="dias_retroativos" defaultValue="0" inputMode="decimal" className="entrada" /></Campo>
                       <Campo rotulo="São"><select name="adicional_tipo" className="entrada"><option value="retroativo">retroativo</option><option value="credito">crédito</option></select></Campo>
                       <Campo rotulo="− Faltas"><input name="dias_desconto" defaultValue="0" inputMode="decimal" className="entrada" /></Campo>
-                      <Campo rotulo="Passagens/dia (só passagem)"><input name="qtd_dia" defaultValue="1" inputMode="decimal" className="entrada" /></Campo>
-                      <Campo rotulo="Valor (R$ por dia ou por passagem)"><input name="valor_unitario" required inputMode="decimal" placeholder="22,82" className="entrada" /></Campo>
+                      <input type="hidden" name="qtd_dia" value="1" />
+                      <Campo rotulo="Valor por dia (R$)" dica="Passagem: total do dia (ex.: 4 × 4,50 = 18,00)"><input name="valor_unitario" required inputMode="decimal" placeholder="22,82" className="entrada" /></Campo>
                       <Campo rotulo="Observação" className="sm:col-span-2"><input name="observacao" className="entrada" /></Campo>
                       <div className="flex items-end"><Botao>Incluir</Botao></div>
                     </FormAcao>
@@ -254,7 +252,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
                   <td className="text-right font-mono">{reais(soma(todas))}</td></tr>
               </tbody>
             </table>
-            <p className="mt-2 text-xs text-concreto-500">Total de cada linha = (dias + retroativo/crédito − faltas) × passagens por dia × valor. Toda alteração fica registrada.</p>
+            <p className="mt-2 text-xs text-concreto-500">Total de cada linha = (dias + retroativo/crédito − faltas) × valor por dia. Na passagem, o valor por dia já soma todas as passagens do dia (a observação mostra a conta, ex.: 4 × R$ 4,50). Toda alteração fica registrada.</p>
           </Cartao>
         </div>
       </>)}
