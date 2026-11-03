@@ -19,7 +19,7 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
   if (!o) notFound();
   const [{ data: itens }, { data: docs }, { data: evs }, { data: empresa }] = await Promise.all([
     supabase.from('oc_itens').select('*, solicitacao_itens(solicitacao_id, modalidade, locacao_inicio, locacao_fim, solicitacoes(numero))').eq('oc_id', id).order('descricao'),
-    supabase.from('oc_documentos').select('*, perfis(nome)').eq('oc_id', id).order('criado_em'),
+    supabase.from('oc_documentos').select('*, perfis!oc_documentos_enviado_por_fkey(nome)').eq('oc_id', id).order('criado_em'),
     supabase.from('oc_eventos').select('*, perfis(nome)').eq('oc_id', id).order('criado_em', { ascending: false }),
     supabase.from('obras').select('nome, endereco, cliente').eq('id', o.obra_id ?? '00000000-0000-0000-0000-000000000000').maybeSingle(),
   ]);

@@ -16,7 +16,7 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
   const { data: c } = await supabase.from('v_cotacoes').select('*').eq('id', id).maybeSingle();
   if (!c) notFound();
   const [{ data: itens }, { data: props }, { data: precos }, { data: forns }] = await Promise.all([
-    supabase.from('cotacao_itens').select('*, solicitacao_itens(modalidade, locacao_inicio, locacao_fim, data_necessidade)').eq('cotacao_id', id).order('descricao'),
+    supabase.from('cotacao_itens').select('*, solicitacao_itens!cotacao_itens_solicitacao_item_id_fkey(modalidade, locacao_inicio, locacao_fim, data_necessidade)').eq('cotacao_id', id).order('descricao'),
     supabase.from('cotacao_propostas').select('*, fornecedores(nome, telefone)').eq('cotacao_id', id).order('valor_total'),
     supabase.from('cotacao_precos').select('*, cotacao_propostas!inner(cotacao_id)').eq('cotacao_propostas.cotacao_id', id),
     supabase.from('fornecedores').select('id, nome, categoria, telefone').eq('ativo', true).order('nome'),
