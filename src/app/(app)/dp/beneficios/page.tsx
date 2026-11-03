@@ -14,7 +14,7 @@ const nf = (v: unknown) => String(Number(v)).replace('.', ',');
 type Linha = { id: number; obra_id: string | null; funcionario_id: string; tipo: string; dias: number; dias_retroativos: number; dias_desconto: number;
   qtd_dia: number; valor_unitario: number; valor_total: number; observacao: string | null; funcionarios: { nome: string; funcoes: { nome: string } | null } | null };
 
-export default async function Beneficios({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
+export default async function Beneficios({ searchParams }: { searchParams: Promise<{ mes?: string; obra?: string }> }) {
   const sp = await searchParams;
   const { supabase, perfil } = await exigirPapel('admin', 'rh', 'financeiro');
   const pode = ['admin', 'rh'].includes(perfil.papel);
@@ -32,6 +32,9 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
   const grupos = new Map<string, Linha[]>();
   linhas.forEach((l) => { const k = l.obra_id ?? 'sem'; grupos.set(k, [...(grupos.get(k) ?? []), l]); });
   const ordem = [...grupos.keys()].sort((a, b) => (nomeObra.get(a) ?? 'zz').localeCompare(nomeObra.get(b) ?? 'zz'));
+  const obraSel = sp.obra && (grupos.has(sp.obra) || (obras ?? []).some((o) => o.id === sp.obra)) ? sp.obra : null;
+  const visiveis = obraSel ? [obraSel] : [];
+  const link = (o?: string) => `/dp/beneficios?mes=${mes}${o ? `&obra=${o}` : ''}`;
   const soma = (ls: Linha[], t?: string) => ls.filter((l) => !t || l.tipo === t).reduce((s, l) => s + Number(l.valor_total), 0);
   const pessoas = (ls: Linha[]) => new Set(ls.map((l) => l.funcionario_id)).size;
   const g = 'grid grid-cols-2 items-end gap-2 sm:grid-cols-[minmax(0,1.6fr)_110px_64px_64px_64px_64px_84px_100px_minmax(0,1fr)_auto]';
@@ -44,7 +47,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
 
       <div className="nao-imprimir mb-4 flex flex-wrap items-center gap-2 text-sm">
         {(comps ?? []).map((c) => (
-          <Link key={c.id} href={`/dp/beneficios?mes=${c.competencia.slice(0, 7)}`}
+          <Link key={c.id} href={`/dp/beneficios?mes=${c.competencia.slice(0, 7)}${obraSel ? `&obra=${obraSel}` : ''}`}
             className={`rounded-full border px-3 py-1 font-semibold capitalize ${c.competencia.slice(0, 7) === mes ? 'border-sinal-500 bg-sinal-50 text-sinal-800' : 'border-concreto-300 bg-white text-concreto-600'}`}>
             {nomeMes(c.competencia.slice(0, 7))}{c.status === 'fechada' ? ' 🔒' : ''}</Link>))}
         {pode && (
@@ -81,11 +84,27 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
           {comp.observacoes && <span className="text-xs text-concreto-500">{comp.observacoes}</span>}
         </div>
 
+        <div className="nao-imprimir mb-4 flex flex-wrap items-center gap-2">
+          <span className="text-sm font-semibold text-concreto-600">Obra:</span>
+          <Link href={link()} className={`rounded-md border px-3 py-1.5 text-sm font-semibold ${!obraSel ? 'border-sinal-500 bg-sinal-500 text-white' : 'border-concreto-300 bg-white text-concreto-700 hover:border-sinal-400'}`}>Resumo de todas</Link>
+          {ordem.map((k) => (
+            <Link key={k} href={link(k)} className={`rounded-md border px-3 py-1.5 text-sm font-semibold ${obraSel === k ? 'border-sinal-500 bg-sinal-500 text-white' : 'border-concreto-300 bg-white text-concreto-700 hover:border-sinal-400'}`}>
+              {(nomeObra.get(k) ?? 'Sem obra').split(' — ').pop()} <span className="font-mono text-xs opacity-80">{reais(soma(grupos.get(k)!))}</span></Link>))}
+          {editavel && (
+            <form action="/dp/beneficios" className="flex items-center gap-1">
+              <input type="hidden" name="mes" value={mes} />
+              <select name="obra" className="entrada w-auto py-1.5 text-sm" defaultValue=""><option value="" disabled>+ outra obra…</option>
+                {(obras ?? []).filter((o) => !grupos.has(o.id)).map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}</select>
+              <button className="rounded-md border border-concreto-300 bg-white px-2 py-1.5 text-sm font-semibold">abrir</button>
+            </form>)}
+        </div>
+
         <div className="space-y-5">
-          {ordem.map((k) => {
-            const ls = grupos.get(k)!;
+          {visiveis.map((k) => {
+            const ls = grupos.get(k) ?? [];
             return (
               <Cartao key={k} titulo={nomeObra.get(k) ?? 'Sem obra'}>
+                {!ls.length && <p className="mb-2 text-sm text-concreto-500">Nenhum benefício lançado nesta obra ainda.</p>}
                 <div className={`${g} mb-1 hidden text-[11px] font-semibold uppercase tracking-wide text-concreto-400 sm:grid`}>
                   <span>Funcionário</span><span>Benefício</span><span>Dias</span><span>Retro.</span><span>Faltas</span><span>Qtd/dia</span><span>Valor R$</span><span className="text-right">Total</span><span>Obs.</span><span />
                 </div>
@@ -146,7 +165,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
               <thead><tr><th>Obra</th><th className="text-right">Pessoas</th><th className="text-right">Alimentação</th><th className="text-right">Passagem</th><th className="text-right">Total</th></tr></thead>
               <tbody>
                 {ordem.map((k) => { const ls = grupos.get(k)!; return (
-                  <tr key={k}><td>{nomeObra.get(k) ?? 'Sem obra'}</td><td className="text-right">{pessoas(ls)}</td>
+                  <tr key={k} className={obraSel === k ? 'bg-sinal-50' : ''}><td><Link href={link(k)} className="link">{nomeObra.get(k) ?? 'Sem obra'}</Link></td><td className="text-right">{pessoas(ls)}</td>
                     <td className="text-right font-mono">{reais(soma(ls, 'alimentacao'))}</td><td className="text-right font-mono">{reais(soma(ls, 'passagem'))}</td>
                     <td className="text-right font-mono font-bold">{reais(soma(ls))}</td></tr>); })}
                 <tr className="bg-concreto-50 text-base font-black"><td>TOTAL GERAL</td><td className="text-right">{pessoas(linhas)}</td>

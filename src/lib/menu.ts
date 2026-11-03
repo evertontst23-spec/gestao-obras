@@ -33,6 +33,7 @@ export const MENU: SecaoMenu[] = [
   { titulo: 'RH / Departamento Pessoal', itens: [
     { href: '/dp/ponto', rotulo: 'Registro de ponto', curto: 'Ponto', icone: '◷', papeis: ['admin', 'rh', 'seguranca', 'engenheiro', 'encarregado', 'almoxarifado'] },
     { href: '/dp/pagamentos', rotulo: 'Pagamentos (dia 20 / dia 05)', curto: 'Pagamentos', icone: '$', papeis: ['admin', 'rh', 'financeiro'] },
+    { href: '/dp/beneficios', rotulo: 'Benefícios (alimentação e passagem)', curto: 'Benefícios', icone: '🍽', papeis: ['admin', 'rh', 'financeiro'] },
     { href: '/dp/folha', rotulo: 'Folha', icone: '₢', papeis: ['admin', 'rh', 'financeiro'] },
     { href: '/dp/espelho', rotulo: 'Espelho de ponto', curto: 'Espelho', icone: '▥', papeis: ['admin', 'rh', 'financeiro', 'engenheiro'] },
     { href: '/dp/correcoes', rotulo: 'Pedidos de correção', curto: 'Correções', icone: '✎', papeis: ['admin', 'rh'] },
