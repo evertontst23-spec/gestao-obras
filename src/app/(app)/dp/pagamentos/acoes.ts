@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { criarClienteServidor } from '@/lib/supabase/server';
 import { type EstadoAcao, dinheiro, mensagemErro, numero, txt } from '@/lib/acoes';
 
-const atualizar = (id?: string | null) => { revalidatePath('/dp/pagamentos'); if (id) revalidatePath(`/dp/pagamentos/${id}`); revalidatePath('/financeiro', 'layout'); };
+const atualizar = (id?: string | null) => { revalidatePath('/dp/pagamentos'); if (id) revalidatePath(`/dp/pagamentos/${id}`); revalidatePath('/financeiro', 'layout'); revalidatePath('/dp/folha'); };
 
 export async function criarPagamento(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
   const supabase = await criarClienteServidor();

@@ -9,10 +9,11 @@ import { reais } from '@/lib/dominio';
 import { num, dataHora } from '@/lib/formato';
 import { fecharFolha, fecharFolhaObra } from '../acoes';
 import { soma, type LinhaFolha } from '../tipos';
+import { Fechamentos } from './Fechamentos';
 
 export const metadata = { title: 'Folha' };
 
-export default async function Folha({ searchParams }: { searchParams: Promise<{ mes?: string; obra?: string }> }) {
+export default async function Folha({ searchParams }: { searchParams: Promise<{ mes?: string; obra?: string; cc?: string; emp?: string; ag?: string; pg?: string }> }) {
   const sp = await searchParams;
   const { supabase, perfil } = await exigirPapel('admin', 'rh', 'financeiro');
   const mes = mesAtual(sp.mes);
@@ -65,6 +66,8 @@ export default async function Folha({ searchParams }: { searchParams: Promise<{ 
           : <>O controle de ponto ainda não começou: a folha <b>não desconta faltas</b> nem calcula horas extras. Quando o ponto entrar em uso, informe a data em <a className="link" href="/dp/parametros">Parâmetros</a>. </>}
         Os valores do dia 20 e do dia 05, por empresa, ficam em <a className="link" href="/dp/pagamentos">Pagamentos</a>.
       </p>
+      <Fechamentos supabase={supabase} mes={mes} cc={sp.cc} emp={sp.emp} ag={sp.ag} pg={sp.pg} rh={rh} base="/dp/folha" />
+      <h2 className="mb-2 mt-6 text-lg font-bold">Prévia da folha pelo ponto (salário cheio, horas extras e faltas)</h2>
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-5">
         <Indicador rotulo="Funcionários" valor={linhas.length} />
         <Indicador rotulo="Total bruto" valor={reais(soma(linhas, 'bruto'))} />
