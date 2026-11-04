@@ -1,5 +1,5 @@
 -- =====================================================================
--- 0041 — Folha: quem ainda não está fichado não tem desconto de INSS; linhas do pagamento editáveis
+-- 0042 — Folha: quem ainda não está fichado não tem desconto de INSS; linhas do pagamento editáveis
 --  * funcionarios.desconta_inss: desmarcado para quem ainda não foi registrado (sem INSS e sem desconto de VT).
 --    INSS e VT só são estimados para a equipe própria (CAD); Mundial/A2, IDERES e FÊNIX descontam na própria empresa.
 --  * pagamento_item_editar: muda o valor e a descrição de uma linha enquanto o pagamento está em conferência.
