@@ -12,7 +12,7 @@ export type PagResumo = { id: string; titulo: string; tipo: string; status: stri
 type Item = {
   id: number; pagamento_id: string; funcionario_id: string | null; categoria: string; destino: string; descricao: string; valor: number;
   obra_id: string | null; empregador_id: string | null;
-  funcionarios: { nome: string; funcoes: { nome: string } | null } | null; empregadores: { nome: string; tipo: string } | null; obras: { codigo: string; nome: string } | null;
+  funcionarios: { nome: string; ativo: boolean; funcoes: { nome: string } | null } | null; empregadores: { nome: string; tipo: string } | null; obras: { codigo: string; nome: string } | null;
 };
 const n = (v: unknown) => Number(v ?? 0);
 const TIPO_EMP: Record<string, string> = { fornecedora_mao_obra: 'Institutos / fornecedoras (IDERES, FÊNIX)', parceira: 'CLT de empresa parceira (Mundial/A2)', propria: 'Equipe própria (CAD)' };
@@ -32,9 +32,12 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
   const doMes = pags.filter((p) => umPagamento || competencia(p) === mes).sort((a, b) => a.data_pagamento.localeCompare(b.data_pagamento));
   const ids = doMes.map((p) => p.id);
   const { data: brutos } = ids.length ? await supabase.from('pagamento_itens')
-    .select('id, pagamento_id, funcionario_id, categoria, destino, descricao, valor, obra_id, empregador_id, funcionarios(nome, funcoes(nome)), empregadores(nome, tipo), obras(codigo, nome)')
+    .select('id, pagamento_id, funcionario_id, categoria, destino, descricao, valor, obra_id, empregador_id, funcionarios(nome, ativo, funcoes(nome)), empregadores(nome, tipo), obras(codigo, nome)')
     .in('pagamento_id', ids).eq('removido', false).order('id') : { data: [] };
-  const todos = ((brutos ?? []) as unknown as Item[]).filter((i) => umPagamento || !BENEFICIO.includes(i.categoria));
+  const brutosOk = ((brutos ?? []) as unknown as Item[]).filter((i) => umPagamento || !BENEFICIO.includes(i.categoria));
+  // na Folha, quem já saiu não aparece (o que foi pago a eles continua no pagamento)
+  const desligados = umPagamento ? [] : brutosOk.filter((i) => i.funcionarios && !i.funcionarios.ativo);
+  const todos = umPagamento ? brutosOk : brutosOk.filter((i) => !(i.funcionarios && !i.funcionarios.ativo));
   const pagPorId = new Map(doMes.map((p) => [p.id, p]));
 
   const ver: Ver = verP === 'empresa' || verP === 'tipo' ? verP : 'obra';
@@ -125,6 +128,8 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
             </tbody>
           </table></div>
           <p className="mt-2 text-xs text-concreto-500">Clique numa linha para ver e editar os valores de cada funcionário.</p>
+          {desligados.length > 0 && (
+            <p className="mt-1 text-xs text-concreto-500">Não aparecem aqui {new Set(desligados.map((i) => i.funcionario_id)).size} funcionário(s) que já saíram ({[...new Set(desligados.map((i) => i.funcionarios?.nome?.split(' ')[0]))].join(', ')}): {reais(soma(desligados))} já acertados — ficam registrados em <Link className="link" href="/dp/pagamentos">Pagamentos</Link>.</p>)}
         </Cartao>
       ) : (
         <Cartao titulo={grupos.get(gSel)!.nome}>

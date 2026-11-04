@@ -45,6 +45,10 @@ export default async function Folha({ searchParams }: { searchParams: Promise<{ 
                 ...[...porObra.values()].flatMap((x) => x.itens as LinhaFolha[])].sort((a, b) => a.nome.localeCompare(b.nome));
     }
   }
+  // quem já saiu não aparece na prévia
+  const { data: saidos } = await supabase.from('funcionarios').select('id').eq('ativo', false);
+  const saiu = new Set((saidos ?? []).map((x) => x.id));
+  linhas = linhas.filter((l) => !saiu.has(l.funcionario_id));
   const incompletos = linhas.filter((l) => l.incompletos > 0);
   const rh = ['admin', 'rh'].includes(perfil.papel);
   const podeFechar = !geral && !porObra.size && !sp.obra && rh;

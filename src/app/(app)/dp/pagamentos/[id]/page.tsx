@@ -101,7 +101,7 @@ export default async function Pagamento({ params, searchParams }: { params: Prom
             <FormAcao acao={salvarItem} limparAoConcluir className="space-y-3"><input type="hidden" name="id" value={p.id} />
               <Campo rotulo="Funcionário" dica="Deixe em branco para taxa ou outro valor da empresa">
                 <select name="funcionario_id" className="entrada"><option value="">—</option>
-                  {funcs?.map((f) => <option key={f.id} value={f.id}>{f.nome}{(f.empregadores as unknown as { nome: string } | null)?.nome ? ` (${(f.empregadores as unknown as { nome: string }).nome})` : ''}{f.ativo ? '' : ' — desligado'}</option>)}</select></Campo>
+                  {funcs?.filter((f) => f.ativo).map((f) => <option key={f.id} value={f.id}>{f.nome}{(f.empregadores as unknown as { nome: string } | null)?.nome ? ` (${(f.empregadores as unknown as { nome: string }).nome})` : ''}{f.ativo ? '' : ' — desligado'}</option>)}</select></Campo>
               <div className="grid grid-cols-2 gap-3">
                 <Campo rotulo="Item"><select name="categoria" className="entrada">{Object.entries(CAT_PAG).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Campo>
                 <Campo rotulo="Valor (R$)"><input name="valor" required inputMode="decimal" className="entrada" placeholder="0,00" /></Campo>
