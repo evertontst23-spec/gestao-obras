@@ -9,14 +9,18 @@ import { reais } from '@/lib/dominio';
 import { num, dataHora } from '@/lib/formato';
 import { fecharFolha, fecharFolhaObra } from '../acoes';
 import { soma, type LinhaFolha } from '../tipos';
-import { Fechamentos } from './Fechamentos';
+import Link from 'next/link';
+import { Fechamentos, competencia, type PagResumo } from './Fechamentos';
 
 export const metadata = { title: 'Folha' };
 
-export default async function Folha({ searchParams }: { searchParams: Promise<{ mes?: string; obra?: string; cc?: string; emp?: string; ag?: string; pg?: string }> }) {
+export default async function Folha({ searchParams }: { searchParams: Promise<{ mes?: string; obra?: string; ver?: string; g?: string; pg?: string }> }) {
   const sp = await searchParams;
   const { supabase, perfil } = await exigirPapel('admin', 'rh', 'financeiro');
-  const mes = mesAtual(sp.mes);
+  const { data: pagsRaw } = await supabase.from('pagamentos').select('id, titulo, tipo, status, data_pagamento, periodo_inicio').neq('status', 'cancelado').order('data_pagamento');
+  const pags = (pagsRaw ?? []) as PagResumo[];
+  const comps = [...new Set(pags.map(competencia))].sort().reverse();
+  const mes = sp.mes && /^\d{4}-\d{2}$/.test(sp.mes) ? sp.mes : comps[0] ?? mesAtual();
   const [{ data: obras }, { data: fechadas }, { data: historico }, { data: par }] = await Promise.all([
     supabase.from('obras').select('id, codigo, nome').order('codigo'),
     supabase.from('folhas').select('*, perfis:fechada_por(nome)').eq('competencia', `${mes}-01`),
@@ -54,20 +58,30 @@ export default async function Folha({ searchParams }: { searchParams: Promise<{ 
 
   return (
     <>
-      <Cabecalho titulo={`Folha — ${nomeMes(mes)}`}
-        sub={fechada ? <>{fechada.obra_id ? `Obra ${codObra.get(fechada.obra_id) ?? ''} — fechada` : 'Fechada'} em {dataHora(fechada.fechada_em)} por {(fechada.perfis as unknown as { nome: string })?.nome}. Valores congelados.</> : porObra.size ? `Obras com folha fechada: ${[...porObra.keys()].map((k) => codObra.get(k)).join(', ')}. As demais estão em prévia.` : 'Prévia calculada a partir do ponto, atestados e cadastro. Confira e feche ao final do mês — a folha toda ou obra por obra.'}
-        acoes={<div className="flex gap-2"><BaixarCSV nome={`folha-${mes}`} cabecalho={cab} linhas={csv} /><BotaoImprimir /></div>} />
+      <Cabecalho titulo="Folha" sub="O que vai ser pago de salário no mês — por centro de custo, empresa ou instituto. Valores editáveis enquanto o pagamento está em conferência."
+        acoes={<BotaoImprimir rotulo="🖨 Imprimir / PDF" />} />
       <AbasDP atual="folha" mes={mes} />
+      <div className="nao-imprimir mb-4 flex flex-wrap items-center gap-2 text-sm">
+        <span className="font-semibold text-concreto-600">Mês:</span>
+        {comps.map((c) => (
+          <Link key={c} href={`/dp/folha?mes=${c}`} className={`rounded-md border px-3 py-1.5 text-sm font-semibold capitalize ${c === mes ? 'border-sinal-500 bg-sinal-500 text-white' : 'border-concreto-300 bg-white text-concreto-700 hover:border-sinal-400'}`}>{nomeMes(c)}</Link>))}
+        <form className="flex items-center gap-1"><input type="month" name="mes" defaultValue={mes} className="entrada w-auto py-1.5" /><button className="rounded-md border border-concreto-300 bg-white px-2 py-1.5 font-semibold">ir</button></form>
+      </div>
+      <Fechamentos supabase={supabase} mes={mes} pags={pags} ver={sp.ver} g={sp.g} pg={sp.pg} rh={rh} />
+
+      <details className="nao-imprimir mt-8 rounded-lg border border-concreto-200 bg-white p-3" open={!!sp.obra}>
+        <summary className="cursor-pointer text-sm font-bold text-concreto-700">Prévia pelo ponto (referência: salário cheio do mês, horas extras e faltas) — {nomeMes(mes)}</summary>
+        <div className="mt-3">
+      <div className="mb-3 flex justify-end"><BaixarCSV nome={`folha-previa-${mes}`} cabecalho={cab} linhas={csv} /></div>
       <SeletorMes mes={mes} extra={<select name="obra" defaultValue={sp.obra ?? ''} className="entrada w-auto"><option value="">Todas as obras</option>{obras?.map((o) => <option key={o.id} value={o.id}>{o.codigo}{porObra.has(o.id) || geral ? ' (fechada)' : ''}</option>)}</select>} />
+      {fechada && <p className="mb-3 text-sm text-concreto-600">{fechada.obra_id ? `Obra ${codObra.get(fechada.obra_id) ?? ''} — prévia congelada` : 'Prévia congelada'} em {dataHora(fechada.fechada_em)} por {(fechada.perfis as unknown as { nome: string })?.nome}.</p>}
       {erro && <p className="mb-4 rounded-md bg-atraso-50 px-3 py-2 text-sm text-atraso-700">{erro}</p>}
       <p className="nao-imprimir mb-4 rounded-md bg-concreto-50 px-3 py-2 text-sm text-concreto-700">
         {par?.ponto_inicio
           ? <>Faltas, atrasos e horas extras contam a partir de <b>{par.ponto_inicio.split('-').reverse().join('/')}</b> (início do controle de ponto). </>
           : <>O controle de ponto ainda não começou: a folha <b>não desconta faltas</b> nem calcula horas extras. Quando o ponto entrar em uso, informe a data em <a className="link" href="/dp/parametros">Parâmetros</a>. </>}
-        Os valores do dia 20 e do dia 05, por empresa, ficam em <a className="link" href="/dp/pagamentos">Pagamentos</a>.
+        Esta prévia é só referência (salário cheio, INSS estimado); o que vale para pagar está no quadro acima.
       </p>
-      <Fechamentos supabase={supabase} mes={mes} cc={sp.cc} emp={sp.emp} ag={sp.ag} pg={sp.pg} rh={rh} base="/dp/folha" />
-      <h2 className="mb-2 mt-6 text-lg font-bold">Prévia da folha pelo ponto (salário cheio, horas extras e faltas)</h2>
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-5">
         <Indicador rotulo="Funcionários" valor={linhas.length} />
         <Indicador rotulo="Total bruto" valor={reais(soma(linhas, 'bruto'))} />
@@ -142,6 +156,8 @@ export default async function Folha({ searchParams }: { searchParams: Promise<{ 
               <tbody>{historico.map((h) => <tr key={h.id}><td><a className="link" href={`/dp/folha?mes=${h.competencia.slice(0, 7)}${h.obra_id ? `&obra=${h.obra_id}` : ''}`}>{nomeMes(h.competencia.slice(0, 7))}</a></td><td className="text-xs">{h.obra_id ? codObra.get(h.obra_id) : 'Todas'}</td><td>{h.funcionarios}</td><td className="text-right font-mono">{reais(h.total_he)}</td><td className="text-right font-mono">{reais(h.total_bruto)}</td><td className="text-right font-mono">{reais(h.total_liquido)}</td></tr>)}</tbody></table>)}
         </Cartao>
       </div>
+        </div>
+      </details>
     </>
   );
 }
