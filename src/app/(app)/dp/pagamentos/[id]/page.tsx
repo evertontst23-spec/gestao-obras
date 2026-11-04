@@ -10,6 +10,7 @@ import { reais } from '@/lib/dominio';
 import { data, dataHora, hojeISO } from '@/lib/formato';
 import { cancelarPagamento, editarItem, fecharPagamento, gerarLinhas, quitarPagamento, reabrirPagamento, removerItem, salvarItem } from '../acoes';
 import { BENEFICIO, CAT_PAG, STATUS_PAG, TIPO_PAG } from '../comum';
+import { Fechamentos, type PagResumo } from '../../folha/Fechamentos';
 
 export const metadata = { title: 'Pagamento' };
 
@@ -20,7 +21,7 @@ type Item = {
 };
 const n = (v: unknown) => Number(v ?? 0);
 
-export default async function Pagamento({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ obra?: string }> }) {
+export default async function Pagamento({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ obra?: string; ver?: string; g?: string }> }) {
   const { id } = await params;
   const sp = await searchParams;
   const { supabase, perfil } = await exigirPapel('admin', 'rh', 'financeiro');
@@ -78,34 +79,6 @@ export default async function Pagamento({ params, searchParams }: { params: Prom
       <AbasDP atual="pag" />
       <p className="nao-imprimir mb-3 text-sm"><Link className="link" href="/dp/pagamentos">← Todos os pagamentos</Link></p>
 
-      <div className="mb-5 rounded-lg border border-sinal-400 bg-sinal-50 p-4">
-        <div className="text-sm font-semibold text-sinal-700">{nomeFiltro ? `Obra ${nomeFiltro} — ` : ''}Total {p.status === 'pago' ? `pago em ${data(p.pago_em)}` : `a pagar em ${data(p.data_pagamento)}`}</div>
-        <div className="font-mono text-3xl font-bold text-sinal-700">{reais(tot.total)}</div>
-        {nomeFiltro && <div className="text-xs text-sinal-700">parte desta obra no pagamento de {reais(p.total)}</div>}
-      </div>
-      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Indicador rotulo="Pagar às empresas" valor={reais(tot.emp)} detalhe="folha + taxa (e o valor da Mundial/A2)" />
-        <Indicador rotulo="Passagens e alimentação" valor={reais(tot.ben)} detalhe="transferir aos funcionários" />
-        <Indicador rotulo="Pagar a pessoas" valor={reais(tot.pes)} detalhe="equipe direta (CAD)" />
-      </div>
-      {obrasDoPag.length > 0 && (
-        <Cartao titulo="Por obra (centro de custo)" className="mb-5">
-          <div className="overflow-x-auto"><table className="tabela whitespace-nowrap">
-            <thead><tr><th>Obra</th><th className="text-right">Pessoas</th><th className="text-right">Empresas</th><th className="text-right">Passagens e alim.</th><th className="text-right">Pessoas (CAD)</th><th className="text-right">Total</th></tr></thead>
-            <tbody>
-              {obrasDoPag.map(([k, g]) => (
-                <tr key={k || 'sem'} className={filtro === k ? 'bg-sinal-50' : ''}>
-                  <td><Link className="link font-semibold" href={`/dp/pagamentos/${p.id}?obra=${k || 'sem'}`}>{g.codigo}</Link></td>
-                  <td className="text-right">{g.pessoasN.size}</td>
-                  <td className="text-right font-mono">{reais(g.empresas)}</td><td className="text-right font-mono">{reais(g.benef)}</td>
-                  <td className="text-right font-mono">{reais(g.pessoas)}</td><td className="text-right font-mono font-bold">{reais(g.empresas + g.benef + g.pessoas)}</td>
-                </tr>))}
-              <tr className="bg-concreto-50 font-semibold"><td><Link className="link" href={`/dp/pagamentos/${p.id}`}>Todas</Link></td><td /><td className="text-right font-mono">{reais(p.total_empresas)}</td>
-                <td className="text-right font-mono">{reais(p.total_beneficios)}</td><td className="text-right font-mono">{reais(p.total_pessoas)}</td><td className="text-right font-mono">{reais(p.total)}</td></tr>
-            </tbody>
-          </table></div>
-          <p className="nao-imprimir mt-2 text-xs text-concreto-500">Clique na obra para ver e imprimir (PDF) o fechamento só dela. Ao fechar, cada obra recebe as suas contas a pagar no financeiro.</p>
-        </Cartao>)}
       {editavel && p.tipo === 'saldo' && (empExt ?? []).some((e) => itens.some((i) => i.empregador_id === e.id)) && (
         <p className="mb-4 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">⚠ O ponto de {(empExt ?? []).filter((e) => itens.some((i) => i.empregador_id === e.id)).map((e) => e.nome).join(' e ')} é marcado fora do sistema: o saldo foi calculado sem faltas e sem horas extras. Confira no {(empExt ?? []).find((e) => e.ponto_externo_url) ? <a className="link" href={(empExt ?? []).find((e) => e.ponto_externo_url)!.ponto_externo_url!} target="_blank" rel="noreferrer">Ponto Diário</a> : 'Ponto Diário'} e inclua cada falta como <b>Desconto</b> (salário ÷ 30) e as horas extras como <b>Hora extra</b>.</p>)}
       {zerados.length > 0 && editavel && (
@@ -120,55 +93,7 @@ export default async function Pagamento({ params, searchParams }: { params: Prom
             </FormAcao>) : <Vazio>Nenhuma linha.</Vazio>}
         </Cartao>
       ) : (
-        <div className="space-y-5">
-          {lista.map((g) => {
-            const empresa = g.itens.filter((i) => i.destino === 'empresa').reduce((t, i) => t + n(i.valor), 0);
-            const benef = g.itens.filter((i) => i.destino === 'funcionario' && BENEFICIO.includes(i.categoria)).reduce((t, i) => t + n(i.valor), 0);
-            const pessoas = g.itens.filter((i) => i.destino === 'funcionario' && !BENEFICIO.includes(i.categoria)).reduce((t, i) => t + n(i.valor), 0);
-            const porFunc = new Map<string, { nome: string; sub: string; pag: number; pass: number; alim: number; desc: string[] }>();
-            for (const i of g.itens.filter((x) => x.funcionario_id)) {
-              const f = porFunc.get(i.funcionario_id!) ?? { nome: i.funcionarios?.nome ?? '—', sub: [i.funcionarios?.funcoes?.nome, i.obras?.codigo, i.funcionarios && !i.funcionarios.ativo ? 'desligado' : null].filter(Boolean).join(' • '), pag: 0, pass: 0, alim: 0, desc: [] };
-              if (i.categoria === 'passagem') f.pass += n(i.valor); else if (i.categoria === 'alimentacao') f.alim += n(i.valor); else { f.pag += n(i.valor); f.desc.push(i.descricao); }
-              porFunc.set(i.funcionario_id!, f);
-            }
-            const semFunc = g.itens.filter((i) => !i.funcionario_id);
-            return (
-              <Cartao key={g.nome} titulo={<span>{g.nome} <span className="font-mono text-sinal-700">{reais(empresa + benef + pessoas)}</span></span>}>
-                <div className="mb-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
-                  {empresa !== 0 && <div className="rounded-md bg-concreto-50 p-2">1 · Pagar à empresa<div className="font-mono font-bold">{reais(empresa)}</div></div>}
-                  {pessoas !== 0 && <div className="rounded-md bg-concreto-50 p-2">Pagar ao funcionário<div className="font-mono font-bold">{reais(pessoas)}</div></div>}
-                  {benef !== 0 && <div className="rounded-md bg-concreto-50 p-2">{empresa !== 0 ? '2 · ' : ''}Passagens e alimentação<div className="font-mono font-bold">{reais(benef)}</div></div>}
-                </div>
-                <div className="overflow-x-auto"><table className="tabela">
-                  <thead><tr><th>Funcionário</th><th className="text-right">Salário</th><th className="text-right">Passagens</th><th className="text-right">Alimentação</th><th className="text-right">Total</th></tr></thead>
-                  <tbody>
-                    {[...porFunc.values()].map((f) => (
-                      <tr key={f.nome}><td><b>{f.nome}</b><div className="text-xs text-concreto-500">{f.sub}</div>{f.desc.map((d, k) => <div key={k} className="text-xs text-concreto-500">{d}</div>)}</td>
-                        <td className="whitespace-nowrap text-right font-mono">{f.pag ? reais(f.pag) : '—'}</td><td className="whitespace-nowrap text-right font-mono">{f.pass ? reais(f.pass) : '—'}</td>
-                        <td className="whitespace-nowrap text-right font-mono">{f.alim ? reais(f.alim) : '—'}</td><td className="whitespace-nowrap text-right font-mono font-semibold">{reais(f.pag + f.pass + f.alim)}</td></tr>))}
-                    {semFunc.map((i) => (
-                      <tr key={i.id}><td><b>{CAT_PAG[i.categoria]}</b><div className="text-xs text-concreto-500">{i.descricao}</div></td><td className="whitespace-nowrap text-right font-mono">{reais(i.valor)}</td><td /><td /><td className="whitespace-nowrap text-right font-mono font-semibold">{reais(i.valor)}</td></tr>))}
-                  </tbody>
-                </table></div>
-                {editavel && rh && (
-                  <details className="nao-imprimir mt-3" open><summary className="cursor-pointer text-sm font-semibold text-concreto-600">Editar linhas ({g.itens.length})</summary>
-                    <ul className="mt-2 divide-y divide-concreto-100 text-sm">
-                      {g.itens.map((i) => (
-                        <li key={i.id} className="flex flex-wrap items-end gap-2 py-2">
-                          <FormAcao acao={editarItem} className="flex min-w-0 flex-1 flex-wrap items-end gap-2"><input type="hidden" name="id" value={p.id} /><input type="hidden" name="item" value={i.id} />
-                            <div className="min-w-[10rem] flex-1"><div className="text-xs font-semibold">{i.funcionarios?.nome ?? CAT_PAG[i.categoria]} <span className="font-normal text-concreto-500">• {CAT_PAG[i.categoria]} • {i.destino === 'empresa' ? 'empresa' : 'funcionário'}</span></div>
-                              <input name="descricao" defaultValue={i.descricao} className="entrada !py-1 text-xs" aria-label="Descrição" /></div>
-                            <input name="valor" defaultValue={Math.abs(n(i.valor)).toFixed(2).replace('.', ',')} inputMode="decimal" className="entrada w-28 !py-1 text-right font-mono" aria-label="Valor" />
-                            <Botao variante="secundario" className="!px-2 !py-1 text-xs">Salvar</Botao>
-                          </FormAcao>
-                          <FormAcao acao={removerItem}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="item" value={i.id} /><Botao variante="secundario" className="!px-2 !py-1 text-xs">Retirar</Botao></FormAcao>
-                        </li>))}
-                    </ul>
-                    <p className="mt-1 text-xs text-concreto-500">Desconto é sempre abatido (digite o valor sem sinal).</p>
-                  </details>)}
-              </Cartao>);
-          })}
-        </div>)}
+        <Fechamentos supabase={supabase} mes={p.data_pagamento.slice(0, 7)} pags={[p as unknown as PagResumo]} ver={sp.ver} g={sp.g} rh={rh} base={`/dp/pagamentos/${p.id}`} umPagamento />)}
 
       <div className="nao-imprimir mt-5 grid gap-5 lg:grid-cols-2">
         {editavel && rh && (

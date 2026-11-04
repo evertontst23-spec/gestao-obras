@@ -4,7 +4,7 @@ import { Botao, FormAcao } from '@/components/formulario';
 import { nomeMes } from '@/components/AbasDP';
 import { reais } from '@/lib/dominio';
 import { data } from '@/lib/formato';
-import { editarItem } from '../pagamentos/acoes';
+import { editarItem, removerItem } from '../pagamentos/acoes';
 import { BENEFICIO, CAT_PAG, STATUS_PAG } from '../pagamentos/comum';
 
 type SB = { from: (t: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -27,14 +27,14 @@ export function competencia(p: { tipo: string; data_pagamento: string; periodo_i
   return new Date(Date.UTC(a, m - 2, 1)).toISOString().slice(0, 7);
 }
 
-export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: pgP, rh }:
-  { supabase: SB; mes: string; pags: PagResumo[]; ver?: string; g?: string; pg?: string; rh: boolean }) {
-  const doMes = pags.filter((p) => competencia(p) === mes).sort((a, b) => a.data_pagamento.localeCompare(b.data_pagamento));
+export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: pgP, rh, base = '/dp/folha', umPagamento = false }:
+  { supabase: SB; mes: string; pags: PagResumo[]; ver?: string; g?: string; pg?: string; rh: boolean; base?: string; umPagamento?: boolean }) {
+  const doMes = pags.filter((p) => umPagamento || competencia(p) === mes).sort((a, b) => a.data_pagamento.localeCompare(b.data_pagamento));
   const ids = doMes.map((p) => p.id);
   const { data: brutos } = ids.length ? await supabase.from('pagamento_itens')
     .select('id, pagamento_id, funcionario_id, categoria, destino, descricao, valor, obra_id, empregador_id, funcionarios(nome, funcoes(nome)), empregadores(nome, tipo), obras(codigo, nome)')
     .in('pagamento_id', ids).eq('removido', false).order('id') : { data: [] };
-  const todos = ((brutos ?? []) as unknown as Item[]).filter((i) => !BENEFICIO.includes(i.categoria));
+  const todos = ((brutos ?? []) as unknown as Item[]).filter((i) => umPagamento || !BENEFICIO.includes(i.categoria));
   const pagPorId = new Map(doMes.map((p) => [p.id, p]));
 
   const ver: Ver = verP === 'empresa' || verP === 'tipo' ? verP : 'obra';
@@ -52,11 +52,11 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
   const soma = (ls: Item[], f: (i: Item) => boolean = () => true) => ls.filter(f).reduce((t, i) => t + n(i.valor), 0);
   const pessoas = (ls: Item[]) => new Set(ls.filter((i) => i.funcionario_id).map((i) => i.funcionario_id)).size;
   const url = (o: { ver?: Ver; g?: string | null; pg?: string | null }) => {
-    const q = new URLSearchParams({ mes });
+    const q = new URLSearchParams(umPagamento ? {} : { mes });
     const v = o.ver ?? ver; if (v !== 'obra') q.set('ver', v);
     const gg = o.ver && o.ver !== ver ? null : o.g === undefined ? gSel : o.g; if (gg) q.set('g', gg);
     const p = o.pg === undefined ? pg : o.pg; if (p) q.set('pg', p);
-    return `/dp/folha?${q.toString()}`;
+    return `${base}?${q.toString()}`;
   };
   const chip = (ativo: boolean) => `rounded-md border px-3 py-1.5 text-sm font-semibold ${ativo ? 'border-sinal-500 bg-sinal-500 text-white' : 'border-concreto-300 bg-white text-concreto-700 hover:border-sinal-400'}`;
   const rotPag = (p: PagResumo) => `${p.tipo === 'saldo' ? 'Saldo' : p.tipo === 'adiantamento' ? 'Adiantamento' : 'Pagamento'} de ${data(p.data_pagamento).slice(0, 5)}`;
@@ -71,15 +71,17 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
         <Indicador rotulo={gSel ? grupos.get(gSel)!.nome : 'Total da folha'} valor={reais(soma(sel))} tom="sinal" />
         <Indicador rotulo="Pagar às empresas" valor={reais(soma(sel, (i) => i.destino === 'empresa'))} detalhe="IDERES, FÊNIX, Mundial/A2 (com taxas)" />
         <Indicador rotulo="Pagar aos funcionários" valor={reais(soma(sel, (i) => i.destino !== 'empresa'))} detalhe="equipe CAD" />
-        <Indicador rotulo="Funcionários" valor={pessoas(sel)} detalhe={doMes.map(rotPag).join(' + ')} />
+        {umPagamento && soma(sel, (i) => BENEFICIO.includes(i.categoria)) !== 0
+          ? <Indicador rotulo="Passagens e alimentação" valor={reais(soma(sel, (i) => BENEFICIO.includes(i.categoria)))} detalhe={`${pessoas(sel)} funcionários`} />
+          : <Indicador rotulo="Funcionários" valor={pessoas(sel)} detalhe={doMes.map(rotPag).join(' + ')} />}
       </div>
 
-      <div className="nao-imprimir mb-4 flex flex-wrap items-center gap-2 text-sm">
+      {!umPagamento && <div className="nao-imprimir mb-4 flex flex-wrap items-center gap-2 text-sm">
         {doMes.map((p) => (
           <Link key={p.id} href={`/dp/pagamentos/${p.id}`} className="flex items-center gap-1 rounded-md border border-concreto-200 bg-white px-2 py-1 hover:border-sinal-400">
             <b>{rotPag(p)}</b> <span className="font-mono">{reais(soma(todos, (i) => i.pagamento_id === p.id))}</span> <Selo cor={STATUS_PAG[p.status].cor}>{STATUS_PAG[p.status].rotulo}</Selo></Link>))}
         <span className="text-xs text-concreto-500">abrir para incluir/retirar linhas ou fechar no financeiro</span>
-      </div>
+      </div>}
 
       {/* filtros */}
       <div className="nao-imprimir mb-5 space-y-2 rounded-lg border border-concreto-200 bg-white p-3">
@@ -93,11 +95,11 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
           {ordem.map(([k, gr]) => (
             <Link key={k} href={url({ g: k })} className={chip(gSel === k)}>{gr.nome} <span className="font-mono text-xs opacity-80">{reais(soma(gr.itens))}</span></Link>))}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        {!umPagamento && <div className="flex flex-wrap items-center gap-2">
           <span className="w-28 text-sm font-semibold text-concreto-600">Pagamento:</span>
           <Link href={url({ pg: null })} className={chip(!pg)}>Todos do mês</Link>
           {doMes.map((p) => <Link key={p.id} href={url({ pg: p.id })} className={chip(pg === p.id)}>{rotPag(p)}</Link>)}
-        </div>
+        </div>}
       </div>
 
       {!gSel ? (
@@ -156,11 +158,14 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
                       ) : (
                         <div className={`${grade} text-sm`}>{quem}{onde}<span className="text-xs text-concreto-500">{i.descricao}</span>
                           <span className={`text-right font-mono font-bold ${n(i.valor) < 0 ? 'text-atraso-700' : ''}`}>{reais(i.valor)}</span><span /></div>)}
+                      {pode && umPagamento && (
+                        <FormAcao acao={removerItem} className="nao-imprimir text-right"><input type="hidden" name="id" value={i.pagamento_id} /><input type="hidden" name="item" value={i.id} />
+                          <button className="text-[11px] text-atraso-700 hover:underline">retirar linha</button></FormAcao>)}
                     </div>);
                 })}</div>
               </section>);
           })}</div>
-          <p className="nao-imprimir mt-3 text-xs text-concreto-500">Desconto é sempre abatido (digite o valor sem sinal). Passagens e alimentação ficam na aba Benefícios.</p>
+          <p className="nao-imprimir mt-3 text-xs text-concreto-500">Desconto é sempre abatido (digite o valor sem sinal).{!umPagamento && ' Passagens e alimentação ficam na aba Benefícios.'}</p>
         </Cartao>)}
     </>
   );
