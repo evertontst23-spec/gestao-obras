@@ -24,6 +24,10 @@ export function CamposFuncionario({ f, funcoes, obras, empregadores = [], rotulo
           <option value="clt_parceira">CLT de empresa parceira</option><option value="autonomo">Autônomo / diarista</option>
         </select>
       </Campo>
+      <Campo rotulo="Registro (INSS)" dica="Desmarque enquanto não estiver fichado">
+        <label className="entrada flex items-center gap-2"><input type="hidden" name="desconta_inss_campo" value="1" />
+          <input type="checkbox" name="desconta_inss" defaultChecked={f?.desconta_inss ?? true} /> Fichado — desconta INSS</label>
+      </Campo>
       <Campo rotulo="Função *" dica="Salário e benefícios vêm da tabela da função">
         <select name="funcao_id" required={!f} defaultValue={f?.funcao_id ?? ''} className="entrada">
           <option value="" disabled>Selecionar…</option>

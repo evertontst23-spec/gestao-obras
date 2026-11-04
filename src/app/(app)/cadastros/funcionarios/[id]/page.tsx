@@ -27,7 +27,7 @@ export default async function DossieFuncionario({ params }: { params: Promise<{ 
     supabase.from('obras').select('id, codigo, nome').order('nome'),
     supabase.from('epi_entregas').select('id, data').eq('funcionario_id', id).order('data', { ascending: false }),
     supabase.from('ordens_servico').select('id, numero, data, ciencia_em').eq('funcionario_id', id).eq('substituida', false),
-    supabase.from('funcionarios').select('foto_caminho').eq('id', id).maybeSingle(),
+    supabase.from('funcionarios').select('foto_caminho, desconta_inss').eq('id', id).maybeSingle(),
   ]);
   const ativos = (docs ?? []).filter((d) => !d.substituido);
   const caminhos = [...(docs ?? []).map((d) => d.caminho), foto?.foto_caminho].filter(Boolean) as string[];
@@ -50,7 +50,7 @@ export default async function DossieFuncionario({ params }: { params: Promise<{ 
           {f.pendencias && <p className="rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">⚠ Completar cadastro: <b>{f.pendencias}</b>. Corrija nos dados abaixo e apague o campo “Dados a confirmar”.</p>}
           <Cartao titulo="Dados cadastrais">
             <FormAcao acao={atualizarFuncionario}>
-              <CamposFuncionario f={f} funcoes={funcoes ?? []} obras={obras ?? []} empregadores={empregadores ?? []} rotulo="Salvar alterações" editavel={pode && f.ativo} />
+              <CamposFuncionario f={{ ...f, desconta_inss: foto?.desconta_inss ?? true }} funcoes={funcoes ?? []} obras={obras ?? []} empregadores={empregadores ?? []} rotulo="Salvar alterações" editavel={pode && f.ativo} />
             </FormAcao>
           </Cartao>
 

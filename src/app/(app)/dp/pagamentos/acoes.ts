@@ -45,6 +45,16 @@ export async function salvarItem(_: EstadoAcao, f: FormData): Promise<EstadoAcao
   return { ok: 'Linha incluída.' };
 }
 
+export async function editarItem(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const valor = dinheiro(f, 'valor');
+  if (valor === null) return { erro: 'Informe o valor.' };
+  const { error } = await supabase.rpc('pagamento_item_editar', { p_item: Number(txt(f, 'item')), p_valor: valor, p_descricao: txt(f, 'descricao') });
+  if (error) return { erro: mensagemErro(error) };
+  atualizar(txt(f, 'id'));
+  return { ok: 'Linha atualizada.' };
+}
+
 export async function removerItem(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
   const supabase = await criarClienteServidor();
   const { error } = await supabase.rpc('pagamento_item_remover', { p_item: Number(txt(f, 'item')) });

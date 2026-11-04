@@ -114,7 +114,7 @@ export default async function Folha({ searchParams }: { searchParams: Promise<{ 
               <td className="text-right font-mono">{reais(l.dsr_he)}</td>
               <td className="text-right font-mono text-atraso-700">{Number(l.desconto_faltas) + Number(l.desconto_atrasos) > 0 ? `−${reais(Number(l.desconto_faltas) + Number(l.desconto_atrasos))}` : '—'}<div className="text-xs text-concreto-500">{l.faltas} falta(s) • {num(l.atraso_h)} h</div></td>
               <td className="text-right font-mono font-semibold">{reais(l.bruto)}</td>
-              <td className="text-right font-mono">{reais(l.inss)}</td>
+              <td className="text-right font-mono">{Number(l.inss) ? reais(l.inss) : <span className="text-xs text-concreto-500">sem INSS</span>}</td>
               <td className="text-right font-mono">{reais(l.desconto_vt)}</td>
               <td className="text-right font-mono font-bold">{reais(l.liquido_estimado)}</td>
             </tr>))}
@@ -126,7 +126,7 @@ export default async function Folha({ searchParams }: { searchParams: Promise<{ 
               <td className="text-right font-mono">{reais(soma(linhas, 'desconto_vt'))}</td><td className="text-right font-mono">{reais(soma(linhas, 'liquido_estimado'))}</td></tr>
           </tbody>
         </table></div>)}
-      <p className="mt-2 text-xs text-concreto-500">Benefícios fora do bruto: VA {reais(soma(linhas, 'vale_alimentacao'))} • VT {reais(soma(linhas, 'vale_transporte'))}. Valores estimados (INSS progressivo; IRRF, FGTS e encargos patronais ficam com a contabilidade).</p>
+      <p className="mt-2 text-xs text-concreto-500">Benefícios fora do bruto: VA {reais(soma(linhas, 'vale_alimentacao'))} • VT {reais(soma(linhas, 'vale_transporte'))}. Valores estimados (INSS progressivo só da equipe própria fichada — Mundial/A2, IDERES e FÊNIX descontam na própria empresa; IRRF, FGTS e encargos patronais ficam com a contabilidade).</p>
       <div className="nao-imprimir mt-5 grid gap-5 lg:grid-cols-2">
         {podeFechar && (
           <Cartao titulo="Fechar a folha">

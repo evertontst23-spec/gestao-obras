@@ -8,7 +8,7 @@ import { BotaoImprimir } from '@/components/BotaoImprimir';
 import { Botao, FormAcao } from '@/components/formulario';
 import { reais } from '@/lib/dominio';
 import { data, dataHora, hojeISO } from '@/lib/formato';
-import { cancelarPagamento, fecharPagamento, gerarLinhas, quitarPagamento, reabrirPagamento, removerItem, salvarItem } from '../acoes';
+import { cancelarPagamento, editarItem, fecharPagamento, gerarLinhas, quitarPagamento, reabrirPagamento, removerItem, salvarItem } from '../acoes';
 import { BENEFICIO, CAT_PAG, STATUS_PAG, TIPO_PAG } from '../comum';
 
 export const metadata = { title: 'Pagamento' };
@@ -151,15 +151,20 @@ export default async function Pagamento({ params, searchParams }: { params: Prom
                   </tbody>
                 </table></div>
                 {editavel && rh && (
-                  <details className="nao-imprimir mt-3"><summary className="cursor-pointer text-sm font-semibold text-concreto-600">Ajustar linhas ({g.itens.length})</summary>
+                  <details className="nao-imprimir mt-3" open><summary className="cursor-pointer text-sm font-semibold text-concreto-600">Editar linhas ({g.itens.length})</summary>
                     <ul className="mt-2 divide-y divide-concreto-100 text-sm">
                       {g.itens.map((i) => (
-                        <li key={i.id} className="flex items-center gap-2 py-1.5">
-                          <span className="min-w-0 flex-1">{i.funcionarios?.nome ?? CAT_PAG[i.categoria]} — <span className="text-concreto-500">{CAT_PAG[i.categoria]} • {i.destino === 'empresa' ? 'empresa' : 'funcionário'} • {i.descricao}</span></span>
-                          <span className="font-mono">{reais(i.valor)}</span>
+                        <li key={i.id} className="flex flex-wrap items-end gap-2 py-2">
+                          <FormAcao acao={editarItem} className="flex min-w-0 flex-1 flex-wrap items-end gap-2"><input type="hidden" name="id" value={p.id} /><input type="hidden" name="item" value={i.id} />
+                            <div className="min-w-[10rem] flex-1"><div className="text-xs font-semibold">{i.funcionarios?.nome ?? CAT_PAG[i.categoria]} <span className="font-normal text-concreto-500">• {CAT_PAG[i.categoria]} • {i.destino === 'empresa' ? 'empresa' : 'funcionário'}</span></div>
+                              <input name="descricao" defaultValue={i.descricao} className="entrada !py-1 text-xs" aria-label="Descrição" /></div>
+                            <input name="valor" defaultValue={Math.abs(n(i.valor)).toFixed(2).replace('.', ',')} inputMode="decimal" className="entrada w-28 !py-1 text-right font-mono" aria-label="Valor" />
+                            <Botao variante="secundario" className="!px-2 !py-1 text-xs">Salvar</Botao>
+                          </FormAcao>
                           <FormAcao acao={removerItem}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="item" value={i.id} /><Botao variante="secundario" className="!px-2 !py-1 text-xs">Retirar</Botao></FormAcao>
                         </li>))}
                     </ul>
+                    <p className="mt-1 text-xs text-concreto-500">Desconto é sempre abatido (digite o valor sem sinal).</p>
                   </details>)}
               </Cartao>);
           })}

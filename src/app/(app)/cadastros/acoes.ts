@@ -47,6 +47,7 @@ function dadosFuncionario(f: FormData) {
     empregador_id: txt(f, 'empregador_id'), vinculo: txt(f, 'vinculo'), adicional_pct: numero(f, 'adicional_pct') ?? 0,
     alimentacao_dia: dinheiro(f, 'alimentacao_dia'), passagens_dia: numero(f, 'passagens_dia'), passagem_semanal: dinheiro(f, 'passagem_semanal'),
     pendencias: txt(f, 'pendencias'),
+    ...(f.get('desconta_inss_campo') ? { desconta_inss: f.get('desconta_inss') === 'on' } : {}),
   };
 }
 export async function criarFuncionario(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
