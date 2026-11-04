@@ -14,7 +14,7 @@ npm install
 npm run dev
 ```
 Banco: aplique `supabase/migrations/*.sql` (ver docs/IMPLANTACAO.md).
-Testes: `npm run test:db` (444 verificações das regras no banco) · `npm run test:planilha` (leitor de planilhas).
+Testes: `npm run test:db` (461 verificações das regras no banco) · `npm run test:planilha` (leitor de planilhas).
 Para experimentar a importação: `docs/EXEMPLO_planilha_orcamentaria.xlsx` (dados fictícios).
 
 ## Estrutura
@@ -53,7 +53,8 @@ supabase/
     …0038_beneficios_lote.sql          benefícios: dias para todos de uma vez e dias a mais marcados como retroativo ou crédito
     …0039_oc_coleta.sql                OC: registrar coleta/saída para entrega (quem, quando, foto) e entrada no estoque também pelo comprador
     …0040_obra_arquivada_nomes.sql     obra arquivada some de todas as telas (Campo do Café); nomes de funcionários sempre em MAIÚSCULAS
-  tests/                  27 cenários com 444 verificações (dados de teste prefixados "TESTE")
+    …0041_ficha_online.sql             ficha de inscrição online (contratacaoccad.netlify.app) entra direto no banco de espera, avisa Diretoria e RH no sino e a contratação já leva foto, documentos e dados da ficha
+  tests/                  28 cenários com 461 verificações (dados de teste prefixados "TESTE")
 src/
   middleware.ts           sessão e proteção de rotas
   lib/                    clientes Supabase, sessão, rótulos do domínio, formatação

@@ -8,7 +8,7 @@ export const metadata = { title: 'Notificações' };
 
 const ICONE: Record<string, string> = {
   atrasado: '🔴', vencimento_proximo: '🟠', inicio_hoje: '▶', risco_atraso_material: '⚠', entrega_atrasada: '⚠', paralisado_material: '⛔',
-  aguardando_validacao: '⚑', material_aprovacao: '▤', tarefa_atribuida: '✚', tarefa_aprovada: '★', tarefa_rejeitada: '↺', material_enviado: '📦',
+  aguardando_validacao: '⚑', material_aprovacao: '▤', tarefa_atribuida: '✚', tarefa_aprovada: '★', tarefa_rejeitada: '↺', material_enviado: '📦', ficha_nova: '📝',
 };
 
 async function marcarTodas() {
