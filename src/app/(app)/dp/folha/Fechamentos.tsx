@@ -60,7 +60,6 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
   };
   const chip = (ativo: boolean) => `rounded-md border px-3 py-1.5 text-sm font-semibold ${ativo ? 'border-sinal-500 bg-sinal-500 text-white' : 'border-concreto-300 bg-white text-concreto-700 hover:border-sinal-400'}`;
   const rotPag = (p: PagResumo) => `${p.tipo === 'saldo' ? 'Saldo' : p.tipo === 'adiantamento' ? 'Adiantamento' : 'Pagamento'} de ${data(p.data_pagamento).slice(0, 5)}`;
-  const grade = 'grid grid-cols-2 items-center gap-2 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)_minmax(0,1.6fr)_112px_auto]';
 
   if (!doMes.length) return <Vazio>Nenhum fechamento de salários em {nomeMes(mes)}. Crie em <Link className="link" href="/dp/pagamentos">Pagamentos</Link>.</Vazio>;
 
@@ -140,29 +139,51 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
                   <h3 className="text-sm font-bold uppercase tracking-wide text-concreto-700">{rotPag(p)} <span className="font-normal normal-case text-concreto-500">({pessoas(lp)} func.)</span> {!pode && <Selo cor={STATUS_PAG[p.status].cor}>{STATUS_PAG[p.status].rotulo}</Selo>}</h3>
                   <b className="font-mono">{reais(soma(lp))}</b>
                 </div>
-                <div className={`${grade} mb-1 hidden text-[11px] font-semibold uppercase tracking-wide text-concreto-400 sm:grid`}>
-                  <span>Funcionário</span><span>{ver === 'obra' ? 'Empresa' : 'Obra'} • item</span><span>Como foi calculado</span><span className="text-right">Valor</span><span />
-                </div>
-                <div className="divide-y divide-concreto-100">{lp.map((i) => {
-                  const quem = <span className="col-span-2 text-sm font-semibold sm:col-span-1">{i.funcionarios?.nome ?? CAT_PAG[i.categoria]}<span className="block text-[11px] font-normal text-concreto-500">{i.funcionarios?.funcoes?.nome ?? (i.destino === 'empresa' ? 'pagar à empresa' : '')}</span></span>;
-                  const onde = <span className="text-xs text-concreto-600">{ver === 'obra' ? i.empregadores?.nome ?? '—' : i.obras?.codigo ?? 'sem obra'} • <span className={i.categoria === 'desconto' ? 'font-semibold text-atraso-700' : ''}>{CAT_PAG[i.categoria]}</span></span>;
-                  return (
-                    <div key={i.id} className="py-1.5">
-                      {pode ? (
-                        <FormAcao acao={editarItem} className={grade}><input type="hidden" name="id" value={i.pagamento_id} /><input type="hidden" name="item" value={i.id} />
-                          {quem}{onde}
-                          <input name="descricao" defaultValue={i.descricao} className="entrada px-2 py-1 text-xs" aria-label="Descrição" />
-                          <input name="valor" defaultValue={Math.abs(n(i.valor)).toFixed(2).replace('.', ',')} inputMode="decimal" className={`entrada px-2 py-1 text-right font-mono ${n(i.valor) < 0 ? 'text-atraso-700' : ''}`} aria-label="Valor" />
-                          <Botao variante="secundario" className="px-2 py-1 text-xs">Salvar</Botao>
-                        </FormAcao>
-                      ) : (
-                        <div className={`${grade} text-sm`}>{quem}{onde}<span className="text-xs text-concreto-500">{i.descricao}</span>
-                          <span className={`text-right font-mono font-bold ${n(i.valor) < 0 ? 'text-atraso-700' : ''}`}>{reais(i.valor)}</span><span /></div>)}
-                      {pode && umPagamento && (
-                        <FormAcao acao={removerItem} className="nao-imprimir text-right"><input type="hidden" name="id" value={i.pagamento_id} /><input type="hidden" name="item" value={i.id} />
-                          <button className="text-[11px] text-atraso-700 hover:underline">retirar linha</button></FormAcao>)}
-                    </div>);
-                })}</div>
+                {(() => {
+                  // uma linha por funcionário (taxas e valores sem funcionário ficam em linha própria)
+                  const pessoasG = new Map<string, Item[]>();
+                  for (const i of lp) { const k = i.funcionario_id ?? `x${i.id}`; pessoasG.set(k, [...(pessoasG.get(k) ?? []), i]); }
+                  const cols = 'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_110px_110px_120px_70px]';
+                  return (<>
+                    <div className={`${cols} mb-1 hidden text-[11px] font-semibold uppercase tracking-wide text-concreto-400 sm:grid`}>
+                      <span>Funcionário</span><span>{ver === 'obra' ? 'Empresa' : 'Obra'}</span><span className="text-right">Valor</span><span className="text-right">Descontos</span><span className="text-right">A pagar</span><span />
+                    </div>
+                    <div className="divide-y divide-concreto-100">{[...pessoasG.entries()].map(([k, its]) => {
+                      const i0 = its[0];
+                      const bruto = soma(its, (i) => n(i.valor) > 0); const desc = soma(its, (i) => n(i.valor) < 0);
+                      const resumo = its.map((i) => i.descricao).join(' • ');
+                      return (
+                        <div key={k} className="py-2">
+                          <div className={`${cols} text-sm`}>
+                            <span className="font-semibold">{i0.funcionarios?.nome ?? CAT_PAG[i0.categoria]}
+                              <span className="block text-[11px] font-normal text-concreto-500">{i0.funcionarios?.funcoes?.nome ?? (i0.destino === 'empresa' ? 'pagar à empresa' : '')}{i0.funcionarios ? '' : ` • ${i0.descricao}`}</span></span>
+                            <span className="hidden text-xs text-concreto-600 sm:block">{ver === 'obra' ? i0.empregadores?.nome ?? '—' : i0.obras?.codigo ?? 'sem obra'}</span>
+                            <span className="hidden text-right font-mono sm:block">{reais(bruto)}</span>
+                            <span className={`hidden text-right font-mono sm:block ${desc ? 'text-atraso-700' : 'text-concreto-400'}`}>{desc ? reais(desc) : '—'}</span>
+                            <span className="text-right font-mono font-bold">{reais(bruto + desc)}</span>
+                            <span className="hidden sm:block" />
+                          </div>
+                          {i0.funcionarios && <div className="text-[11px] text-concreto-500">{resumo}</div>}
+                          {pode && (
+                            <details className="nao-imprimir mt-1">
+                              <summary className="cursor-pointer text-[11px] font-semibold text-sinal-700">editar</summary>
+                              <div className="mt-1 space-y-1 rounded-md bg-concreto-50 p-2">{its.map((i) => (
+                                <div key={i.id} className="flex flex-wrap items-center gap-2">
+                                  <FormAcao acao={editarItem} className="flex min-w-0 flex-1 flex-wrap items-center gap-2"><input type="hidden" name="id" value={i.pagamento_id} /><input type="hidden" name="item" value={i.id} />
+                                    <span className={`w-24 text-xs font-semibold ${i.categoria === 'desconto' ? 'text-atraso-700' : ''}`}>{CAT_PAG[i.categoria]}</span>
+                                    <input name="descricao" defaultValue={i.descricao} className="entrada min-w-[10rem] flex-1 px-2 py-1 text-xs" aria-label="Descrição" />
+                                    <input name="valor" defaultValue={Math.abs(n(i.valor)).toFixed(2).replace('.', ',')} inputMode="decimal" className="entrada w-28 px-2 py-1 text-right font-mono" aria-label="Valor" />
+                                    <Botao variante="secundario" className="px-2 py-1 text-xs">Salvar</Botao>
+                                  </FormAcao>
+                                  {umPagamento && (
+                                    <FormAcao acao={removerItem}><input type="hidden" name="id" value={i.pagamento_id} /><input type="hidden" name="item" value={i.id} />
+                                      <button className="text-[11px] text-atraso-700 hover:underline">retirar</button></FormAcao>)}
+                                </div>))}</div>
+                            </details>)}
+                        </div>);
+                    })}</div>
+                  </>);
+                })()}
               </section>);
           })}</div>
           <p className="nao-imprimir mt-3 text-xs text-concreto-500">Desconto é sempre abatido (digite o valor sem sinal).{!umPagamento && ' Passagens e alimentação ficam na aba Benefícios.'}</p>
