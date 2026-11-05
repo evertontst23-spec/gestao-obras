@@ -6,7 +6,9 @@ import { Botao, FormAcao } from '@/components/formulario';
 import { BotaoImprimir } from '@/components/BotaoImprimir';
 import { reais } from '@/lib/dominio';
 import { dataHora } from '@/lib/formato';
-import { aplicarDiasTodos, criarMesBeneficios, marcarPagoBeneficio, removerLinhaBeneficio, salvarLinhaBeneficio, salvarPixEmpresa, situacaoMesBeneficios } from './acoes';
+import { recebedoresBeneficios } from '@/lib/c6/beneficios';
+import { hojeISO } from '@/lib/formato';
+import { aplicarDiasTodos, criarMesBeneficios, marcarExportadosPagos, marcarPagoBeneficio, removerLinhaBeneficio, salvarLinhaBeneficio, salvarPixEmpresa, situacaoMesBeneficios } from './acoes';
 
 export const metadata = { title: 'Benefícios' };
 const TIPOS = [['alimentacao', '🍽 Alimentação'], ['passagem', '🚌 Passagem']] as const;
@@ -37,6 +39,8 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
   const todas = ((linhasRaw ?? []) as unknown as Linha[]).sort((a, b) => (a.funcionarios?.nome ?? '').localeCompare(b.funcionarios?.nome ?? ''));
   const linhas = todas.filter((l) => !filtro || l.tipo === filtro);
   const editavel = pode && comp?.status === 'aberta';
+  const { recebedores } = comp && podePagar ? await recebedoresBeneficios(supabase, mes) : { recebedores: [] };
+  const comChave = recebedores.filter((r) => r.chave); const semChave = recebedores.filter((r) => !r.chave);
   const nomeObra = new Map((obras ?? []).map((o) => [o.id, o.nome]));
   const codObra = new Map((obras ?? []).map((o) => [o.id, o.codigo]));
   const grupos = new Map<string, Linha[]>();
@@ -162,6 +166,37 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
             <Link href={url({ tipo: 'passagem' })} className={chip(filtro === 'passagem')}>🚌 Só passagem</Link>
           </div>
         </div>
+
+        {podePagar && (
+          <Cartao titulo="Exportar para o C6 Bank — Pix em massa" className="nao-imprimir mb-5">
+            {!recebedores.length ? <p className="text-sm text-ok-700">✓ Todos os benefícios deste mês já estão marcados como pagos.</p> : (<>
+              <div className="flex flex-wrap items-end gap-3">
+                <form action="/dp/beneficios/c6" method="get" className="flex flex-wrap items-end gap-2">
+                  <input type="hidden" name="mes" value={mes} />
+                  <Campo rotulo="Data do pagamento"><input type="date" name="data" defaultValue={hojeISO()} min={hojeISO()} className="entrada" /></Campo>
+                  <button disabled={!comChave.length} className="rounded-md bg-teal-700 px-4 py-2.5 font-semibold text-white disabled:opacity-50">⬇ Baixar planilha do C6 ({comChave.length} Pix • {reais(comChave.reduce((t, r) => t + r.valor, 0))})</button>
+                </form>
+                {comChave.length > 0 && (
+                  <FormAcao acao={marcarExportadosPagos}>
+                    <input type="hidden" name="linhas_emp" value={comChave.filter((r) => r.tipo === 'empresa').flatMap((r) => r.linhas).join(',')} />
+                    <input type="hidden" name="linhas_func" value={comChave.filter((r) => r.tipo === 'funcionario').flatMap((r) => r.linhas).join(',')} />
+                    <Botao variante="secundario">Depois de enviar no C6: marcar esses Pix como enviados</Botao>
+                  </FormAcao>)}
+              </div>
+              <p className="mt-2 text-xs text-concreto-500">Modelo oficial do C6 (aba “PIX chave ou código”). Entram só os benefícios ainda não pagos de quem tem chave Pix. IDERES, FÊNIX, Mundial e A2 vão num Pix só para a empresa. Celular sai no formato +55; CPF só com números.</p>
+              <details className="mt-2"><summary className="cursor-pointer text-sm font-semibold">Ver quem vai na planilha ({comChave.length}){semChave.length ? ` • ${semChave.length} sem chave Pix` : ''}</summary>
+                <div className="mt-2 grid gap-4 md:grid-cols-2">
+                  <ul className="divide-y divide-concreto-100 text-sm">{comChave.map((r) => (
+                    <li key={r.tipo + r.id} className="flex justify-between gap-2 py-1"><span>{r.nome}{r.tipo === 'empresa' && <span className="text-xs text-concreto-500"> (empresa • {r.pessoas.length} func.)</span>}
+                      <span className="block font-mono text-xs text-concreto-500">{r.chave} • {r.tipoChave}</span></span><b className="font-mono">{reais(r.valor)}</b></li>))}</ul>
+                  {semChave.length > 0 && (
+                    <div><p className="mb-1 text-sm font-semibold text-atraso-700">Ficam de fora (sem chave Pix ou chave inválida):</p>
+                      <ul className="divide-y divide-concreto-100 text-sm">{semChave.map((r) => (
+                        <li key={r.tipo + r.id} className="flex justify-between gap-2 py-1"><span>{r.nome}{r.tipo === 'empresa' && ' (empresa)'}{r.pixOriginal && <span className="block text-xs text-atraso-700">chave “{r.pixOriginal}” não reconhecida</span>}</span><b className="font-mono">{reais(r.valor)}</b></li>))}</ul></div>)}
+                </div>
+              </details>
+            </>)}
+          </Cartao>)}
 
         {porEmp && (() => {
           const grupoPag = (empSel ? [empSel] : ordemEmp).map((k) => ({ k, ls: (gruposEmp.get(k) ?? []).filter((l) => Number(l.valor_total) > 0) }));

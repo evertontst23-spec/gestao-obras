@@ -75,3 +75,15 @@ export async function salvarPixEmpresa(_: EstadoAcao, f: FormData): Promise<Esta
   revalidatePath('/dp/beneficios');
   return { ok: 'Chave Pix da empresa salva.' };
 }
+
+export async function marcarExportadosPagos(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const ids = (k: string) => String(f.get(k) ?? '').split(',').map(Number).filter(Boolean);
+  const supabase = await criarClienteServidor();
+  for (const [k, para] of [['linhas_emp', 'empresa'], ['linhas_func', 'funcionario']] as const) {
+    if (!ids(k).length) continue;
+    const { error } = await supabase.rpc('beneficio_marcar_pago', { p_linhas: ids(k), p_pago: true, p_para: para });
+    if (error) return { erro: mensagemErro(error) };
+  }
+  revalidatePath('/dp/beneficios');
+  return { ok: 'Todos os Pix da planilha marcados como enviados.' };
+}
