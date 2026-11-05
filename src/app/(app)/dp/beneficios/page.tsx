@@ -17,9 +17,9 @@ const ADIC: Record<string, { rotulo: string; cor: string }> = {
 const nf = (v: unknown) => String(Number(v)).replace('.', ',');
 type Linha = { id: number; obra_id: string | null; funcionario_id: string; tipo: string; dias: number; dias_retroativos: number; adicional_tipo: string;
   dias_desconto: number; qtd_dia: number; valor_unitario: number; valor_total: number; observacao: string | null;
-  funcionarios: { nome: string; funcoes: { nome: string } | null } | null };
+  funcionarios: { nome: string; empregador_id: string | null; funcoes: { nome: string } | null; empregadores: { nome: string } | null } | null };
 
-export default async function Beneficios({ searchParams }: { searchParams: Promise<{ mes?: string; obra?: string; tipo?: string }> }) {
+export default async function Beneficios({ searchParams }: { searchParams: Promise<{ mes?: string; obra?: string; tipo?: string; ver?: string; emp?: string }> }) {
   const sp = await searchParams;
   const { supabase, perfil } = await exigirPapel('admin', 'rh', 'financeiro');
   const pode = ['admin', 'rh'].includes(perfil.papel);
@@ -28,7 +28,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
   const comp = (comps ?? []).find((c) => c.competencia.slice(0, 7) === mes);
   const filtro = sp.tipo === 'alimentacao' || sp.tipo === 'passagem' ? sp.tipo : null;
   const [{ data: linhasRaw }, { data: obras }, { data: funcs }] = await Promise.all([
-    comp ? supabase.from('beneficio_linhas').select('*, funcionarios(nome, funcoes(nome))').eq('competencia_id', comp.id) : Promise.resolve({ data: [] }),
+    comp ? supabase.from('beneficio_linhas').select('*, funcionarios(nome, empregador_id, funcoes(nome), empregadores(nome))').eq('competencia_id', comp.id) : Promise.resolve({ data: [] }),
     supabase.from('obras').select('id, codigo, nome').order('codigo'),
     supabase.from('funcionarios').select('id, nome, obra_id').eq('ativo', true).is('data_demissao', null).order('nome'),
   ]);
@@ -40,17 +40,28 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
   const grupos = new Map<string, Linha[]>();
   todas.forEach((l) => { const k = l.obra_id ?? 'sem'; grupos.set(k, [...(grupos.get(k) ?? []), l]); });
   const ordem = [...grupos.keys()].sort((a, b) => (nomeObra.get(a) ?? 'zz').localeCompare(nomeObra.get(b) ?? 'zz'));
-  const obraSel = sp.obra && (grupos.has(sp.obra) || (obras ?? []).some((o) => o.id === sp.obra)) ? sp.obra : null;
+  const porEmp = sp.ver === 'empresa';
+  const empDe = (l: Linha) => l.funcionarios?.empregador_id ?? 'sem';
+  const nomeEmp = new Map<string, string>();
+  todas.forEach((l) => nomeEmp.set(empDe(l), l.funcionarios?.empregadores?.nome ?? 'Sem empresa'));
+  const gruposEmp = new Map<string, Linha[]>();
+  todas.forEach((l) => { const k = empDe(l); gruposEmp.set(k, [...(gruposEmp.get(k) ?? []), l]); });
+  const ordemEmp = [...gruposEmp.keys()].sort((a, b) => (nomeEmp.get(a) ?? '').localeCompare(nomeEmp.get(b) ?? ''));
+  const empSel = porEmp && sp.emp && gruposEmp.has(sp.emp) ? sp.emp : null;
+  const obraSel = !porEmp && sp.obra && (grupos.has(sp.obra) || (obras ?? []).some((o) => o.id === sp.obra)) ? sp.obra : null;
   const soma = (ls: Linha[], t?: string) => ls.filter((l) => (!t || l.tipo === t) && (!filtro || l.tipo === filtro)).reduce((s, l) => s + Number(l.valor_total), 0);
   const pessoas = (ls: Linha[]) => new Set(ls.filter((l) => !filtro || l.tipo === filtro).map((l) => l.funcionario_id)).size;
-  const url = (o: { obra?: string | null; tipo?: string | null }) => {
+  const url = (o: { obra?: string | null; tipo?: string | null; ver?: 'obra' | 'empresa'; emp?: string | null }) => {
     const q = new URLSearchParams({ mes });
-    const ob = o.obra === undefined ? obraSel : o.obra; const tp = o.tipo === undefined ? filtro : o.tipo;
-    if (ob) q.set('obra', ob); if (tp) q.set('tipo', tp);
+    const v = o.ver ?? (porEmp ? 'empresa' : 'obra'); const mudou = v !== (porEmp ? 'empresa' : 'obra');
+    const ob = mudou ? null : o.obra === undefined ? obraSel : o.obra; const tp = o.tipo === undefined ? filtro : o.tipo;
+    const em = mudou ? null : o.emp === undefined ? empSel : o.emp;
+    if (v === 'empresa') q.set('ver', 'empresa');
+    if (ob && v === 'obra') q.set('obra', ob); if (em && v === 'empresa') q.set('emp', em); if (tp) q.set('tipo', tp);
     return `/dp/beneficios?${q.toString()}`;
   };
   const chip = (ativo: boolean) => `rounded-md border px-3 py-1.5 text-sm font-semibold ${ativo ? 'border-sinal-500 bg-sinal-500 text-white' : 'border-concreto-300 bg-white text-concreto-700 hover:border-sinal-400'}`;
-  const extras = linhas.filter((l) => Number(l.dias_retroativos) > 0 && (!obraSel || l.obra_id === obraSel));
+  const extras = linhas.filter((l) => Number(l.dias_retroativos) > 0 && (!obraSel || l.obra_id === obraSel) && (!empSel || empDe(l) === empSel));
   const tiposVisiveis = TIPOS.filter(([t]) => !filtro || t === filtro);
 
   const DiasTodos = ({ obra, rotulo }: { obra: string | null; rotulo: string }) => editavel && comp ? (
@@ -88,7 +99,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
       </div>
 
       {!comp ? <Vazio>Nenhum mês de benefícios lançado ainda.</Vazio> : (<>
-        <h2 className="so-imprimir mb-2 text-lg font-bold capitalize">Benefícios — {nomeMes(mes)}{obraSel ? ` — ${nomeObra.get(obraSel)}` : ''}{filtro ? ` (${filtro === 'passagem' ? 'passagem' : 'alimentação'})` : ''}</h2>
+        <h2 className="so-imprimir mb-2 text-lg font-bold capitalize">Benefícios — {nomeMes(mes)}{obraSel ? ` — ${nomeObra.get(obraSel)}` : ''}{empSel ? ` — ${nomeEmp.get(empSel)}` : ''}{filtro ? ` (${filtro === 'passagem' ? 'passagem' : 'alimentação'})` : ''}</h2>
         <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
           <Indicador rotulo={filtro ? `Total (${filtro === 'passagem' ? 'passagem' : 'alimentação'})` : 'Total do mês'} valor={reais(soma(todas))} tom="sinal" />
           <Indicador rotulo="Alimentação" valor={reais(soma(todas, 'alimentacao'))} />
@@ -116,7 +127,20 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
         {/* filtros */}
         <div className="nao-imprimir mb-5 space-y-2 rounded-lg border border-concreto-200 bg-white p-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="w-20 text-sm font-semibold text-concreto-600">Obra:</span>
+            <span className="w-24 text-sm font-semibold text-concreto-600">Separar por:</span>
+            <Link href={url({ ver: 'obra' })} className={chip(!porEmp)}>Obra (centro de custo)</Link>
+            <Link href={url({ ver: 'empresa' })} className={chip(porEmp)}>Empresa / instituto</Link>
+          </div>
+          {porEmp ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="w-24 text-sm font-semibold text-concreto-600">Empresa:</span>
+              <Link href={url({ emp: null })} className={chip(!empSel)}>Resumo de todas</Link>
+              {ordemEmp.map((k) => (
+                <Link key={k} href={url({ emp: k })} className={chip(empSel === k)}>{nomeEmp.get(k)} <span className="font-mono text-xs opacity-80">{reais(soma(gruposEmp.get(k)!))}</span></Link>))}
+            </div>
+          ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="w-24 text-sm font-semibold text-concreto-600">Obra:</span>
             <Link href={url({ obra: null })} className={chip(!obraSel)}>Resumo de todas</Link>
             {ordem.map((k) => (
               <Link key={k} href={url({ obra: k })} className={chip(obraSel === k)}>
@@ -128,9 +152,9 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
                   {(obras ?? []).filter((o) => !grupos.has(o.id)).map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}</select>
                 <button className="rounded-md border border-concreto-300 bg-white px-2 py-1.5 text-sm font-semibold">abrir</button>
               </form>)}
-          </div>
+          </div>)}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="w-20 text-sm font-semibold text-concreto-600">Benefício:</span>
+            <span className="w-24 text-sm font-semibold text-concreto-600">Benefício:</span>
             <Link href={url({ tipo: null })} className={chip(!filtro)}>Mostrar tudo</Link>
             <Link href={url({ tipo: 'alimentacao' })} className={chip(filtro === 'alimentacao')}>🍽 Só alimentação</Link>
             <Link href={url({ tipo: 'passagem' })} className={chip(filtro === 'passagem')}>🚌 Só passagem</Link>
@@ -138,16 +162,16 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
         </div>
 
         <div className="space-y-5">
-          {!obraSel && <DiasTodos obra={null} rotulo="Todas as obras" />}
+          {!obraSel && !empSel && <DiasTodos obra={null} rotulo="Todas as obras" />}
 
-          {obraSel && (() => {
-            const k = obraSel; const ls = grupos.get(k) ?? [];
+          {(obraSel || empSel) && (() => {
+            const k = obraSel ?? ''; const ls = empSel ? gruposEmp.get(empSel) ?? [] : grupos.get(k) ?? [];
             return (
-              <Cartao titulo={`${codObra.get(k) ?? ''} — ${nomeObra.get(k) ?? 'Sem obra'}`}>
-                <div className="mb-4"><DiasTodos obra={k} rotulo="Dias para todos desta obra" /></div>
+              <Cartao titulo={empSel ? `${nomeEmp.get(empSel)} — todas as obras` : `${codObra.get(k) ?? ''} — ${nomeObra.get(k) ?? 'Sem obra'}`}>
+                {obraSel && <div className="mb-4"><DiasTodos obra={k} rotulo="Dias para todos desta obra" /></div>}
                 {!ls.length && <p className="mb-2 text-sm text-concreto-500">Nenhum benefício lançado nesta obra ainda.</p>}
                 <div className="space-y-6">{tiposVisiveis.map(([t, rotulo]) => {
-                  const lt = ls.filter((l) => l.tipo === t);
+                  const lt = ls.filter((l) => l.tipo === t).sort((a, b) => empSel ? (codObra.get(a.obra_id ?? '') ?? 'zz').localeCompare(codObra.get(b.obra_id ?? '') ?? 'zz') || (a.funcionarios?.nome ?? '').localeCompare(b.funcionarios?.nome ?? '') : 0);
                   if (!lt.length) return null;
                   const g = 'grid grid-cols-2 items-center gap-2 sm:grid-cols-[minmax(0,1.5fr)_60px_150px_60px_84px_104px_minmax(0,1fr)_auto]';
                   return (
@@ -170,7 +194,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
                                 <input type="hidden" name="qtd_dia" value={String(l.qtd_dia)} />
                                 <span className="col-span-2 text-sm font-semibold sm:col-span-1">{l.funcionarios?.nome}
                                   {ex && <span className={`ml-1 rounded px-1.5 py-0.5 text-[10px] font-bold ${ADIC[l.adicional_tipo].cor}`}>{ADIC[l.adicional_tipo].rotulo} +{nf(l.dias_retroativos)}</span>}
-                                  <span className="block text-[11px] font-normal text-concreto-500">{l.funcionarios?.funcoes?.nome}</span></span>
+                                  <span className="block text-[11px] font-normal text-concreto-500">{l.funcionarios?.funcoes?.nome}{empSel ? ` • ${codObra.get(l.obra_id ?? '') ?? 'sem obra'}` : ` • ${l.funcionarios?.empregadores?.nome ?? ''}`}</span></span>
                                 <input name="dias" inputMode="decimal" defaultValue={nf(l.dias)} className="entrada px-2 py-1" aria-label="Dias" />
                                 <span className="flex gap-1">
                                   <input name="dias_retroativos" inputMode="decimal" defaultValue={nf(l.dias_retroativos)} className="entrada w-12 px-2 py-1" aria-label="Dias a mais" />
@@ -201,9 +225,9 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
                 <div className="mt-4 flex flex-wrap justify-end gap-4 rounded-md bg-concreto-50 px-3 py-2 text-sm">
                   {!filtro && <><span>Alimentação: <b className="font-mono">{reais(soma(ls, 'alimentacao'))}</b></span>
                     <span>Passagem: <b className="font-mono">{reais(soma(ls, 'passagem'))}</b></span></>}
-                  <span>Total da obra ({pessoas(ls)} pessoas): <b className="font-mono text-base">{reais(soma(ls))}</b></span>
+                  <span>Total {empSel ? 'da empresa' : 'da obra'} ({pessoas(ls)} pessoas): <b className="font-mono text-base">{reais(soma(ls))}</b></span>
                 </div>
-                {editavel && (
+                {editavel && obraSel && (
                   <details className="nao-imprimir mt-3 rounded-md border border-dashed border-sinal-400">
                     <summary className="cursor-pointer px-3 py-2 text-sm font-semibold text-sinal-700">+ Incluir funcionário / benefício nesta obra</summary>
                     <FormAcao acao={salvarLinhaBeneficio} limparAoConcluir className="grid gap-2 border-t border-concreto-100 p-3 sm:grid-cols-4">
@@ -238,12 +262,14 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
               </table>
             </Cartao>)}
 
-          <Cartao titulo={`Resumo por obra${filtro ? ` — só ${filtro === 'passagem' ? 'passagem' : 'alimentação'}` : ''}`}>
+          <Cartao titulo={`Resumo por ${porEmp ? 'empresa' : 'obra'}${filtro ? ` — só ${filtro === 'passagem' ? 'passagem' : 'alimentação'}` : ''}`}>
             <table className="tabela">
-              <thead><tr><th>Obra</th><th className="text-right">Pessoas</th>{!filtro && <><th className="text-right">Alimentação</th><th className="text-right">Passagem</th></>}<th className="text-right">Total</th></tr></thead>
+              <thead><tr><th>{porEmp ? 'Empresa / instituto' : 'Obra'}</th><th className="text-right">Pessoas</th>{!filtro && <><th className="text-right">Alimentação</th><th className="text-right">Passagem</th></>}<th className="text-right">Total</th></tr></thead>
               <tbody>
-                {ordem.map((k) => { const ls = grupos.get(k)!; return (
-                  <tr key={k} className={obraSel === k ? 'bg-sinal-50' : ''}><td><Link href={url({ obra: k })} className="link">{codObra.get(k)} — {nomeObra.get(k) ?? 'Sem obra'}</Link></td>
+                {(porEmp ? ordemEmp : ordem).map((k) => { const ls = (porEmp ? gruposEmp : grupos).get(k)!; return (
+                  <tr key={k} className={(porEmp ? empSel : obraSel) === k ? 'bg-sinal-50' : ''}><td>{porEmp
+                    ? <Link href={url({ emp: k })} className="link">{nomeEmp.get(k)}</Link>
+                    : <Link href={url({ obra: k })} className="link">{codObra.get(k) ?? ''} — {nomeObra.get(k) ?? 'Sem obra'}</Link>}</td>
                     <td className="text-right">{pessoas(ls)}</td>
                     {!filtro && <><td className="text-right font-mono">{reais(soma(ls, 'alimentacao'))}</td><td className="text-right font-mono">{reais(soma(ls, 'passagem'))}</td></>}
                     <td className="text-right font-mono font-bold">{reais(soma(ls))}</td></tr>); })}
