@@ -10,6 +10,7 @@ export const metadata = { title: 'Estoque' };
 const ORIGEM: Record<string, string> = {
   recebimento_oc: 'Recebimento de OC', envio_solicitacao: 'Envio p/ frente de serviço', entrega_epi: 'Entrega de EPI', consumo: 'Consumo / baixa',
   ajuste_inventario: 'Ajuste de inventário', transferencia: 'Transferência', entrada_avulsa: 'Entrada avulsa',
+  retirada: 'Retirada pelo funcionário', devolucao: 'Devolução de sobra', cautela: 'Ferramenta emprestada', devolucao_cautela: 'Ferramenta devolvida',
 };
 
 export default async function Estoque({ searchParams }: { searchParams: Promise<{ local?: string; q?: string; minimo?: string }> }) {
