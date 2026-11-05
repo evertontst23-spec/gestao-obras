@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   const [a, m, d] = dataPg.split('-');
   const linhas = recebedores.filter((r) => r.chave).map((r) => ({
     nome: r.nome, chave: r.chave!, valor: r.valor, data: `${d}/${m}/${a}`,
-    descricao: r.tipo === 'empresa' ? `Beneficios ${rotulo} ${r.nome} ${r.pessoas.length} funcionarios` : `Beneficios ${rotulo} alimentacao e passagem`,
+    descricao: r.tipo === 'empresa' ? `Beneficios ${rotulo} ${r.nome} ${r.pessoas.length} funcionarios` : `Beneficios ${rotulo} ${r.nome}`,
   }));
   if (!linhas.length) return NextResponse.json({ erro: 'Ninguém com chave Pix para pagar neste mês' }, { status: 400 });
   const buf = await planilhaC6Pix(linhas);
