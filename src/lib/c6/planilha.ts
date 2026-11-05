@@ -45,7 +45,8 @@ export async function planilhaC6Pix(linhas: LinhaPix[]): Promise<Buffer> {
     txt('B', '', l.chave);
     xml = xml.replace(new RegExp(`<c r="C${r}" s="(\\d+)"/>`), (_m, st) => `<c r="C${r}" s="${st}"><v>${l.valor.toFixed(2)}</v></c>`);
     txt('D', '', l.data);
-    txt('E', '', limpo(l.descricao).slice(0, 140));
+    // o C6 recusa descrição longa: até 30 caracteres, só letras e espaços (como no exemplo "Pagamento de salário")
+    txt('E', '', limpo(l.descricao).replace(/[0-9]/g, '').replace(/\s+/g, ' ').trim().slice(0, 30));
   });
   zip.file(caminho, xml);
   return zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
