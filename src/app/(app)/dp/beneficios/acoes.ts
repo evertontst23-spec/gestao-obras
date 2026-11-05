@@ -57,3 +57,21 @@ export async function aplicarDiasTodos(_: EstadoAcao, f: FormData): Promise<Esta
   revalidatePath('/dp/beneficios');
   return { ok: `${data} linha(s) atualizada(s).` };
 }
+
+export async function marcarPagoBeneficio(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const ids = String(f.get('linhas') ?? '').split(',').map(Number).filter(Boolean);
+  const pago = txt(f, 'pago') === '1';
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('beneficio_marcar_pago', { p_linhas: ids, p_pago: pago, p_para: txt(f, 'para') });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/dp/beneficios');
+  return { ok: pago ? 'Pix marcado como enviado.' : 'Pagamento desfeito: voltou para pendente.' };
+}
+
+export async function salvarPixEmpresa(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.from('empregadores').update({ pix: txt(f, 'pix'), banco: txt(f, 'banco') }).eq('id', txt(f, 'empregador_id')!);
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/dp/beneficios');
+  return { ok: 'Chave Pix da empresa salva.' };
+}

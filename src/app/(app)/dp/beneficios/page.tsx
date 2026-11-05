@@ -6,7 +6,7 @@ import { Botao, FormAcao } from '@/components/formulario';
 import { BotaoImprimir } from '@/components/BotaoImprimir';
 import { reais } from '@/lib/dominio';
 import { dataHora } from '@/lib/formato';
-import { aplicarDiasTodos, criarMesBeneficios, removerLinhaBeneficio, salvarLinhaBeneficio, situacaoMesBeneficios } from './acoes';
+import { aplicarDiasTodos, criarMesBeneficios, marcarPagoBeneficio, removerLinhaBeneficio, salvarLinhaBeneficio, salvarPixEmpresa, situacaoMesBeneficios } from './acoes';
 
 export const metadata = { title: 'Benefícios' };
 const TIPOS = [['alimentacao', '🍽 Alimentação'], ['passagem', '🚌 Passagem']] as const;
@@ -16,19 +16,21 @@ const ADIC: Record<string, { rotulo: string; cor: string }> = {
 };
 const nf = (v: unknown) => String(Number(v)).replace('.', ',');
 type Linha = { id: number; obra_id: string | null; funcionario_id: string; tipo: string; dias: number; dias_retroativos: number; adicional_tipo: string;
-  dias_desconto: number; qtd_dia: number; valor_unitario: number; valor_total: number; observacao: string | null;
-  funcionarios: { nome: string; empregador_id: string | null; funcoes: { nome: string } | null; empregadores: { nome: string } | null } | null };
+  dias_desconto: number; qtd_dia: number; valor_unitario: number; valor_total: number; observacao: string | null; pago_em: string | null; pago_para: string | null;
+  funcionarios: { nome: string; pix: string | null; banco: string | null; empregador_id: string | null; funcoes: { nome: string } | null;
+    empregadores: { nome: string; pix: string | null; banco: string | null; beneficios_via_empresa: boolean } | null } | null };
 
 export default async function Beneficios({ searchParams }: { searchParams: Promise<{ mes?: string; obra?: string; tipo?: string; ver?: string; emp?: string }> }) {
   const sp = await searchParams;
   const { supabase, perfil } = await exigirPapel('admin', 'rh', 'financeiro');
   const pode = ['admin', 'rh'].includes(perfil.papel);
+  const podePagar = ['admin', 'rh', 'financeiro'].includes(perfil.papel);
   const { data: comps } = await supabase.from('beneficio_competencias').select('*').order('competencia', { ascending: false });
   const mes = sp.mes && /^\d{4}-\d{2}$/.test(sp.mes) ? sp.mes : (comps?.[0]?.competencia?.slice(0, 7) ?? mesAtual());
   const comp = (comps ?? []).find((c) => c.competencia.slice(0, 7) === mes);
   const filtro = sp.tipo === 'alimentacao' || sp.tipo === 'passagem' ? sp.tipo : null;
   const [{ data: linhasRaw }, { data: obras }, { data: funcs }] = await Promise.all([
-    comp ? supabase.from('beneficio_linhas').select('*, funcionarios(nome, empregador_id, funcoes(nome), empregadores(nome))').eq('competencia_id', comp.id) : Promise.resolve({ data: [] }),
+    comp ? supabase.from('beneficio_linhas').select('*, funcionarios(nome, pix, banco, empregador_id, funcoes(nome), empregadores(nome, pix, banco, beneficios_via_empresa))').eq('competencia_id', comp.id) : Promise.resolve({ data: [] }),
     supabase.from('obras').select('id, codigo, nome').order('codigo'),
     supabase.from('funcionarios').select('id, nome, obra_id').eq('ativo', true).is('data_demissao', null).order('nome'),
   ]);
@@ -160,6 +162,63 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
             <Link href={url({ tipo: 'passagem' })} className={chip(filtro === 'passagem')}>🚌 Só passagem</Link>
           </div>
         </div>
+
+        {porEmp && (() => {
+          const grupoPag = (empSel ? [empSel] : ordemEmp).map((k) => ({ k, ls: (gruposEmp.get(k) ?? []).filter((l) => Number(l.valor_total) > 0) }));
+          const viaEmp = (ls: Linha[]) => !!ls[0]?.funcionarios?.empregadores?.beneficios_via_empresa;
+          const totPend = grupoPag.reduce((t, g) => t + g.ls.filter((l) => !l.pago_em).reduce((s, l) => s + Number(l.valor_total), 0), 0);
+          const totPago = grupoPag.reduce((t, g) => t + g.ls.filter((l) => l.pago_em).reduce((s, l) => s + Number(l.valor_total), 0), 0);
+          const BotaoPago = ({ ls, para, rotulo }: { ls: Linha[]; para: 'empresa' | 'funcionario'; rotulo: string }) => {
+            const pend = ls.filter((l) => !l.pago_em); const pagos = ls.filter((l) => l.pago_em);
+            if (!podePagar) return pend.length ? <Selo cor="bg-atencao-50 text-atencao-800">pendente</Selo> : <Selo cor="bg-ok-50 text-ok-700">✓ enviado</Selo>;
+            return pend.length ? (
+              <FormAcao acao={marcarPagoBeneficio}><input type="hidden" name="linhas" value={pend.map((l) => l.id).join(',')} /><input type="hidden" name="pago" value="1" /><input type="hidden" name="para" value={para} />
+                <Botao variante="sucesso" className="px-3 py-1 text-xs">{rotulo}</Botao></FormAcao>
+            ) : (
+              <FormAcao acao={marcarPagoBeneficio} className="flex items-center gap-2"><input type="hidden" name="linhas" value={pagos.map((l) => l.id).join(',')} /><input type="hidden" name="pago" value="0" />
+                <Selo cor="bg-ok-50 text-ok-700">✓ Pix enviado {dataHora(pagos[0]?.pago_em).slice(0, 8)}</Selo>
+                <button className="text-[11px] text-concreto-500 hover:underline">desfazer</button></FormAcao>);
+          };
+          return (
+            <Cartao titulo="Pagamento dos benefícios (Pix)" className="mb-5" acoes={<span className="text-sm">pendente <b className="font-mono">{reais(totPend)}</b> • enviado <b className="font-mono text-ok-700">{reais(totPago)}</b></span>}>
+              <div className="space-y-4">{grupoPag.filter((g) => g.ls.length).map(({ k, ls }) => {
+                const emp = ls[0]?.funcionarios?.empregadores;
+                if (viaEmp(ls)) {
+                  return (
+                    <div key={k} className="rounded-lg border border-concreto-200 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span><b>{nomeEmp.get(k)}</b> — Pix para a empresa, que repassa aos {pessoas(ls)} funcionários
+                          <span className="block text-xs text-concreto-500">{emp?.pix ? <>Chave: <b className="font-mono text-concreto-800">{emp.pix}</b>{emp.banco ? ` • ${emp.banco}` : ''}</> : 'Chave Pix da empresa não cadastrada'}</span></span>
+                        <span className="flex items-center gap-3"><b className="font-mono text-lg">{reais(ls.reduce((s, l) => s + Number(l.valor_total), 0))}</b><BotaoPago ls={ls} para="empresa" rotulo="Marcar Pix enviado" /></span>
+                      </div>
+                      <div className="mt-1 text-xs text-concreto-500">{[...new Set(ls.map((l) => l.funcionarios?.nome))].join(', ')}</div>
+                      {podePagar && (
+                        <details className="mt-1"><summary className="cursor-pointer text-[11px] font-semibold text-sinal-700">{emp?.pix ? 'alterar chave Pix' : 'cadastrar chave Pix da empresa'}</summary>
+                          <FormAcao acao={salvarPixEmpresa} className="mt-1 flex flex-wrap items-end gap-2"><input type="hidden" name="empregador_id" value={k} />
+                            <input name="pix" defaultValue={emp?.pix ?? ''} placeholder="Chave Pix" className="entrada w-56 py-1" />
+                            <input name="banco" defaultValue={emp?.banco ?? ''} placeholder="Banco" className="entrada w-32 py-1" />
+                            <Botao variante="secundario" className="px-3 py-1 text-xs">Salvar</Botao></FormAcao></details>)}
+                    </div>);
+                }
+                const porPessoa = new Map<string, Linha[]>();
+                ls.forEach((l) => porPessoa.set(l.funcionario_id, [...(porPessoa.get(l.funcionario_id) ?? []), l]));
+                return (
+                  <div key={k} className="rounded-lg border border-concreto-200 p-3">
+                    <div className="mb-2 flex items-center justify-between"><b>{nomeEmp.get(k)} — Pix direto para cada funcionário</b><b className="font-mono text-lg">{reais(ls.reduce((s, l) => s + Number(l.valor_total), 0))}</b></div>
+                    <div className="divide-y divide-concreto-100">{[...porPessoa.values()].sort((a, b) => (a[0].funcionarios?.nome ?? '').localeCompare(b[0].funcionarios?.nome ?? '')).map((lp) => {
+                      const f = lp[0].funcionarios;
+                      return (
+                        <div key={lp[0].funcionario_id} className="flex flex-wrap items-center justify-between gap-2 py-1.5 text-sm">
+                          <span className="min-w-0"><b>{f?.nome}</b> <span className="text-xs text-concreto-500">{codObra.get(lp[0].obra_id ?? '') ?? 'escritório'}</span>
+                            <span className="block text-xs">{f?.pix ? <>Pix: <b className="font-mono">{f.pix}</b>{f.banco ? ` • ${f.banco}` : ''}</> : <span className="text-atraso-700">sem Pix cadastrado{f?.banco ? ` (banco: ${f.banco})` : ''}</span>}</span></span>
+                          <span className="flex items-center gap-3"><b className="font-mono">{reais(lp.reduce((s, l) => s + Number(l.valor_total), 0))}</b><BotaoPago ls={lp} para="funcionario" rotulo="Pago" /></span>
+                        </div>);
+                    })}</div>
+                  </div>);
+              })}</div>
+              <p className="mt-2 text-xs text-concreto-500">IDERES, FÊNIX, Mundial e A2: o Pix vai para a empresa, que paga os funcionários. CAD: Pix direto para cada um. O Pix do funcionário se cadastra no cadastro dele.</p>
+            </Cartao>);
+        })()}
 
         <div className="space-y-5">
           {!obraSel && !empSel && <DiasTodos obra={null} rotulo="Todas as obras" />}
