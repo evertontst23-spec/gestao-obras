@@ -5,6 +5,7 @@ import { nomeMes } from '@/components/AbasDP';
 import { reais } from '@/lib/dominio';
 import { data } from '@/lib/formato';
 import { editarItem, removerItem } from '../pagamentos/acoes';
+import { ExportarC6Pagamento } from '@/components/ExportarC6Pagamento';
 import { BENEFICIO, CAT_PAG, STATUS_PAG } from '../pagamentos/comum';
 
 type SB = { from: (t: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -84,6 +85,8 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
             <b>{rotPag(p)}</b> <span className="font-mono">{reais(soma(todos, (i) => i.pagamento_id === p.id))}</span> <Selo cor={STATUS_PAG[p.status].cor}>{STATUS_PAG[p.status].rotulo}</Selo></Link>))}
         <span className="text-xs text-concreto-500">abrir para incluir/retirar linhas ou fechar no financeiro</span>
       </div>}
+      {!umPagamento && rh && (pg ? doMes.filter((p) => p.id === pg) : doMes.filter((p) => p.status !== 'pago')).map((p) => (
+        <ExportarC6Pagamento key={p.id} supabase={supabase} pagamentoId={p.id} compacto />))}
 
       {/* filtros */}
       <div className="nao-imprimir mb-5 space-y-2 rounded-lg border border-concreto-200 bg-white p-3">

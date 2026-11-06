@@ -11,6 +11,7 @@ import { data, dataHora, hojeISO } from '@/lib/formato';
 import { cancelarPagamento, editarItem, fecharPagamento, gerarLinhas, quitarPagamento, reabrirPagamento, removerItem, salvarItem } from '../acoes';
 import { BENEFICIO, CAT_PAG, STATUS_PAG, TIPO_PAG } from '../comum';
 import { Fechamentos, type PagResumo } from '../../folha/Fechamentos';
+import { ExportarC6Pagamento } from '@/components/ExportarC6Pagamento';
 
 export const metadata = { title: 'Pagamento' };
 
@@ -93,7 +94,8 @@ export default async function Pagamento({ params, searchParams }: { params: Prom
             </FormAcao>) : <Vazio>Nenhuma linha.</Vazio>}
         </Cartao>
       ) : (
-        <Fechamentos supabase={supabase} mes={p.data_pagamento.slice(0, 7)} pags={[p as unknown as PagResumo]} ver={sp.ver} g={sp.g} rh={rh} base={`/dp/pagamentos/${p.id}`} umPagamento />)}
+        <><ExportarC6Pagamento supabase={supabase} pagamentoId={p.id} />
+        <Fechamentos supabase={supabase} mes={p.data_pagamento.slice(0, 7)} pags={[p as unknown as PagResumo]} ver={sp.ver} g={sp.g} rh={rh} base={`/dp/pagamentos/${p.id}`} umPagamento /></>)}
 
       <div className="nao-imprimir mt-5 grid gap-5 lg:grid-cols-2">
         {editavel && rh && (
