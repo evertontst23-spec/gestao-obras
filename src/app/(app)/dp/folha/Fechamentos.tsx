@@ -37,8 +37,11 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
     .in('pagamento_id', ids).eq('removido', false).order('id') : { data: [] };
   const brutosOk = ((brutos ?? []) as unknown as Item[]).filter((i) => umPagamento || !BENEFICIO.includes(i.categoria));
   // na Folha, quem já saiu não aparece (o que foi pago a eles continua no pagamento)
-  const desligados = umPagamento ? [] : brutosOk.filter((i) => i.funcionarios && !i.funcionarios.ativo);
-  const todos = umPagamento ? brutosOk : brutosOk.filter((i) => !(i.funcionarios && !i.funcionarios.ativo));
+  // quem já saiu some da Folha só depois de acertado (pagamento pago); acerto ainda a pagar continua aparecendo
+  const stPag = new Map(doMes.map((p) => [p.id, p.status]));
+  const saiuAcertado = (i: Item) => !!i.funcionarios && !i.funcionarios.ativo && stPag.get(i.pagamento_id) === 'pago';
+  const desligados = umPagamento ? [] : brutosOk.filter(saiuAcertado);
+  const todos = umPagamento ? brutosOk : brutosOk.filter((i) => !saiuAcertado(i));
   const pagPorId = new Map(doMes.map((p) => [p.id, p]));
 
   const ver: Ver = verP === 'empresa' || verP === 'tipo' ? verP : 'obra';
@@ -164,7 +167,7 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
                         <div key={k} className="py-2">
                           <div className={`${cols} text-sm`}>
                             <span className="font-semibold">{i0.funcionarios?.nome ?? CAT_PAG[i0.categoria]}
-                              <span className="block text-[11px] font-normal text-concreto-500">{i0.funcionarios?.funcoes?.nome ?? (i0.destino === 'empresa' ? 'pagar à empresa' : '')}{i0.funcionarios ? '' : ` • ${i0.descricao}`}</span></span>
+                              <span className="block text-[11px] font-normal text-concreto-500">{i0.funcionarios && !i0.funcionarios.ativo && <b className="text-atraso-700">desligado • </b>}{i0.funcionarios?.funcoes?.nome ?? (i0.destino === 'empresa' ? 'pagar à empresa' : '')}{i0.funcionarios ? '' : ` • ${i0.descricao}`}</span></span>
                             <span className="hidden text-xs text-concreto-600 sm:block">{ver === 'obra' ? i0.empregadores?.nome ?? '—' : i0.obras?.codigo ?? 'sem obra'}</span>
                             <span className="hidden text-right font-mono sm:block">{reais(bruto)}</span>
                             <span className={`hidden text-right font-mono sm:block ${desc ? 'text-atraso-700' : 'text-concreto-400'}`}>{desc ? reais(desc) : '—'}</span>

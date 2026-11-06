@@ -5,7 +5,7 @@ import { AbasDP, mesAtual, nomeMes } from '@/components/AbasDP';
 import { Botao, FormAcao } from '@/components/formulario';
 import { BotaoImprimir } from '@/components/BotaoImprimir';
 import { reais } from '@/lib/dominio';
-import { dataHora } from '@/lib/formato';
+import { data, dataHora } from '@/lib/formato';
 import { recebedoresBeneficios } from '@/lib/c6/beneficios';
 import { hojeISO } from '@/lib/formato';
 import { aplicarDiasTodos, criarMesBeneficios, marcarExportadosPagos, marcarPagoBeneficio, removerLinhaBeneficio, salvarLinhaBeneficio, salvarPixEmpresa, situacaoMesBeneficios } from './acoes';
@@ -19,7 +19,7 @@ const ADIC: Record<string, { rotulo: string; cor: string }> = {
 const nf = (v: unknown) => String(Number(v)).replace('.', ',');
 type Linha = { id: number; obra_id: string | null; funcionario_id: string; tipo: string; dias: number; dias_retroativos: number; adicional_tipo: string;
   dias_desconto: number; qtd_dia: number; valor_unitario: number; valor_total: number; observacao: string | null; pago_em: string | null; pago_para: string | null; valor_pago: number;
-  funcionarios: { nome: string; pix: string | null; banco: string | null; empregador_id: string | null; funcoes: { nome: string } | null;
+  funcionarios: { nome: string; ativo: boolean; data_demissao: string | null; pix: string | null; banco: string | null; empregador_id: string | null; funcoes: { nome: string } | null;
     empregadores: { nome: string; pix: string | null; banco: string | null; beneficios_via_empresa: boolean } | null } | null };
 
 export default async function Beneficios({ searchParams }: { searchParams: Promise<{ mes?: string; obra?: string; tipo?: string; ver?: string; emp?: string }> }) {
@@ -32,7 +32,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
   const comp = (comps ?? []).find((c) => c.competencia.slice(0, 7) === mes);
   const filtro = sp.tipo === 'alimentacao' || sp.tipo === 'passagem' ? sp.tipo : null;
   const [{ data: linhasRaw }, { data: obras }, { data: funcs }] = await Promise.all([
-    comp ? supabase.from('beneficio_linhas').select('*, funcionarios(nome, pix, banco, empregador_id, funcoes(nome), empregadores(nome, pix, banco, beneficios_via_empresa))').eq('competencia_id', comp.id) : Promise.resolve({ data: [] }),
+    comp ? supabase.from('beneficio_linhas').select('*, funcionarios(nome, ativo, data_demissao, pix, banco, empregador_id, funcoes(nome), empregadores(nome, pix, banco, beneficios_via_empresa))').eq('competencia_id', comp.id) : Promise.resolve({ data: [] }),
     supabase.from('obras').select('id, codigo, nome').order('codigo'),
     supabase.from('funcionarios').select('id, nome, obra_id').eq('ativo', true).is('data_demissao', null).order('nome'),
   ]);
@@ -291,7 +291,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
                                 <input type="hidden" name="qtd_dia" value={String(l.qtd_dia)} />
                                 <span className="col-span-2 text-sm font-semibold sm:col-span-1">{l.funcionarios?.nome}
                                   {ex && <span className={`ml-1 rounded px-1.5 py-0.5 text-[10px] font-bold ${ADIC[l.adicional_tipo].cor}`}>{ADIC[l.adicional_tipo].rotulo} +{nf(l.dias_retroativos)}</span>}
-                                  <span className="block text-[11px] font-normal text-concreto-500">{l.funcionarios?.funcoes?.nome}{empSel ? ` • ${codObra.get(l.obra_id ?? '') ?? 'sem obra'}` : ` • ${l.funcionarios?.empregadores?.nome ?? ''}`}</span></span>
+                                  <span className="block text-[11px] font-normal text-concreto-500">{l.funcionarios && !l.funcionarios.ativo && <b className="text-atraso-700">desligado {l.funcionarios.data_demissao ? data(l.funcionarios.data_demissao).slice(0, 5) : ''} • </b>}{l.funcionarios?.funcoes?.nome}{empSel ? ` • ${codObra.get(l.obra_id ?? '') ?? 'sem obra'}` : ` • ${l.funcionarios?.empregadores?.nome ?? ''}`}</span></span>
                                 <input name="dias" inputMode="decimal" defaultValue={nf(l.dias)} className="entrada px-2 py-1" aria-label="Dias" />
                                 <span className="flex gap-1">
                                   <input name="dias_retroativos" inputMode="decimal" defaultValue={nf(l.dias_retroativos)} className="entrada w-12 px-2 py-1" aria-label="Dias a mais" />
