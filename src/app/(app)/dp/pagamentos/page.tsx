@@ -19,7 +19,7 @@ function sugestao(hoje: string) {
   return { data: iso(a, m + 1, 5), tipo: 'saldo', ini: iso(a, m + 1, 1), fim: iso(a, m + 1, 19) };
 }
 
-export default async function Pagamentos({ searchParams }: { searchParams: Promise<{ obra?: string }> }) {
+export default async function Pagamentos({ searchParams }: { searchParams: Promise<{ obra?: string; cancelados?: string }> }) {
   const sp = await searchParams;
   const { supabase, perfil } = await exigirPapel('admin', 'rh', 'financeiro');
   const [{ data: todos }, { data: obras }, { data: obraDe }] = await Promise.all([
@@ -30,7 +30,10 @@ export default async function Pagamentos({ searchParams }: { searchParams: Promi
   const obraPag = new Map((obraDe ?? []).map((x) => [x.id, (x.obras as unknown as { codigo: string } | null)?.codigo ?? '']));
   const obraIdPag = new Map((obraDe ?? []).map((x) => [x.id, x.obra_id as string]));
   // filtro por obra: pagamentos daquela obra e os gerais (que têm linhas dela)
-  const lista = (todos ?? []).filter((p) => !sp.obra || !obraIdPag.has(p.id) || obraIdPag.get(p.id) === sp.obra);
+  const comCancel = (todos ?? []).filter((p) => !sp.obra || !obraIdPag.has(p.id) || obraIdPag.get(p.id) === sp.obra);
+  // cancelados ficam escondidos (só aparecem se pedir)
+  const nCancel = comCancel.filter((p) => p.status === 'cancelado').length;
+  const lista = sp.cancelados ? comCancel : comCancel.filter((p) => p.status !== 'cancelado');
   const pode = ['admin', 'rh', 'financeiro'].includes(perfil.papel);
   const s = sugestao(hojeISO());
   const abertos = (lista ?? []).filter((p) => p.status === 'fechado' || p.status === 'rascunho');
@@ -53,6 +56,7 @@ export default async function Pagamentos({ searchParams }: { searchParams: Promi
       </div>
       <div className="grid gap-5 lg:grid-cols-3">
         <Cartao titulo="Pagamentos" className="lg:col-span-2">
+          {nCancel > 0 && <p className="nao-imprimir mb-2 text-xs text-concreto-500">{sp.cancelados ? <a className="link" href="/dp/pagamentos">esconder os {nCancel} cancelados</a> : <a className="link" href="/dp/pagamentos?cancelados=1">mostrar {nCancel} cancelado(s)</a>}</p>}
           {!lista?.length ? <Vazio>Nenhum pagamento ainda. Crie o próximo ao lado.</Vazio> : (
             <div className="space-y-2">
               {lista.map((p) => (
