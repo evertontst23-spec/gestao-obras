@@ -33,6 +33,12 @@ select pg_temp.confere((select pago_em is not null and pago_para = 'empresa' fro
 select pg_temp.confere(beneficio_marcar_pago(array[:l]::bigint[], true, 'empresa') = 0, 'não marca duas vezes');
 select pg_temp.confere(beneficio_marcar_pago(array[:l]::bigint[], false) = 1, 'desfazer o pagamento');
 select pg_temp.confere((select pago_em is null and pago_para is null from beneficio_linhas where id = :l), 'desfeito volta a pendente');
+-- pago e depois ganhou retroativo: só a diferença fica pendente
+select beneficio_marcar_pago(array[:l]::bigint[], true, 'funcionario');
+select beneficio_linha_salvar(jsonb_build_object('competencia_id', :'comp', 'funcionario_id', 'f1000000-0000-0000-0000-000000000002', 'tipo', 'alimentacao', 'dias', 20, 'dias_retroativos', 4, 'valor_unitario', 22));
+select pg_temp.confere((select valor_total - valor_pago = 88 from beneficio_linhas where id = :l), 'retroativo depois do pagamento fica pendente (4 × 22)');
+select pg_temp.confere(beneficio_marcar_pago(array[:l]::bigint[], true, 'funcionario') = 1, 'paga a diferença');
+select pg_temp.confere((select valor_pago = valor_total from beneficio_linhas where id = :l), 'linha quitada');
 select pg_temp.como('00000000-0000-0000-0000-00000000000c');
 select pg_temp.espera_erro(format($$select beneficio_marcar_pago(array[%s]::bigint[], true, 'empresa')$$, :l), 'Apenas diretoria');
 \echo '=========== TESTES DE PAGAMENTO DOS BENEFÍCIOS PASSARAM ==========='

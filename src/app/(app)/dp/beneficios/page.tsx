@@ -18,7 +18,7 @@ const ADIC: Record<string, { rotulo: string; cor: string }> = {
 };
 const nf = (v: unknown) => String(Number(v)).replace('.', ',');
 type Linha = { id: number; obra_id: string | null; funcionario_id: string; tipo: string; dias: number; dias_retroativos: number; adicional_tipo: string;
-  dias_desconto: number; qtd_dia: number; valor_unitario: number; valor_total: number; observacao: string | null; pago_em: string | null; pago_para: string | null;
+  dias_desconto: number; qtd_dia: number; valor_unitario: number; valor_total: number; observacao: string | null; pago_em: string | null; pago_para: string | null; valor_pago: number;
   funcionarios: { nome: string; pix: string | null; banco: string | null; empregador_id: string | null; funcoes: { nome: string } | null;
     empregadores: { nome: string; pix: string | null; banco: string | null; beneficios_via_empresa: boolean } | null } | null };
 
@@ -201,13 +201,16 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
         {porEmp && (() => {
           const grupoPag = (empSel ? [empSel] : ordemEmp).map((k) => ({ k, ls: (gruposEmp.get(k) ?? []).filter((l) => Number(l.valor_total) > 0) }));
           const viaEmp = (ls: Linha[]) => !!ls[0]?.funcionarios?.empregadores?.beneficios_via_empresa;
-          const totPend = grupoPag.reduce((t, g) => t + g.ls.filter((l) => !l.pago_em).reduce((s, l) => s + Number(l.valor_total), 0), 0);
-          const totPago = grupoPag.reduce((t, g) => t + g.ls.filter((l) => l.pago_em).reduce((s, l) => s + Number(l.valor_total), 0), 0);
+          const falta = (l: Linha) => Math.round((Number(l.valor_total) - Number(l.valor_pago ?? 0)) * 100) / 100;
+          const totPend = grupoPag.reduce((t, g) => t + g.ls.reduce((s, l) => s + Math.max(falta(l), 0), 0), 0);
+          const totPago = grupoPag.reduce((t, g) => t + g.ls.reduce((s, l) => s + Number(l.valor_pago ?? 0), 0), 0);
           const BotaoPago = ({ ls, para, rotulo }: { ls: Linha[]; para: 'empresa' | 'funcionario'; rotulo: string }) => {
-            const pend = ls.filter((l) => !l.pago_em); const pagos = ls.filter((l) => l.pago_em);
+            const pend = ls.filter((l) => falta(l) > 0); const pagos = ls.filter((l) => l.pago_em);
+            const vPend = pend.reduce((s, l) => s + falta(l), 0);
             if (!podePagar) return pend.length ? <Selo cor="bg-atencao-50 text-atencao-800">pendente</Selo> : <Selo cor="bg-ok-50 text-ok-700">✓ enviado</Selo>;
             return pend.length ? (
-              <FormAcao acao={marcarPagoBeneficio}><input type="hidden" name="linhas" value={pend.map((l) => l.id).join(',')} /><input type="hidden" name="pago" value="1" /><input type="hidden" name="para" value={para} />
+              <FormAcao acao={marcarPagoBeneficio} className="flex items-center gap-2"><input type="hidden" name="linhas" value={pend.map((l) => l.id).join(',')} /><input type="hidden" name="pago" value="1" /><input type="hidden" name="para" value={para} />
+                {pagos.length > 0 && <span className="text-[11px] text-atencao-800">falta {reais(vPend)}</span>}
                 <Botao variante="sucesso" className="px-3 py-1 text-xs">{rotulo}</Botao></FormAcao>
             ) : (
               <FormAcao acao={marcarPagoBeneficio} className="flex items-center gap-2"><input type="hidden" name="linhas" value={pagos.map((l) => l.id).join(',')} /><input type="hidden" name="pago" value="0" />

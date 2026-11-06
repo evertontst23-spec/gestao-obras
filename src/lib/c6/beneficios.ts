@@ -12,13 +12,14 @@ export async function recebedoresBeneficios(supabase: SB, mes: string, incluirPa
   const { data: comp } = await supabase.from('beneficio_competencias').select('id, competencia, status').eq('competencia', `${mes}-01`).maybeSingle();
   if (!comp) return { comp: null, recebedores: [] as Recebedor[], rotulo: nomeMes(mes) };
   const { data } = await supabase.from('beneficio_linhas')
-    .select('id, funcionario_id, valor_total, pago_em, funcionarios(nome, pix, empregador_id, empregadores(nome, pix, beneficios_via_empresa))')
+    .select('id, funcionario_id, valor_total, valor_pago, pago_em, funcionarios(nome, pix, empregador_id, empregadores(nome, pix, beneficios_via_empresa))')
     .eq('competencia_id', comp.id).gt('valor_total', 0);
-  type L = { id: number; funcionario_id: string; valor_total: number; pago_em: string | null;
+  type L = { id: number; funcionario_id: string; valor_total: number; valor_pago: number; pago_em: string | null;
     funcionarios: { nome: string; pix: string | null; empregador_id: string | null; empregadores: { nome: string; pix: string | null; beneficios_via_empresa: boolean } | null } | null };
   const mapa = new Map<string, Recebedor>();
   for (const l of (data ?? []) as L[]) {
-    if (!incluirPagos && l.pago_em) continue;
+    const pendente = Math.round((Number(l.valor_total) - Number(l.valor_pago ?? 0)) * 100) / 100;
+    if (!incluirPagos && pendente <= 0) continue;
     const f = l.funcionarios; const e = f?.empregadores;
     const viaEmp = !!e?.beneficios_via_empresa && !!f?.empregador_id;
     const k = viaEmp ? `e:${f!.empregador_id}` : `f:${l.funcionario_id}`;
@@ -29,7 +30,7 @@ export async function recebedoresBeneficios(supabase: SB, mes: string, incluirPa
         pixOriginal: pix, chave: ch && ch.tipo !== 'invalida' ? ch.chave : null, tipoChave: ch?.tipo ?? null, valor: 0, pessoas: [], linhas: [] });
     }
     const r = mapa.get(k)!;
-    r.valor = Math.round((r.valor + Number(l.valor_total)) * 100) / 100;
+    r.valor = Math.round((r.valor + (incluirPagos ? Number(l.valor_total) : pendente)) * 100) / 100;
     if (f?.nome && !r.pessoas.includes(f.nome)) r.pessoas.push(f.nome);
     r.linhas.push(l.id);
   }
