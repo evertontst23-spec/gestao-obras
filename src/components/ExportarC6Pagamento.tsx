@@ -2,6 +2,7 @@ import { Cartao, Campo } from '@/components/ui';
 import { reais } from '@/lib/dominio';
 import { data, hojeISO } from '@/lib/formato';
 import { recebedoresPagamento } from '@/lib/c6/pagamentos';
+import { ObrasC6 } from './ObrasC6';
 
 type SB = { from: (t: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -19,17 +20,7 @@ export async function ExportarC6Pagamento({ supabase, pagamentoId, compacto = fa
   return (
     <Cartao titulo={`Exportar para o C6 Bank — ${compacto ? rot : 'Pix em massa'}`} className="nao-imprimir mb-5">
       <form action={`/dp/pagamentos/${pagamento.id}/c6`} method="get" className="space-y-3">
-        <div>
-          <p className="mb-1 text-sm font-semibold">Obras que entram nesta planilha <span className="font-normal text-concreto-500">(desmarque as que vão esperar)</span></p>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{porObra.map(({ k, nome, ls }) => {
-            const com = ls.filter((r) => r.chave);
-            return (
-              <label key={k} className="flex items-start gap-2 rounded-md border border-concreto-200 p-2 text-sm">
-                <input type="checkbox" name="obra" value={k} defaultChecked className="mt-1" />
-                <span><b>{nome}</b><span className="block text-xs text-concreto-500">{com.length} Pix • {reais(total(com))}{ls.length > com.length ? ` • ${ls.length - com.length} sem chave` : ''}</span></span>
-              </label>);
-          })}</div>
-        </div>
+        <ObrasC6 obras={porObra.map(({ k, nome, ls }) => { const com = ls.filter((r) => r.chave); return { k, nome, valor: Math.round(total(com) * 100) / 100, pix: com.length, sem: ls.length - com.length }; })} />
         <div className="flex flex-wrap items-end gap-2">
           <Campo rotulo="Data do pagamento"><input type="date" name="data" defaultValue={sugestao} min={hojeISO()} className="entrada" /></Campo>
           <button className="rounded-md bg-teal-700 px-4 py-2.5 font-semibold text-white">⬇ Baixar planilha do C6 (obras marcadas)</button>
