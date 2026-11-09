@@ -47,6 +47,8 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
     { t: 'Entregue na obra', feito: entregue, det: sis.length ? undefined : 'reposição do estoque' },
   ];
   const atual = etapas.findIndex((e) => !e.feito);
+  const smsEnviar = [...new Map((itens ?? []).map((i) => i.solicitacao_itens as unknown as { solicitacao_id?: string; status?: string; solicitacoes?: { numero: number } } | null)
+    .filter((x) => x?.solicitacao_id && x.status !== 'entregue').map((x) => [x!.solicitacao_id!, x!.solicitacoes?.numero ?? 0])).entries()];
   const podeColeta = ['compras', 'almoxarifado', 'financeiro', 'admin', 'engenheiro', 'encarregado'].includes(p) && ['emitida', 'pronta_coleta'].includes(o.status) && !col?.coletado_em;
   const podeEntrada = ['almoxarifado', 'admin', 'compras'].includes(p);
   const podeExcluirDoc = ['compras', 'financeiro', 'almoxarifado', 'admin'].includes(p);
@@ -173,6 +175,16 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
                 <Botao grande>{o.modalidade === 'retirada' ? 'Liberar para coleta' : 'Confirmar pagamento'}</Botao>
                 <p className="text-xs text-concreto-500">Todos são avisados: almoxarifado, compras, financeiro e engenheiro da obra.</p>
               </FormAcao>
+            </Cartao>)}
+
+          {['recebida', 'recebida_parcial'].includes(o.status) && smsEnviar.length > 0 && (
+            <Cartao titulo="➡ Próximo passo: entregar na obra" className="border-2 border-sinal-500">
+              <ol className="mb-3 list-decimal space-y-1 pl-5 text-sm">
+                <li>O <b>almoxarifado</b> abre o pedido de material e clica em <b>“Registrar saída para a obra”</b> (quantidade enviada, nota/motorista).</li>
+                <li>O <b>encarregado/engenheiro da obra</b> abre o mesmo pedido e <b>confirma o que chegou</b> — aí a etapa fica verde.</li>
+              </ol>
+              <div className="flex flex-wrap gap-2">{smsEnviar.map(([sid, n]) => (
+                <Link key={sid} href={`/materiais/${sid}`} className="rounded bg-sinal-600 px-3 py-1.5 text-sm font-semibold text-white">Abrir {codSM(n)} →</Link>))}</div>
             </Cartao>)}
 
           {podeColeta && (
