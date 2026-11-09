@@ -47,7 +47,7 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
   const ver: Ver = verP === 'empresa' || verP === 'tipo' ? verP : 'obra';
   const pg = pgP && ids.includes(pgP) ? pgP : null;
   const chaveDe = (i: Item) => ver === 'obra' ? i.obra_id ?? 'sem' : ver === 'empresa' ? i.empregador_id ?? 'sem' : i.empregadores?.tipo ?? 'sem';
-  const nomeDe = (i: Item) => ver === 'obra' ? (i.obras ? `${i.obras.codigo} — ${i.obras.nome}` : 'Escritório / sem obra')
+  const nomeDe = (i: Item) => ver === 'obra' ? (i.obras ? i.obras.nome : 'Escritório / sem obra')
     : ver === 'empresa' ? i.empregadores?.nome ?? 'Sem empresa' : TIPO_EMP[i.empregadores?.tipo ?? ''] ?? 'Sem empresa';
   const visiveis = todos.filter((i) => !pg || i.pagamento_id === pg);
   const grupos = new Map<string, { nome: string; itens: Item[] }>();
@@ -65,7 +65,8 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
     const p = o.pg === undefined ? pg : o.pg; if (p) q.set('pg', p);
     return `${base}?${q.toString()}`;
   };
-  const chip = (ativo: boolean) => `rounded-md border px-3 py-1.5 text-sm font-semibold ${ativo ? 'border-sinal-500 bg-sinal-500 text-white' : 'border-concreto-300 bg-superficie text-concreto-700 hover:border-sinal-400'}`;
+  const chip = (ativo: boolean) => `rounded-full px-3.5 py-1.5 text-sm font-semibold transition ${ativo ? 'bg-concreto-900 text-white shadow-sm' : 'text-concreto-600 hover:bg-concreto-100 hover:text-concreto-900'}`;
+  const rv = (v: number) => (Math.abs(v) < 0.005 ? <span className="text-concreto-300">—</span> : reais(v));
   const rotPag = (p: PagResumo) => `${p.tipo === 'saldo' ? 'Saldo' : p.tipo === 'adiantamento' ? 'Adiantamento' : 'Pagamento'} de ${data(p.data_pagamento).slice(0, 5)}`;
 
   if (!doMes.length) return <Vazio>Nenhum fechamento de salários em {nomeMes(mes)}. Crie em <Link className="link" href="/dp/pagamentos">Pagamentos</Link>.</Vazio>;
@@ -92,19 +93,19 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
         <ExportarC6Pagamento key={p.id} supabase={supabase} pagamentoId={p.id} compacto />))}
 
       {/* filtros */}
-      <div className="nao-imprimir mb-5 space-y-2 rounded-lg border border-concreto-200 bg-superficie p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="w-28 text-sm font-semibold text-concreto-600">Separar por:</span>
+      <div className="nao-imprimir mb-6 space-y-3">
+        <div className="flex flex-wrap items-center gap-1">
+          <span className="w-full shrink-0 sm:w-28 text-xs font-bold uppercase tracking-wider text-concreto-400">Separar por:</span>
           {(Object.keys(VER) as Ver[]).map((v) => <Link key={v} href={url({ ver: v, g: null })} className={chip(ver === v)}>{VER[v]}</Link>)}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="w-28 text-sm font-semibold text-concreto-600">{ver === 'obra' ? 'Obra:' : ver === 'empresa' ? 'Empresa:' : 'Tipo:'}</span>
+        <div className="flex flex-wrap items-center gap-1">
+          <span className="w-full shrink-0 sm:w-28 text-xs font-bold uppercase tracking-wider text-concreto-400">{ver === 'obra' ? 'Obra:' : ver === 'empresa' ? 'Empresa:' : 'Tipo:'}</span>
           <Link href={url({ g: null })} className={chip(!gSel)}>Resumo de todas</Link>
           {ordem.map(([k, gr]) => (
-            <Link key={k} href={url({ g: k })} className={chip(gSel === k)}>{gr.nome} <span className="font-mono text-xs opacity-80">{reais(soma(gr.itens))}</span></Link>))}
+            <Link key={k} href={url({ g: k })} className={chip(gSel === k)}>{gr.nome}</Link>))}
         </div>
-        {!umPagamento && <div className="flex flex-wrap items-center gap-2">
-          <span className="w-28 text-sm font-semibold text-concreto-600">Pagamento:</span>
+        {!umPagamento && <div className="flex flex-wrap items-center gap-1">
+          <span className="w-full shrink-0 sm:w-28 text-xs font-bold uppercase tracking-wider text-concreto-400">Pagamento:</span>
           <Link href={url({ pg: null })} className={chip(!pg)}>Todos do mês</Link>
           {doMes.map((p) => <Link key={p.id} href={url({ pg: p.id })} className={chip(pg === p.id)}>{rotPag(p)}</Link>)}
         </div>}
@@ -121,16 +122,16 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
                 <tr key={k}>
                   <td><Link className="link font-semibold" href={url({ g: k })}>{gr.nome}</Link></td>
                   <td className="text-right">{pessoas(gr.itens)}</td>
-                  {(pg ? doMes.filter((p) => p.id === pg) : doMes).map((p) => <td key={p.id} className="text-right font-mono">{reais(soma(gr.itens, (i) => i.pagamento_id === p.id))}</td>)}
-                  <td className="text-right font-mono">{reais(soma(gr.itens, (i) => i.destino === 'empresa'))}</td>
-                  <td className="text-right font-mono">{reais(soma(gr.itens, (i) => i.destino !== 'empresa'))}</td>
+                  {(pg ? doMes.filter((p) => p.id === pg) : doMes).map((p) => <td key={p.id} className="text-right font-mono">{rv(soma(gr.itens, (i) => i.pagamento_id === p.id))}</td>)}
+                  <td className="text-right font-mono">{rv(soma(gr.itens, (i) => i.destino === 'empresa'))}</td>
+                  <td className="text-right font-mono">{rv(soma(gr.itens, (i) => i.destino !== 'empresa'))}</td>
                   <td className="text-right font-mono font-bold">{reais(soma(gr.itens))}</td>
                 </tr>))}
               <tr className="bg-concreto-50 font-semibold"><td>Total</td><td className="text-right">{pessoas(visiveis)}</td>
-                {(pg ? doMes.filter((p) => p.id === pg) : doMes).map((p) => <td key={p.id} className="text-right font-mono">{reais(soma(visiveis, (i) => i.pagamento_id === p.id))}</td>)}
-                <td className="text-right font-mono">{reais(soma(visiveis, (i) => i.destino === 'empresa'))}</td>
-                <td className="text-right font-mono">{reais(soma(visiveis, (i) => i.destino !== 'empresa'))}</td>
-                <td className="text-right font-mono">{reais(soma(visiveis))}</td></tr>
+                {(pg ? doMes.filter((p) => p.id === pg) : doMes).map((p) => <td key={p.id} className="text-right font-mono">{rv(soma(visiveis, (i) => i.pagamento_id === p.id))}</td>)}
+                <td className="text-right font-mono">{rv(soma(visiveis, (i) => i.destino === 'empresa'))}</td>
+                <td className="text-right font-mono">{rv(soma(visiveis, (i) => i.destino !== 'empresa'))}</td>
+                <td className="text-right font-mono">{rv(soma(visiveis))}</td></tr>
             </tbody>
           </table></div>
           <p className="mt-2 text-xs text-concreto-500">Clique numa linha para ver e editar os valores de cada funcionário.</p>

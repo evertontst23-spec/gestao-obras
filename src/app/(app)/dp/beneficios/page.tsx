@@ -67,7 +67,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
     if (ob && v === 'obra') q.set('obra', ob); if (em && v === 'empresa') q.set('emp', em); if (tp) q.set('tipo', tp);
     return `/dp/beneficios?${q.toString()}`;
   };
-  const chip = (ativo: boolean) => `rounded-md border px-3 py-1.5 text-sm font-semibold ${ativo ? 'border-sinal-500 bg-sinal-500 text-white' : 'border-concreto-300 bg-superficie text-concreto-700 hover:border-sinal-400'}`;
+  const chip = (ativo: boolean) => `rounded-full px-3.5 py-1.5 text-sm font-semibold transition ${ativo ? 'bg-concreto-900 text-white shadow-sm' : 'text-concreto-600 hover:bg-concreto-100 hover:text-concreto-900'}`;
   const extras = linhas.filter((l) => Number(l.dias_retroativos) > 0 && (!obraSel || l.obra_id === obraSel) && (!empSel || empDe(l) === empSel));
   const tiposVisiveis = TIPOS.filter(([t]) => !filtro || t === filtro);
 
@@ -132,26 +132,26 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
         </div>
 
         {/* filtros */}
-        <div className="nao-imprimir mb-5 space-y-2 rounded-lg border border-concreto-200 bg-superficie p-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="w-24 text-sm font-semibold text-concreto-600">Separar por:</span>
+        <div className="nao-imprimir mb-6 space-y-3">
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="w-full shrink-0 sm:w-24 text-xs font-bold uppercase tracking-wider text-concreto-400">Separar por:</span>
             <Link href={url({ ver: 'obra' })} className={chip(!porEmp)}>Obra (centro de custo)</Link>
             <Link href={url({ ver: 'empresa' })} className={chip(porEmp)}>Empresa / instituto</Link>
           </div>
           {porEmp ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="w-24 text-sm font-semibold text-concreto-600">Empresa:</span>
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="w-full shrink-0 sm:w-24 text-xs font-bold uppercase tracking-wider text-concreto-400">Empresa:</span>
               <Link href={url({ emp: null })} className={chip(!empSel)}>Resumo de todas</Link>
               {ordemEmp.map((k) => (
-                <Link key={k} href={url({ emp: k })} className={chip(empSel === k)}>{nomeEmp.get(k)} <span className="font-mono text-xs opacity-80">{reais(soma(gruposEmp.get(k)!))}</span></Link>))}
+                <Link key={k} href={url({ emp: k })} className={chip(empSel === k)}>{nomeEmp.get(k)}</Link>))}
             </div>
           ) : (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="w-24 text-sm font-semibold text-concreto-600">Obra:</span>
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="w-full shrink-0 sm:w-24 text-xs font-bold uppercase tracking-wider text-concreto-400">Obra:</span>
             <Link href={url({ obra: null })} className={chip(!obraSel)}>Resumo de todas</Link>
             {ordem.map((k) => (
               <Link key={k} href={url({ obra: k })} className={chip(obraSel === k)}>
-                {nomeObra.get(k) ?? 'Sem obra'} <span className="font-mono text-xs opacity-80">{reais(soma(grupos.get(k)!))}</span></Link>))}
+                {nomeObra.get(k) ?? 'Sem obra'}</Link>))}
             {editavel && (
               <form action="/dp/beneficios" className="flex items-center gap-1">
                 <input type="hidden" name="mes" value={mes} />{filtro && <input type="hidden" name="tipo" value={filtro} />}
@@ -160,8 +160,8 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
                 <button className="rounded-md border border-concreto-300 bg-superficie px-2 py-1.5 text-sm font-semibold">abrir</button>
               </form>)}
           </div>)}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="w-24 text-sm font-semibold text-concreto-600">Benefício:</span>
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="w-full shrink-0 sm:w-24 text-xs font-bold uppercase tracking-wider text-concreto-400">Benefício:</span>
             <Link href={url({ tipo: null })} className={chip(!filtro)}>Mostrar tudo</Link>
             <Link href={url({ tipo: 'alimentacao' })} className={chip(filtro === 'alimentacao')}><span className="inline-flex items-center gap-1"><Icone nome="alimentacao" className="h-3.5 w-3.5" />Só alimentação</span></Link>
             <Link href={url({ tipo: 'passagem' })} className={chip(filtro === 'passagem')}><span className="inline-flex items-center gap-1"><Icone nome="passagem" className="h-3.5 w-3.5" />Só passagem</span></Link>
@@ -266,7 +266,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
           {(obraSel || empSel) && (() => {
             const k = obraSel ?? ''; const ls = empSel ? gruposEmp.get(empSel) ?? [] : grupos.get(k) ?? [];
             return (
-              <Cartao titulo={empSel ? `${nomeEmp.get(empSel)} — todas as obras` : `${codObra.get(k) ?? ''} — ${nomeObra.get(k) ?? 'Sem obra'}`}>
+              <Cartao titulo={empSel ? `${nomeEmp.get(empSel)} — todas as obras` : (nomeObra.get(k) ?? 'Sem obra')}>
                 {obraSel && <div className="mb-4"><DiasTodos obra={k} rotulo="Dias para todos desta obra" /></div>}
                 {!ls.length && <p className="mb-2 text-sm text-concreto-500">Nenhum benefício lançado nesta obra ainda.</p>}
                 <div className="space-y-6">{tiposVisiveis.map(([t, rotulo]) => {

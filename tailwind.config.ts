@@ -25,7 +25,8 @@ export default {
       boxShadow: { cartao: 'var(--sombra)' },
       fontFamily: {
         sans: ['var(--fonte)', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Arial', 'sans-serif'],
-        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+        // números em fonte normal com algarismos alinhados (antes era monoespaçada)
+        mono: ['var(--fonte)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
     },
   },
