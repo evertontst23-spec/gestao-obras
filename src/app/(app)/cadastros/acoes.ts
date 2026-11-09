@@ -132,12 +132,14 @@ export async function salvarInsumo(_: EstadoAcao, f: FormData): Promise<EstadoAc
   const d = { codigo: txt(f, 'codigo')?.toUpperCase(), descricao: txt(f, 'descricao'), unidade: txt(f, 'unidade'),
     categoria: txt(f, 'categoria') ?? 'Material', estoque_minimo: numero(f, 'estoque_minimo') ?? 0, ca: txt(f, 'ca'),
     ca_validade: txt(f, 'ca_validade'), vida_util_dias: numero(f, 'vida_util_dias'), ...(id ? { ativo: f.get('ativo') === 'on', revisar: false } : {}) };
-  if (!d.codigo || !d.descricao || !d.unidade) return { erro: 'Código, descrição e unidade são obrigatórios.' };
+  if ((id && !d.codigo) || !d.descricao || !d.unidade) return { erro: 'Descrição e unidade são obrigatórias.' };
   const supabase = await criarClienteServidor();
-  const { error } = id ? await supabase.from('insumos').update(d).eq('id', id) : await supabase.from('insumos').insert(d);
+  // sem código no cadastro novo: o banco gera o próximo (M0044, EPI13…)
+  const { data: salvo, error } = id ? await supabase.from('insumos').update(d).eq('id', id).select('codigo').single()
+    : await supabase.from('insumos').insert({ ...d, codigo: d.codigo ?? '' }).select('codigo').single();
   if (error) return { erro: erroCadastro(error) };
   revalidatePath('/cadastros/insumos');
-  return { ok: id ? 'Insumo atualizado.' : `Insumo ${d.codigo} cadastrado.` };
+  return { ok: id ? 'Insumo atualizado.' : `Insumo ${salvo?.codigo ?? d.codigo} cadastrado.` };
 }
 
 // ---------------- Empresas contratantes

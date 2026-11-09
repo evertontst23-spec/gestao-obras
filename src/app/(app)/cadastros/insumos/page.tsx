@@ -12,7 +12,7 @@ function Campos({ i }: { i?: any }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
       {i && <input type="hidden" name="id" value={i.id} />}
-      <Campo rotulo="Código *"><input name="codigo" required defaultValue={i?.codigo} className="entrada font-mono uppercase" placeholder="CIM-01" /></Campo>
+      <Campo rotulo={i ? 'Código *' : 'Código'} dica={i ? undefined : 'Deixe em branco: o sistema gera (M0044, EPI13…)'}><input name="codigo" required={!!i} defaultValue={i?.codigo} className="entrada font-mono uppercase" placeholder={i ? '' : 'automático'} /></Campo>
       <Campo rotulo="Descrição *" className="sm:col-span-1 lg:col-span-3"><input name="descricao" required defaultValue={i?.descricao} className="entrada" /></Campo>
       <Campo rotulo="Unidade *"><input name="unidade" required list="un-ins" defaultValue={i?.unidade ?? ''} className="entrada" /></Campo>
       <Campo rotulo="Categoria"><select name="categoria" defaultValue={i?.categoria ?? 'Material'} className="entrada">{CATEGORIAS_INSUMO.map((c) => <option key={c}>{c}</option>)}</select></Campo>
