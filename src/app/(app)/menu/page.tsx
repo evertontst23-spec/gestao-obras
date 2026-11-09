@@ -1,3 +1,4 @@
+import { Icone } from '@/components/Icone';
 import Link from 'next/link';
 import { obterSessao } from '@/lib/sessao';
 import { menuDo } from '@/lib/menu';
@@ -14,7 +15,7 @@ export default async function Menu() {
           <div className="grid grid-cols-2 gap-2">
             {s.itens.map((i) => (
               <Link key={i.href} href={i.href} className="flex min-h-[64px] items-center gap-3 rounded-lg border border-concreto-200 bg-white px-4 font-semibold active:bg-concreto-100">
-                <span aria-hidden className="text-xl text-sinal-600">{i.icone}</span>{i.rotulo}
+                <Icone nome={i.icone} className="h-5 w-5 text-sinal-600" />{i.rotulo}
               </Link>))}
           </div>
         </section>

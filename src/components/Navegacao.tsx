@@ -1,4 +1,5 @@
 'use client';
+import { Icone } from '@/components/Icone';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -51,7 +52,7 @@ export function Navegacao({ papel, nome, usuarioId, naoLidas, sair }:
                 {s.itens.map((i) => (
                   <Link key={i.href} href={i.href}
                     className={`flex items-center gap-3 rounded-md px-3 py-1.5 text-sm font-semibold ${ativoHref === i.href ? 'bg-sinal-500 text-white' : 'text-concreto-200 hover:bg-concreto-700'}`}>
-                    <span aria-hidden className="w-4 text-center">{i.icone}</span>{i.rotulo}
+                    <Icone nome={i.icone} className="h-4 w-4 opacity-80" />{i.rotulo}
                   </Link>))}
               </div>
             </div>
@@ -78,7 +79,7 @@ export function Navegacao({ papel, nome, usuarioId, naoLidas, sair }:
         {atalhos.map((i) => (
           <Link key={i.href} href={i.href}
             className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${ativoHref === i.href ? 'text-sinal-600' : 'text-concreto-500'}`}>
-            <span aria-hidden className="text-lg leading-none">{i.icone}</span><span className="w-full truncate px-0.5 text-center">{i.curto ?? i.rotulo}</span>
+            <Icone nome={i.icone} className="h-5 w-5" /><span className="w-full truncate px-0.5 text-center">{i.curto ?? i.rotulo}</span>
           </Link>
         ))}
         <Link href="/menu" className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${caminho === '/menu' ? 'text-sinal-600' : 'text-concreto-500'}`}>

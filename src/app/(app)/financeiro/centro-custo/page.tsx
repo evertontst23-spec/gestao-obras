@@ -49,7 +49,7 @@ export default async function CentroCusto({ searchParams }: { searchParams: Prom
   return (
     <>
       <Cabecalho titulo="Centro de custo por obra" sub={`Competência ${periodo}. Compras (OC), pagamentos da equipe, folha e medições entram sozinhos no centro de custo da obra.`}
-        acoes={<div className="flex gap-2"><BaixarCSV nome={`centro-custo-${de}-${ate}`} cabecalho={['Obra', 'Nome', ...cats.map((c) => CATEGORIAS_DESPESA[c]), 'Custo total', 'Receitas', 'Resultado']} linhas={csv} /><BotaoImprimir rotulo="🖨 PDF" /></div>} />
+        acoes={<div className="flex gap-2"><BaixarCSV nome={`centro-custo-${de}-${ate}`} cabecalho={['Obra', 'Nome', ...cats.map((c) => CATEGORIAS_DESPESA[c]), 'Custo total', 'Receitas', 'Resultado']} linhas={csv} /><BotaoImprimir rotulo="PDF" /></div>} />
       <AbasFinanceiro atual="cc" />
       <form className="nao-imprimir mb-4 flex flex-wrap items-end gap-2 text-sm">
         <label className="text-xs text-concreto-600">De<input type="month" name="de" defaultValue={de} className="entrada block w-auto" /></label>

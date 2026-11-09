@@ -56,7 +56,7 @@ export default async function Dossie({ params }: { params: Promise<{ id: string 
     <>
       <div className="nao-imprimir mb-4 flex flex-wrap items-center justify-between gap-2">
         <Link href={`/cadastros/funcionarios/${id}`} className="link text-sm">← Voltar à ficha</Link>
-        <BotaoImprimir rotulo="🖨 Imprimir / salvar PDF" />
+        <BotaoImprimir rotulo="Imprimir / salvar PDF" />
       </div>
       <article className="mx-auto max-w-5xl rounded-lg border border-concreto-200 bg-white p-6 text-sm print:border-0 print:p-0">
         <div className="flex items-start gap-4 border-b-2 border-concreto-800 pb-3">

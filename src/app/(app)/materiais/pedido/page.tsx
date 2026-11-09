@@ -62,7 +62,7 @@ export default async function PedidoPDF({ searchParams }: { searchParams: Promis
             <label className="flex items-center gap-2 px-1 pb-2 text-sm"><input type="checkbox" name="consolidar" value="1" defaultChecked={consolidar} className="accent-sinal-500" /> Somar itens iguais</label>
             <button className="rounded-md bg-concreto-800 px-4 py-2 font-semibold text-white">Ver</button>
           </form>)}
-        {(sms ?? []).length > 0 && <div className="flex justify-end"><BotaoImprimir rotulo="🖨 Imprimir / salvar PDF" /></div>}
+        {(sms ?? []).length > 0 && <div className="flex justify-end"><BotaoImprimir rotulo="Imprimir / salvar PDF" /></div>}
       </div>
 
       {!sp.sm && !sp.obra ? <Vazio>Escolha a obra para montar o pedido em PDF.</Vazio> : !(sms ?? []).length ? <Vazio>Nenhum pedido de material encontrado com esses filtros.</Vazio> : (

@@ -16,7 +16,7 @@ export default async function DetalheOS({ params }: { params: Promise<{ id: stri
   return (
     <>
       <AbasSST atual="os" />
-      <div className="nao-imprimir mb-4 flex justify-end"><BotaoImprimir rotulo="🖨 Imprimir OS" /></div>
+      <div className="nao-imprimir mb-4 flex justify-end"><BotaoImprimir rotulo="Imprimir OS" /></div>
       <article className="mx-auto max-w-3xl rounded-lg border border-concreto-200 bg-white p-6 text-sm print:border-0 print:p-0">
         <header className="mb-4 border-b-2 border-concreto-800 pb-3 text-center">
           <div className="text-xs font-bold uppercase tracking-[0.2em] text-sinal-700">NR-01, item 1.4.1 "c"</div>

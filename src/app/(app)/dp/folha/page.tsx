@@ -63,7 +63,7 @@ export default async function Folha({ searchParams }: { searchParams: Promise<{ 
   return (
     <>
       <Cabecalho titulo="Folha" sub="O que vai ser pago de salário no mês — por centro de custo, empresa ou instituto. Valores editáveis enquanto o pagamento está em conferência."
-        acoes={<BotaoImprimir rotulo="🖨 Imprimir / PDF" />} />
+        acoes={<BotaoImprimir rotulo="Imprimir / PDF" />} />
       <AbasDP atual="folha" mes={mes} />
       <div className="nao-imprimir mb-4 flex flex-wrap items-center gap-2 text-sm">
         <span className="font-semibold text-concreto-600">Mês:</span>

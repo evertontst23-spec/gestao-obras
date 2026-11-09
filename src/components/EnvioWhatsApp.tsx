@@ -1,4 +1,5 @@
 'use client';
+import { Icone } from '@/components/Icone';
 import { useMemo, useState } from 'react';
 import { registrarEnvioCotacao } from '@/app/(app)/suprimentos/acoes';
 
@@ -57,7 +58,7 @@ export function EnvioWhatsApp({ cotacao, codigo, obra, prazo, itens, fornecedore
           className="inline-flex min-h-[44px] items-center gap-2 rounded-md bg-[#25D366] px-4 text-sm font-bold text-white hover:brightness-95">🟢 Enviar pelo WhatsApp</a>
         <button type="button" onClick={async () => { await navigator.clipboard.writeText(msg).catch(() => {}); setCopiado(true); setTimeout(() => setCopiado(false), 2000); }}
           className="inline-flex min-h-[44px] items-center rounded-md border border-concreto-300 bg-white px-3 text-sm font-semibold">{copiado ? '✓ Copiado' : 'Copiar mensagem'}</button>
-        <a href={linkPdf} target="_blank" className="inline-flex min-h-[44px] items-center rounded-md border border-concreto-300 bg-white px-3 text-sm font-semibold">🖨 PDF do pedido de cotação</a>
+        <a href={linkPdf} target="_blank" className="inline-flex min-h-[44px] items-center rounded-md border border-concreto-300 bg-white px-3 text-sm font-semibold"><Icone nome="imprimir" className="mr-1.5 h-4 w-4" />PDF do pedido de cotação</a>
       </div>
     </div>
   );

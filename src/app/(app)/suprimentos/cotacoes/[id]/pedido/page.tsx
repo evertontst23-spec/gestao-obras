@@ -21,7 +21,7 @@ export default async function PedidoCotacao({ params }: { params: Promise<{ id: 
   const nec = (itens ?? []).map((i) => (i.solicitacao_itens as unknown as { data_necessidade?: string } | null)?.data_necessidade).filter(Boolean).sort()[0];
   return (
     <div className="mx-auto max-w-3xl bg-white p-6 text-sm text-concreto-900">
-      <div className="nao-imprimir mb-4 flex justify-end"><BotaoImprimir rotulo="🖨 Imprimir / salvar PDF" /></div>
+      <div className="nao-imprimir mb-4 flex justify-end"><BotaoImprimir rotulo="Imprimir / salvar PDF" /></div>
       <div className="mb-4 flex items-start justify-between border-b-2 border-concreto-800 pb-3">
         <div><div className="text-lg font-black">{emp?.razao_social ?? 'CAD ENGENHARIA'}</div>{emp?.cnpj && <div className="text-xs">CNPJ {emp.cnpj}</div>}</div>
         <div className="text-right"><div className="text-xs font-bold uppercase tracking-widest">Pedido de cotação</div>

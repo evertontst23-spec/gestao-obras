@@ -66,7 +66,7 @@ export default async function FichaEPI({ params }: { params: Promise<{ id: strin
         <Link href="/sst/epi/fichas" className="link text-sm">← Fichas de EPI</Link>
         <div className="flex gap-2">
           <Link href={`/sst/epi/nova?func=${id}`} className="rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold">+ Entregar EPI</Link>
-          <BotaoImprimir rotulo="🖨 Imprimir ficha" />
+          <BotaoImprimir rotulo="Imprimir ficha" />
         </div>
       </div>
       {faltam > 0 && <p className="nao-imprimir mx-auto mb-3 max-w-5xl rounded-md bg-atencao-50 px-4 py-2 text-sm font-semibold text-atencao-800">⚠ {faltam} EPI(s) aguardando a assinatura do funcionário. Clique em “Assinar” em cada linha.</p>}

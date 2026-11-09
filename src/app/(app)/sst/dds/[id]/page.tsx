@@ -19,7 +19,7 @@ export default async function DetalheDDS({ params }: { params: Promise<{ id: str
   return (
     <>
       <AbasSST atual="dds" />
-      <div className="nao-imprimir mb-4 flex justify-end"><BotaoImprimir rotulo="🖨 Imprimir lista de presença" /></div>
+      <div className="nao-imprimir mb-4 flex justify-end"><BotaoImprimir rotulo="Imprimir lista de presença" /></div>
       <article className="mx-auto max-w-4xl rounded-lg border border-concreto-200 bg-white p-6 text-sm print:border-0 print:p-0">
         <header className="mb-4 border-b-2 border-concreto-800 pb-3 text-center">
           <div className="text-xs font-bold uppercase tracking-[0.2em] text-sinal-700">Diálogo Diário de Segurança</div>

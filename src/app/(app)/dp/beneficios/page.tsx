@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { exigirPapel } from '@/lib/sessao';
+import { COR_BENEFICIO, Icone, TagBeneficio } from '@/components/Icone';
 import { Cabecalho, Campo, Cartao, Indicador, Selo, Vazio } from '@/components/ui';
 import { AbasDP, mesAtual, nomeMes } from '@/components/AbasDP';
 import { Botao, FormAcao } from '@/components/formulario';
@@ -11,7 +12,7 @@ import { hojeISO } from '@/lib/formato';
 import { aplicarDiasTodos, criarMesBeneficios, marcarExportadosPagos, marcarPagoBeneficio, removerLinhaBeneficio, salvarLinhaBeneficio, salvarPixEmpresa, situacaoMesBeneficios } from './acoes';
 
 export const metadata = { title: 'Benefícios' };
-const TIPOS = [['alimentacao', '🍽 Alimentação'], ['passagem', '🚌 Passagem']] as const;
+const TIPOS = [['alimentacao', 'Alimentação'], ['passagem', 'Passagem']] as const;
 const ADIC: Record<string, { rotulo: string; cor: string }> = {
   retroativo: { rotulo: 'Retroativo', cor: 'bg-atencao-50 text-atencao-800' },
   credito: { rotulo: 'Crédito', cor: 'bg-sky-50 text-sky-800' },
@@ -73,7 +74,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
   const DiasTodos = ({ obra, rotulo }: { obra: string | null; rotulo: string }) => editavel && comp ? (
     <FormAcao acao={aplicarDiasTodos} className="flex flex-wrap items-center gap-2 rounded-md border border-sinal-300 bg-sinal-50 px-3 py-2 text-sm">
       <input type="hidden" name="competencia_id" value={comp.id} /><input type="hidden" name="obra_id" value={obra ?? ''} />
-      <b className="text-sinal-800">📅 {rotulo}:</b>
+      <b className="inline-flex items-center gap-1 text-sinal-800"><Icone nome="espelho" />{rotulo}:</b>
       <input name="dias" inputMode="decimal" defaultValue={comp.dias_uteis} className="entrada w-16 py-1" aria-label="Dias" />
       <span>dias de</span>
       <select name="tipo" defaultValue={filtro ?? 'todos'} className="entrada w-auto py-1"><option value="todos">alimentação e passagem</option><option value="alimentacao">só alimentação</option><option value="passagem">só passagem</option></select>
@@ -84,7 +85,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
   return (
     <>
       <Cabecalho titulo="Benefícios" sub="Alimentação e passagem do mês por obra — dias, retroativos/créditos, faltas e valores editáveis."
-        acoes={<BotaoImprimir rotulo="🖨 Imprimir / PDF" />} />
+        acoes={<BotaoImprimir rotulo="Imprimir / PDF" />} />
       <AbasDP atual="benef" />
 
       {/* mês */}
@@ -92,7 +93,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
         <span className="font-semibold text-concreto-600">Mês:</span>
         {(comps ?? []).map((c) => (
           <Link key={c.id} href={`/dp/beneficios?mes=${c.competencia.slice(0, 7)}`} className={`${chip(c.competencia.slice(0, 7) === mes)} capitalize`}>
-            {nomeMes(c.competencia.slice(0, 7))}{c.status === 'fechada' ? ' 🔒' : ''}</Link>))}
+            {nomeMes(c.competencia.slice(0, 7))}{c.status === 'fechada' && <Icone nome="cadeado" className="ml-1 inline h-3 w-3" />}</Link>))}
         {pode && (
           <details className="relative">
             <summary className="cursor-pointer rounded-md border border-dashed border-concreto-400 px-3 py-1.5 font-semibold text-concreto-600">+ novo mês</summary>
@@ -115,14 +116,14 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
 
         {/* situação do mês */}
         <div className="nao-imprimir mb-4 flex flex-wrap items-center gap-2 text-sm">
-          <Selo cor={comp.status === 'fechada' ? 'bg-ok-50 text-ok-700' : 'bg-atencao-50 text-atencao-800'}>{comp.status === 'fechada' ? `🔒 Fechado ${dataHora(comp.fechado_em)}` : 'Aberto para edição'}</Selo>
+          <Selo cor={comp.status === 'fechada' ? 'bg-ok-50 text-ok-700' : 'bg-atencao-50 text-atencao-800'}>{comp.status === 'fechada' ? <span className="inline-flex items-center gap-1"><Icone nome="cadeado" className="h-3 w-3" />Fechado {dataHora(comp.fechado_em)}</span> : 'Aberto para edição'}</Selo>
           {pode && comp.status === 'aberta' && (
             <FormAcao acao={situacaoMesBeneficios} className="flex items-center gap-2">
               <input type="hidden" name="competencia_id" value={comp.id} />
               <span className="text-xs text-concreto-500">Dias úteis do mês</span>
               <input name="dias_uteis" inputMode="numeric" defaultValue={comp.dias_uteis} className="entrada w-14 py-1" />
               <Botao variante="secundario" name="acao" value="dias" className="px-3 py-1 text-xs">Salvar</Botao>
-              <Botao variante="sucesso" name="acao" value="fechar" className="px-3 py-1 text-xs">🔒 Fechar mês</Botao>
+              <Botao variante="sucesso" name="acao" value="fechar" className="px-3 py-1 text-xs"><span className="inline-flex items-center gap-1"><Icone nome="cadeado" className="h-3.5 w-3.5" />Fechar mês</span></Botao>
             </FormAcao>)}
           {perfil.papel === 'admin' && comp.status === 'fechada' && (
             <FormAcao acao={situacaoMesBeneficios}><input type="hidden" name="competencia_id" value={comp.id} />
@@ -162,19 +163,20 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
           <div className="flex flex-wrap items-center gap-2">
             <span className="w-24 text-sm font-semibold text-concreto-600">Benefício:</span>
             <Link href={url({ tipo: null })} className={chip(!filtro)}>Mostrar tudo</Link>
-            <Link href={url({ tipo: 'alimentacao' })} className={chip(filtro === 'alimentacao')}>🍽 Só alimentação</Link>
-            <Link href={url({ tipo: 'passagem' })} className={chip(filtro === 'passagem')}>🚌 Só passagem</Link>
+            <Link href={url({ tipo: 'alimentacao' })} className={chip(filtro === 'alimentacao')}><span className="inline-flex items-center gap-1"><Icone nome="alimentacao" className="h-3.5 w-3.5" />Só alimentação</span></Link>
+            <Link href={url({ tipo: 'passagem' })} className={chip(filtro === 'passagem')}><span className="inline-flex items-center gap-1"><Icone nome="passagem" className="h-3.5 w-3.5" />Só passagem</span></Link>
           </div>
         </div>
 
         {podePagar && (
           <Cartao titulo="Exportar para o C6 Bank — Pix em massa" className="nao-imprimir mb-5">
-            {!recebedores.length ? <p className="text-sm text-ok-700">✓ Todos os benefícios deste mês já estão marcados como pagos.</p> : (<>
+            {!recebedores.length ? <p className="flex items-center gap-1 text-sm text-ok-700"><Icone nome="ok" />Todos os benefícios deste mês já estão marcados como pagos.</p> : (<>
               <div className="flex flex-wrap items-end gap-3">
                 <form action="/dp/beneficios/c6" method="get" className="flex flex-wrap items-end gap-2">
                   <input type="hidden" name="mes" value={mes} />
                   <Campo rotulo="Data do pagamento"><input type="date" name="data" defaultValue={hojeISO()} min={hojeISO()} className="entrada" /></Campo>
-                  <button disabled={!comChave.length} className="rounded-md bg-teal-700 px-4 py-2.5 font-semibold text-white disabled:opacity-50">⬇ Baixar planilha do C6 ({comChave.length} Pix • {reais(comChave.reduce((t, r) => t + r.valor, 0))})</button>
+                  <button disabled={!comChave.length} className="rounded-md bg-teal-700 px-4 py-2.5 font-semibold text-white disabled:opacity-50">
+              <span className="inline-flex items-center gap-1.5"><Icone nome="baixar" />Baixar planilha do C6 ({comChave.length} Pix • {reais(comChave.reduce((t, r) => t + r.valor, 0))})</span></button>
                 </form>
                 {comChave.length > 0 && (
                   <FormAcao acao={marcarExportadosPagos}>
@@ -207,14 +209,14 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
           const BotaoPago = ({ ls, para, rotulo }: { ls: Linha[]; para: 'empresa' | 'funcionario'; rotulo: string }) => {
             const pend = ls.filter((l) => falta(l) > 0); const pagos = ls.filter((l) => l.pago_em);
             const vPend = pend.reduce((s, l) => s + falta(l), 0);
-            if (!podePagar) return pend.length ? <Selo cor="bg-atencao-50 text-atencao-800">pendente</Selo> : <Selo cor="bg-ok-50 text-ok-700">✓ enviado</Selo>;
+            if (!podePagar) return pend.length ? <Selo cor="bg-atencao-50 text-atencao-800">pendente</Selo> : <Selo cor="bg-ok-50 text-ok-700"><span className="inline-flex items-center gap-1"><Icone nome="ok" className="h-3 w-3" />enviado</span></Selo>;
             return pend.length ? (
               <FormAcao acao={marcarPagoBeneficio} className="flex items-center gap-2"><input type="hidden" name="linhas" value={pend.map((l) => l.id).join(',')} /><input type="hidden" name="pago" value="1" /><input type="hidden" name="para" value={para} />
                 {pagos.length > 0 && <span className="text-[11px] text-atencao-800">falta {reais(vPend)}</span>}
                 <Botao variante="sucesso" className="px-3 py-1 text-xs">{rotulo}</Botao></FormAcao>
             ) : (
               <FormAcao acao={marcarPagoBeneficio} className="flex items-center gap-2"><input type="hidden" name="linhas" value={pagos.map((l) => l.id).join(',')} /><input type="hidden" name="pago" value="0" />
-                <Selo cor="bg-ok-50 text-ok-700">✓ Pix enviado {dataHora(pagos[0]?.pago_em).slice(0, 8)}</Selo>
+                <Selo cor="bg-ok-50 text-ok-700"><span className="inline-flex items-center gap-1"><Icone nome="ok" className="h-3 w-3" />Pix enviado {dataHora(pagos[0]?.pago_em).slice(0, 8)}</span></Selo>
                 <button className="text-[11px] text-concreto-500 hover:underline">desfazer</button></FormAcao>);
           };
           return (
@@ -273,8 +275,8 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
                   const g = 'grid grid-cols-2 items-center gap-2 sm:grid-cols-[minmax(0,1.5fr)_60px_150px_60px_84px_104px_minmax(0,1fr)_auto]';
                   return (
                     <section key={t}>
-                      <div className="mb-2 flex items-center justify-between border-b-2 border-concreto-200 pb-1">
-                        <h3 className="text-sm font-bold uppercase tracking-wide text-concreto-700">{rotulo} <span className="font-normal normal-case text-concreto-500">({lt.length})</span></h3>
+                      <div className={`mb-2 flex items-center justify-between border-b-2 pb-1 ${t === 'passagem' ? 'border-sky-200' : 'border-amber-200'}`}>
+                        <h3 className={`flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide ${COR_BENEFICIO[t].texto}`}><Icone nome={t} />{rotulo} <span className="font-normal normal-case text-concreto-500">({lt.length})</span></h3>
                         <b className="font-mono">{reais(lt.reduce((s, l) => s + Number(l.valor_total), 0))}</b>
                       </div>
                       <div className={`${g} mb-1 hidden text-[11px] font-semibold uppercase tracking-wide text-concreto-400 sm:grid`}>
@@ -320,8 +322,8 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
                     </section>);
                 })}</div>
                 <div className="mt-4 flex flex-wrap justify-end gap-4 rounded-md bg-concreto-50 px-3 py-2 text-sm">
-                  {!filtro && <><span>Alimentação: <b className="font-mono">{reais(soma(ls, 'alimentacao'))}</b></span>
-                    <span>Passagem: <b className="font-mono">{reais(soma(ls, 'passagem'))}</b></span></>}
+                  {!filtro && <><span className="inline-flex items-center gap-1.5"><TagBeneficio tipo="alimentacao" /><b className="font-mono">{reais(soma(ls, 'alimentacao'))}</b></span>
+                    <span className="inline-flex items-center gap-1.5"><TagBeneficio tipo="passagem" /><b className="font-mono">{reais(soma(ls, 'passagem'))}</b></span></>}
                   <span>Total {empSel ? 'da empresa' : 'da obra'} ({pessoas(ls)} pessoas): <b className="font-mono text-base">{reais(soma(ls))}</b></span>
                 </div>
                 {editavel && obraSel && (
@@ -351,7 +353,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
                 <thead><tr><th>Funcionário</th><th>Obra</th><th>Benefício</th><th>Tipo</th><th className="text-right">Dias a mais</th><th className="text-right">Valor</th><th>Obs.</th></tr></thead>
                 <tbody>{extras.map((l) => (
                   <tr key={l.id}><td className="font-semibold">{l.funcionarios?.nome}</td><td className="text-xs">{codObra.get(l.obra_id ?? '') ?? '—'}</td>
-                    <td className="text-xs">{l.tipo === 'passagem' ? 'Passagem' : 'Alimentação'}</td>
+                    <td><TagBeneficio tipo={l.tipo} /></td>
                     <td><span className={`rounded px-1.5 py-0.5 text-[11px] font-bold ${ADIC[l.adicional_tipo].cor}`}>{ADIC[l.adicional_tipo].rotulo}</span></td>
                     <td className="text-right font-mono">+{nf(l.dias_retroativos)}</td>
                     <td className="text-right font-mono">{reais(Number(l.dias_retroativos) * Number(l.qtd_dia) * Number(l.valor_unitario))}</td>
@@ -361,7 +363,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
 
           <Cartao titulo={`Resumo por ${porEmp ? 'empresa' : 'obra'}${filtro ? ` — só ${filtro === 'passagem' ? 'passagem' : 'alimentação'}` : ''}`}>
             <table className="tabela">
-              <thead><tr><th>{porEmp ? 'Empresa / instituto' : 'Obra'}</th><th className="text-right">Pessoas</th>{!filtro && <><th className="text-right">Alimentação</th><th className="text-right">Passagem</th></>}<th className="text-right">Total</th></tr></thead>
+              <thead><tr><th>{porEmp ? 'Empresa / instituto' : 'Obra'}</th><th className="text-right">Pessoas</th>{!filtro && <><th className="text-right"><span className="inline-flex items-center gap-1 text-amber-800"><Icone nome="alimentacao" className="h-3.5 w-3.5" />Alimentação</span></th><th className="text-right"><span className="inline-flex items-center gap-1 text-sky-800"><Icone nome="passagem" className="h-3.5 w-3.5" />Passagem</span></th></>}<th className="text-right">Total</th></tr></thead>
               <tbody>
                 {(porEmp ? ordemEmp : ordem).map((k) => { const ls = (porEmp ? gruposEmp : grupos).get(k)!; return (
                   <tr key={k} className={(porEmp ? empSel : obraSel) === k ? 'bg-sinal-50' : ''}><td>{porEmp

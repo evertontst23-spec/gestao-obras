@@ -1,3 +1,4 @@
+import { Icone } from '@/components/Icone';
 import Link from 'next/link';
 import { obterSessao } from '@/lib/sessao';
 import { Cabecalho, LinkBotao, SeloPrioridade, SeloSolicitacao, Vazio } from '@/components/ui';
@@ -23,7 +24,7 @@ export default async function Materiais({ searchParams }: { searchParams: Promis
       <Cabecalho titulo={perfil.papel === 'encarregado' ? 'Meus pedidos de material' : 'Solicitações de material'}
         sub={f.status ? STATUS_SOLICITACAO[f.status]?.rotulo : 'Em aberto'}
         acoes={<div className="flex flex-wrap gap-2">
-          <Link href={f.obra ? `/materiais/pedido?obra=${f.obra}${f.status ? `&status=${f.status}` : ''}` : '/materiais/pedido'} className="inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold hover:border-sinal-400">🖨 Pedido em PDF por obra</Link>
+          <Link href={f.obra ? `/materiais/pedido?obra=${f.obra}${f.status ? `&status=${f.status}` : ''}` : '/materiais/pedido'} className="inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold hover:border-sinal-400"><Icone nome="imprimir" className="mr-1.5 h-4 w-4" />Pedido em PDF por obra</Link>
           {pode && <LinkBotao href={f.obra ? `/materiais/nova?obra=${f.obra}` : '/materiais/nova'}>+ Solicitar material</LinkBotao>}</div>} />
       <form className="mb-4 flex flex-wrap gap-2 rounded-lg border border-concreto-200 bg-white p-3">
         <select name="obra" defaultValue={f.obra ?? ''} className="entrada w-auto min-w-[200px] flex-1"><option value="">Todas as obras</option>

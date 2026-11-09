@@ -71,7 +71,7 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
             <Selo cor={STATUS_OC[o.status].cor}>{STATUS_OC[o.status].rotulo}</Selo>
             {o.nf_divergente && <Selo cor="bg-atraso-500 text-white">NF divergente</Selo>}
             {o.entrega_atrasada && <Selo cor="bg-atraso-50 text-atraso-700">Entrega atrasada</Selo>}</span>}
-          acoes={<><BotaoImprimir rotulo="🖨 Imprimir OC (vai com o retirante)" />
+          acoes={<><BotaoImprimir rotulo="Imprimir OC (vai com o retirante)" />
             {['compras', 'admin', 'financeiro'].includes(p) && <Link href={`/suprimentos/cotacoes/${o.cotacao_id}`} className="inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold">Cotação {o.cotacao_codigo}</Link>}</>} />
       </div>
 
