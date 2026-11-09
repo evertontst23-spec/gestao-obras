@@ -92,8 +92,9 @@ export async function cancelarCotacao(_: EstadoAcao, f: FormData): Promise<Estad
 export async function anexarDocumentoOC(c: Record<string, string | null>): Promise<EstadoAcao> {
   const supabase = await criarClienteServidor();
   const { error } = await supabase.rpc('oc_anexar_documento', {
-    p_oc: c.oc_id, p_tipo: c.tipo ?? 'outro', p_numero: c.numero, p_valor: c.valor ? Number(c.valor.replace(/\./g, '').replace(',', '.')) : null,
-    p_vencimento: c.vencimento, p_caminho: c.caminho, p_mime: c.tipo_mime,
+    p_oc: c.oc_id, p_tipo: c.tipo ?? 'outro', p_numero: c.numero ?? null, p_valor: c.valor ? Number(c.valor.replace(/\./g, '').replace(',', '.')) : null,
+    // campo some quando não é boleto: precisa ir como null, senão a função não é encontrada
+    p_vencimento: c.vencimento ?? null, p_caminho: c.caminho ?? null, p_mime: c.tipo_mime ?? null,
   });
   if (error) return { erro: mensagemErro(error) };
   rev();
