@@ -25,10 +25,19 @@ export function ItensMaterial({ insumos = [] }: { insumos?: Insumo[] }) {
     muda(l.k, i ? { codigo: c, nome: i.descricao, unidade: i.unidade } : { codigo: v.toUpperCase() });
   }
   function trocarNome(l: Linha, v: string) {
-    // escolheu da lista "CÓDIGO — nome" ou digitou um nome igual ao do cadastro
+    // escolheu da lista "CÓDIGO — nome": preenche código e unidade. Digitando, o campo continua livre
+    // (antes, ao bater num nome do cadastro, o campo travava e não dava para continuar digitando)
     const [a, ...b] = v.split(' — ');
-    const i = b.length ? porCodigo.get(a.toUpperCase().trim()) : porNome.get(norm(v));
-    muda(l.k, i ? { codigo: i.codigo, nome: i.descricao, unidade: i.unidade } : { nome: v });
+    const i = b.length ? porCodigo.get(a.toUpperCase().trim()) : undefined;
+    if (i) return muda(l.k, { codigo: i.codigo, nome: i.descricao, unidade: i.unidade });
+    const cadAtual = l.codigo ? porCodigo.get(l.codigo.trim()) : undefined;
+    muda(l.k, cadAtual && norm(cadAtual.descricao) !== norm(v) ? { nome: v, codigo: '' } : { nome: v });
+  }
+  function conferirNome(l: Linha) {
+    // ao sair do campo: nome igual ao do cadastro vira o material cadastrado
+    if (l.codigo) return;
+    const i = porNome.get(norm(l.nome));
+    if (i) muda(l.k, { codigo: i.codigo, nome: i.descricao, unidade: l.unidade || i.unidade });
   }
 
   return (
@@ -71,8 +80,8 @@ export function ItensMaterial({ insumos = [] }: { insumos?: Insumo[] }) {
                 <input id={`cod-${l.k}`} value={l.codigo} onChange={(e) => trocarCodigo(l, e.target.value)} list="insumos-cod" autoCapitalize="characters"
                   placeholder="CÓD." className="entrada font-mono uppercase" /></label>
               <label className="col-span-2 text-[11px] text-concreto-500 sm:col-span-5">Material *
-                <input id={`nome-${l.k}`} value={l.nome} onChange={(e) => trocarNome(l, e.target.value)} list="insumos-nome" required={!l.codigo}
-                  placeholder="Digite o código ao lado ou o nome do material" readOnly={!!cad && !!l.codigo}
+                <input id={`nome-${l.k}`} value={l.nome} onChange={(e) => trocarNome(l, e.target.value)} onBlur={() => conferirNome(l)} list="insumos-nome" required={!l.codigo}
+                  placeholder="Digite o código ao lado ou o nome do material"
                   className={`entrada ${cad && l.codigo ? 'bg-ok-50 font-semibold' : ''}`} /></label>
               <label className="text-[11px] text-concreto-500 sm:col-span-2">Quantidade *
                 <input name="quantidade" required inputMode="decimal" placeholder="Qtd." className="entrada" /></label>
