@@ -118,7 +118,7 @@ export default async function BancoEspera({ searchParams }: { searchParams: Prom
                       : null}
                     <span className="min-w-0 flex-1"><b>{c.nome}</b>
                       {c.origem === 'ficha' && <span className="ml-2 rounded-full bg-sinal-100 px-2 py-0.5 text-[11px] font-semibold text-sinal-700">Ficha online</span>}
-                      <span className="block text-xs text-concreto-500">{c.funcao_pretendida || 'função não informada'}{c.obra_pretendida ? ` • ${c.obra_pretendida}` : ''}{c.bairro_cidade ? ` • ${c.bairro_cidade}` : ''} • na fila desde {data(c.criado_em)}</span></span>
+                      <span className="block text-xs text-concreto-500">{c.funcao_pretendida || 'função não informada'}{c.obra_pretendida ? ` • ${c.obra_pretendida}` : ''}{c.data_inicio ? ` • começou em ${data(c.data_inicio)}` : ''}{c.bairro_cidade ? ` • ${c.bairro_cidade}` : ''} • na fila desde {data(c.criado_em)}</span></span>
                     <a href={zap(c.celular)} target="_blank" rel="noreferrer" className="whitespace-nowrap rounded-md bg-ok-500 px-3 py-1.5 text-xs font-semibold text-white">WhatsApp {c.celular}</a>
                     <Selo cor={st.cor}>{st.rotulo}</Selo>
                   </summary>
@@ -131,6 +131,7 @@ export default async function BancoEspera({ searchParams }: { searchParams: Prom
                       {c.contato_em && <div><dt className="text-xs text-concreto-500">Chamado em</dt><dd>{data(c.contato_em)}</dd></div>}
                       {c.protocolo && <div><dt className="text-xs text-concreto-500">Nº da ficha</dt><dd>{c.protocolo}{c.ficha_em ? ` • ${data(c.ficha_em)}` : ''}</dd></div>}
                       {c.obra_pretendida && <div><dt className="text-xs text-concreto-500">Obra escolhida</dt><dd>{c.obra_pretendida}</dd></div>}
+                      {c.origem === 'ficha' && <div><dt className="text-xs text-concreto-500">Começou na obra em</dt><dd className="font-semibold">{c.data_inicio ? data(c.data_inicio) : 'não informado (ficha antiga)'}</dd></div>}
                       {FICHA_ROTULO.filter(([k]) => c.ficha?.[k]).map(([k, r]) => (
                         <div key={k}><dt className="text-xs text-concreto-500">{r}</dt><dd>{c.ficha[k]}</dd></div>))}
                       {c.observacoes && <div className="sm:col-span-3"><dt className="text-xs text-concreto-500">Observações</dt><dd className="whitespace-pre-line">{c.observacoes}</dd></div>}
@@ -160,7 +161,7 @@ export default async function BancoEspera({ searchParams }: { searchParams: Prom
                           <Campo rotulo="Função"><select name="funcao_id" defaultValue={funcaoParecida(c.funcao_pretendida, funcoes ?? [])} className="entrada"><option value="">—</option>{(funcoes ?? []).map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}</select></Campo>
                           <Campo rotulo="Obra"><select name="obra_id" defaultValue={obraParecida(c.obra_pretendida, obras ?? [])} className="entrada"><option value="">—</option>{(obras ?? []).map((o) => <option key={o.id} value={o.id}>{o.codigo}</option>)}</select></Campo>
                           <Campo rotulo="Empresa"><select name="empregador_id" className="entrada"><option value="">—</option>{(empresas ?? []).map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}</select></Campo>
-                          <Campo rotulo="Admissão"><input type="date" name="data_admissao" defaultValue={hojeISO()} className="entrada" /></Campo>
+                          <Campo rotulo="Admissão"><input type="date" name="data_admissao" defaultValue={c.data_inicio ?? hojeISO()} className="entrada" /></Campo>
                         </div>
                         <Botao variante="sucesso">Contratar e abrir a ficha</Botao>
                         <p className="text-xs text-concreto-600">{c.origem === 'ficha'
