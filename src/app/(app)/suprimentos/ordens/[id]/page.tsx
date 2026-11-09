@@ -40,7 +40,7 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
   const entregue = sis.length > 0 && sis.every((x) => x!.status === 'entregue');
   const etapas: { t: string; feito: boolean; det?: string }[] = [
     { t: 'OC emitida (compra aprovada)', feito: true, det: dataHora(o.emitida_em) },
-    { t: 'Pago / faturado', feito: !!o.pagamento, det: o.pagamento ? `${o.pagamento === 'pago' ? 'Pago' : 'Faturado'} ${dataHora(o.pago_em)}` : undefined },
+    { t: 'Pago / faturado', feito: !!o.pagamento, det: o.pagamento ? `${(o.pagamento === 'pago' ? 'Pago' : o.pagamento === 'cartao' ? 'Pago no cartão de crédito' : 'Faturado')} ${dataHora(o.pago_em)}` : undefined },
     { t: retirada ? 'Coletado no fornecedor' : 'Saiu para entrega', feito: !!col?.coletado_em || ['recebida', 'recebida_parcial'].includes(o.status),
       det: col?.coletado_em ? `${dataHora(col.coletado_em)}${col.coletado_por ? ` • ${col.coletado_por}` : ''}` : undefined },
     { t: 'Entrada no estoque', feito: o.status === 'recebida', det: o.status === 'recebida_parcial' ? 'parcial' : undefined },
@@ -99,7 +99,7 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
             </div>
             <dl className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Info rotulo="Fornecedor">{o.fornecedor_nome}<div className="text-xs text-concreto-500">{o.fornecedor_documento} {o.fornecedor_telefone}</div></Info>
-              <Info rotulo="Pagamento">{forma ? <b>{FORMA_PAGAMENTO[forma]}</b> : null}{forma && o.condicao_pagamento ? ' • ' : ''}{o.condicao_pagamento ?? (forma ? '' : '—')}{o.pagamento && <div className="text-xs font-semibold text-ok-700">{o.pagamento === 'pago' ? 'Pago' : 'Faturado'} {dataHora(o.pago_em)}</div>}</Info>
+              <Info rotulo="Pagamento">{forma ? <b>{FORMA_PAGAMENTO[forma]}</b> : null}{forma && o.condicao_pagamento ? ' • ' : ''}{o.condicao_pagamento ?? (forma ? '' : '—')}{o.pagamento && <div className="text-xs font-semibold text-ok-700">{(o.pagamento === 'pago' ? 'Pago' : o.pagamento === 'cartao' ? 'Pago no cartão de crédito' : 'Faturado')} {dataHora(o.pago_em)}</div>}</Info>
               <Info rotulo={o.modalidade === 'retirada' ? 'Retirada por' : 'Entrega'}>{o.modalidade === 'retirada' ? (o.retirante ?? '— a definir') : 'Fornecedor entrega na obra'}</Info>
               <Info rotulo="Previsão">{data(o.previsao_entrega)}</Info>
             </dl>
@@ -166,7 +166,8 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
             <Cartao titulo="Pagamento / faturamento">
               <FormAcao acao={liberarColeta} className="space-y-3">
                 <input type="hidden" name="oc_id" value={id} />
-                <Campo rotulo="Situação"><select name="pagamento" className="entrada"><option value="pago">Pago</option><option value="faturado">Faturado (boleto)</option></select></Campo>
+                <Campo rotulo="Situação"><select name="pagamento" className="entrada" defaultValue={forma === 'cartao_credito' ? 'cartao' : forma === 'boleto' ? 'faturado' : 'pago'}><option value="pago">Pago</option><option value="faturado">Faturado (boleto)</option><option value="cartao">Cartão de crédito</option></select></Campo>
+                <Campo rotulo="Vencimento da fatura do cartão" dica="Só se for no cartão — a despesa fica em aberto no financeiro até essa data"><input type="date" name="fatura" min={hojeISO()} className="entrada" /></Campo>
                 {o.modalidade === 'retirada' && <Campo rotulo="Quem vai retirar *"><input name="retirante" defaultValue={o.retirante ?? ''} className="entrada" /></Campo>}
                 <Campo rotulo="Nova previsão (opcional)"><input type="date" name="previsao" className="entrada" /></Campo>
                 <Botao grande>{o.modalidade === 'retirada' ? 'Liberar para coleta' : 'Confirmar pagamento'}</Botao>

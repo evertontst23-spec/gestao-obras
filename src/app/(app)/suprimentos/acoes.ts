@@ -102,7 +102,7 @@ export async function anexarDocumentoOC(c: Record<string, string | null>): Promi
 
 export async function liberarColeta(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
   const supabase = await criarClienteServidor();
-  const { error } = await supabase.rpc('oc_liberar_coleta', { p_oc: txt(f, 'oc_id'), p_pagamento: txt(f, 'pagamento'), p_retirante: txt(f, 'retirante'), p_previsao: txt(f, 'previsao') });
+  const { error } = await supabase.rpc('oc_liberar_coleta', { p_oc: txt(f, 'oc_id'), p_pagamento: txt(f, 'pagamento'), p_retirante: txt(f, 'retirante'), p_previsao: txt(f, 'previsao'), p_fatura: txt(f, 'fatura') });
   if (error) return { erro: mensagemErro(error) };
   rev();
   return { ok: 'OC liberada — todos foram avisados.' };
