@@ -33,7 +33,7 @@ export default async function ListaOS() {
           <b className="text-atraso-700">Sem Ordem de Serviço:</b> {semOS.map((e, k) => <span key={e.id}>{k ? ', ' : ' '}<Link href={`/sst/os/nova?func=${e.id}`} className="link">{e.nome}</Link></span>)}
         </div>)}
       {!lista?.length ? <Vazio>Nenhuma OS emitida.</Vazio> : (
-        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white"><table className="tabela">
+        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie"><table className="tabela">
           <thead><tr><th>Nº</th><th>Funcionário</th><th>Função</th><th>Emissão</th><th>Ciência</th></tr></thead>
           <tbody>{lista.map((o) => (
             <tr key={o.id}><td><Link href={`/sst/os/${o.id}`} className="link font-mono">OS-{String(o.numero).padStart(4, '0')}</Link></td>

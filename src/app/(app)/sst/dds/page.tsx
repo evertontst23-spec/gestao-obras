@@ -21,7 +21,7 @@ export default async function ListaDDS() {
         <Indicador rotulo="Último DDS" valor={lista?.[0] ? data(lista[0].data) : '—'} />
       </div>
       {!lista?.length ? <Vazio>Nenhum DDS registrado.</Vazio> : (
-        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white"><table className="tabela">
+        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie"><table className="tabela">
           <thead><tr><th>Nº</th><th>Data</th><th>Obra</th><th>Tema</th><th>Presentes</th><th>Responsável</th></tr></thead>
           <tbody>{lista.map((d) => (
             <tr key={d.id}>

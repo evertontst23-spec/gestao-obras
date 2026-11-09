@@ -26,7 +26,7 @@ export default async function Correcoes({ searchParams }: { searchParams: Promis
       </div>
       <div className="mb-3 text-sm">{sp.todos ? <Link className="link" href="/dp/correcoes">Ver só os pendentes</Link> : <Link className="link" href="/dp/correcoes?todos=1">Ver também os respondidos</Link>}</div>
       {!lista?.length ? <Vazio>Nenhum pedido {sp.todos ? '' : 'pendente'}. 👍</Vazio> : (
-        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white"><table className="tabela">
+        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie"><table className="tabela">
           <thead><tr><th>Dia</th><th>Funcionário</th><th>Pedido</th><th>Situação</th><th /></tr></thead>
           <tbody>{lista.map((p) => {
             const f = p.funcionarios as unknown as { nome: string; matricula: string; obras: { codigo: string } | null };

@@ -41,7 +41,7 @@ export default async function DossieFuncionario({ params }: { params: Promise<{ 
   return (
     <>
       <Cabecalho titulo={f.nome}
-        acoes={<Link href={`/cadastros/funcionarios/${id}/dossie`} className="inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold hover:border-sinal-400">📁 Abrir pasta (dossiê)</Link>}
+        acoes={<Link href={`/cadastros/funcionarios/${id}/dossie`} className="inline-flex items-center rounded-md border border-concreto-300 bg-superficie px-3 py-2 text-sm font-semibold hover:border-sinal-400">📁 Abrir pasta (dossiê)</Link>}
         sub={<span className="flex flex-wrap items-center gap-2"><span className="font-mono">Matrícula {f.matricula}</span> • {f.funcao_nome ?? 'função a definir'} • {f.empregador_nome ?? 'sem empresa'} • {f.obra_codigo ?? 'Escritório'}
           {f.ativo ? <Selo cor="bg-ok-50 text-ok-700">Ativo</Selo> : <Selo cor="bg-concreto-200 text-concreto-700">Desligado em {data(f.data_demissao)}</Selo>}</span>} />
 
@@ -136,7 +136,7 @@ export default async function DossieFuncionario({ params }: { params: Promise<{ 
             </Cartao>)}
 
           {pode && (f.ativo ? (
-            <details className="rounded-lg border border-concreto-200 bg-white">
+            <details className="rounded-lg border border-concreto-200 bg-superficie">
               <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-atraso-700">Desligar funcionário</summary>
               <FormAcao acao={desligarFuncionario} className="space-y-2 border-t border-concreto-100 p-4">
                 <input type="hidden" name="id" value={id} />

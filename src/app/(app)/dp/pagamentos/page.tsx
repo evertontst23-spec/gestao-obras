@@ -60,7 +60,7 @@ export default async function Pagamentos({ searchParams }: { searchParams: Promi
           {!lista?.length ? <Vazio>Nenhum pagamento ainda. Crie o próximo ao lado.</Vazio> : (
             <div className="space-y-2">
               {lista.map((p) => (
-                <Link key={p.id} href={`/dp/pagamentos/${p.id}${sp.obra && !obraPag.has(p.id) ? `?obra=${sp.obra}` : ''}`} className="flex items-center gap-3 rounded-lg border border-concreto-200 bg-white p-3 hover:border-sinal-400">
+                <Link key={p.id} href={`/dp/pagamentos/${p.id}${sp.obra && !obraPag.has(p.id) ? `?obra=${sp.obra}` : ''}`} className="flex items-center gap-3 rounded-lg border border-concreto-200 bg-superficie p-3 hover:border-sinal-400">
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold">{p.titulo} {obraPag.has(p.id) ? <Selo cor="bg-sinal-50 text-sinal-700">só {obraPag.get(p.id)}</Selo> : <Selo cor="bg-concreto-100 text-concreto-600">todas as obras</Selo>}</div>
                     <div className="text-xs text-concreto-500">{data(p.data_pagamento)} • {TIPO_PAG[p.tipo]} • {p.funcionarios} funcionário(s){p.status === 'pago' && p.pago_em && ` • pago em ${data(p.pago_em)}`}</div>

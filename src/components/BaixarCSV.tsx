@@ -12,5 +12,5 @@ export function BaixarCSV({ nome, cabecalho, linhas, rotulo = '⬇ Excel (CSV)' 
     const a = Object.assign(document.createElement('a'), { href: url, download: `${nome}.csv` });
     a.click(); URL.revokeObjectURL(url);
   }
-  return <button type="button" onClick={baixar} className="nao-imprimir inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold text-concreto-800 hover:bg-concreto-50">{rotulo}</button>;
+  return <button type="button" onClick={baixar} className="nao-imprimir inline-flex items-center rounded-md border border-concreto-300 bg-superficie px-3 py-2 text-sm font-semibold text-concreto-800 hover:bg-concreto-50">{rotulo}</button>;
 }

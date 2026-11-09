@@ -143,7 +143,7 @@ export default async function Espelho({ searchParams }: { searchParams: Promise<
             </Cartao>
           </div>)}
 
-        <div className="mb-4 rounded-lg border border-concreto-200 bg-white p-4 text-sm">
+        <div className="mb-4 rounded-lg border border-concreto-200 bg-superficie p-4 text-sm">
           <div className="grid gap-x-6 gap-y-1 sm:grid-cols-3">
             <div><span className="text-concreto-500">Funcionário:</span> <b>{func.nome}</b></div>
             <div><span className="text-concreto-500">Matrícula:</span> {func.matricula}</div>
@@ -160,7 +160,7 @@ export default async function Espelho({ searchParams }: { searchParams: Promise<
           <Indicador rotulo="Atrasos" valor={horas(t('atraso_min'))} tom={t('atraso_min') ? 'atraso' : 'neutro'} />
           <Indicador rotulo="Faltas" valor={dias.filter((d) => d.falta).length} tom={dias.some((d) => d.falta) ? 'atraso' : 'neutro'} />
         </div>
-        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white"><table className="tabela whitespace-nowrap">
+        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie"><table className="tabela whitespace-nowrap">
           <thead><tr><th>Dia</th><th>Marcações</th><th className="text-right">Trabalhado</th><th className="text-right">HE 70%</th><th className="text-right">HE 100%</th><th className="text-right">Atraso</th><th>Ocorrência</th>{rh && <th className="nao-imprimir" />}</tr></thead>
           <tbody>{dias.map((d) => {
             const desc = d.dia_semana === 7 || d.feriado;

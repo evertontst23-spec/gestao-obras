@@ -37,7 +37,7 @@ export function AssinarItemEPI({ pendente, insumo, epi, funcionario, nome, temRo
       <span className="hidden text-[10px] print:inline">aguardando assinatura</span>
       {aberto && (
         <div className="nao-imprimir fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-3 sm:items-center" onClick={() => !enviando && setAberto(false)}>
-          <div className="max-h-[95vh] w-full max-w-lg space-y-3 overflow-y-auto rounded-lg bg-white p-4" onClick={(e) => e.stopPropagation()}>
+          <div className="max-h-[95vh] w-full max-w-lg space-y-3 overflow-y-auto rounded-lg bg-superficie p-4" onClick={(e) => e.stopPropagation()}>
             <div>
               <div className="text-xs uppercase tracking-wide text-concreto-500">Recebimento de EPI — {nome}</div>
               <div className="text-lg font-bold">{epi}</div>
@@ -45,8 +45,8 @@ export function AssinarItemEPI({ pendente, insumo, epi, funcionario, nome, temRo
             </div>
             <div className="grid grid-cols-2 gap-1 rounded-md bg-concreto-100 p-1 text-sm font-semibold">
               <button type="button" onClick={() => setConf('facial')} disabled={!rosto && !podeCadastrarRosto}
-                className={`min-h-[40px] rounded disabled:opacity-40 ${conf === 'facial' ? 'bg-white shadow' : 'text-concreto-600'}`}>🙂 Rosto</button>
-              <button type="button" onClick={() => setConf('assinatura')} className={`min-h-[40px] rounded ${conf === 'assinatura' ? 'bg-white shadow' : 'text-concreto-600'}`}>✍ Assinatura</button>
+                className={`min-h-[40px] rounded disabled:opacity-40 ${conf === 'facial' ? 'bg-superficie shadow' : 'text-concreto-600'}`}>🙂 Rosto</button>
+              <button type="button" onClick={() => setConf('assinatura')} className={`min-h-[40px] rounded ${conf === 'assinatura' ? 'bg-superficie shadow' : 'text-concreto-600'}`}>✍ Assinatura</button>
             </div>
             {conf === 'assinatura' ? <Assinatura ref={ass} />
               : rosto ? <><CapturaRosto onCaptura={(d) => setDescritor(d)} rotulo={`Confirmar pelo rosto de ${nome}`} />

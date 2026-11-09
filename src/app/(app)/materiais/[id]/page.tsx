@@ -49,7 +49,7 @@ export default async function DetalheSolicitacao({ params, searchParams }: { par
   return (
     <>
       <Cabecalho titulo={`Solicitação ${codSM(s.numero)}`}
-        acoes={<Link href={`/materiais/pedido?sm=${id}`} className="inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold hover:border-sinal-400"><Icone nome="imprimir" className="mr-1.5 h-4 w-4" />PDF do pedido</Link>}
+        acoes={<Link href={`/materiais/pedido?sm=${id}`} className="inline-flex items-center rounded-md border border-concreto-300 bg-superficie px-3 py-2 text-sm font-semibold hover:border-sinal-400"><Icone nome="imprimir" className="mr-1.5 h-4 w-4" />PDF do pedido</Link>}
         sub={<span className="flex flex-wrap items-center gap-2"><Link href={`/obras/${s.obra_id}`} className="link">{s.obra_codigo} — {s.obra_nome}</Link><SeloSolicitacao s={s.status} /><SeloPrioridade p={s.prioridade} /></span>} />
       {criado && <p className="mb-4 rounded-md bg-ok-50 px-4 py-3 text-sm font-semibold text-ok-700">Pedido enviado! Você será avisado a cada etapa. Se quiser, anexe uma foto abaixo.</p>}
 
@@ -68,7 +68,7 @@ export default async function DetalheSolicitacao({ params, searchParams }: { par
           </Cartao>
 
           {podeEditar && (
-            <details className="rounded-lg border border-concreto-200 bg-white">
+            <details className="rounded-lg border border-concreto-200 bg-superficie">
               <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-sinal-700">✎ Editar pedido (data, prioridade, serviço, observação)</summary>
               <FormAcao acao={editarSolicitacao} className="grid gap-3 border-t border-concreto-100 p-4 sm:grid-cols-3">
                 <input type="hidden" name="solicitacao" value={id} />
@@ -168,7 +168,7 @@ export default async function DetalheSolicitacao({ params, searchParams }: { par
                               ? <>Saldo no sistema — <b>esta obra: {num(saldoObra.get(i.insumo_id) ?? 0, 3)}</b> • <b>depósito central: {num(saldoCentral.get(i.insumo_id) ?? 0, 3)}</b> {i.unidade}.</>
                               : 'Item sem estoque controlado no sistema.'}</p>
                             {saldo <= 0 && (
-                              <FormAcao acao={verificarEstoque} className="flex flex-wrap items-center gap-2 rounded border-2 border-atraso-500 bg-white p-2">
+                              <FormAcao acao={verificarEstoque} className="flex flex-wrap items-center gap-2 rounded border-2 border-atraso-500 bg-superficie p-2">
                                 <input type="hidden" name="solicitacao" value={id} /><input type="hidden" name="item" value={i.id} /><input type="hidden" name="disponivel" value="0" />
                                 <span className="flex-1 text-sm font-semibold text-atraso-700">Não há {i.material} em estoque.</span>
                                 <Botao variante="escuro">Sem estoque → enviar para cotação</Botao>

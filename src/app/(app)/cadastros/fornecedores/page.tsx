@@ -42,7 +42,7 @@ export default async function Fornecedores({ searchParams }: { searchParams: Pro
       <form className="mb-3 flex gap-2"><input name="q" defaultValue={q} placeholder="Buscar por nome, CNPJ ou categoria…" className="entrada flex-1" /><button className="rounded-md bg-concreto-800 px-4 text-sm font-semibold text-white">Buscar</button></form>
       {!lista?.length ? <Vazio>Nenhum fornecedor encontrado.</Vazio> : (
         <div className="space-y-2">{lista.map((f) => (
-          <details key={f.id} className={`rounded-lg border border-concreto-200 bg-white ${f.ativo ? '' : 'opacity-60'}`}>
+          <details key={f.id} className={`rounded-lg border border-concreto-200 bg-superficie ${f.ativo ? '' : 'opacity-60'}`}>
             <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 px-4 py-3">
               <span><b>{f.nome}</b> <span className="text-xs text-concreto-500">{f.documento} {f.categoria && `• ${f.categoria}`}</span></span>
               <span className="text-xs text-concreto-600">{f.telefone} {total.get(f.id) && <>• {total.get(f.id)!.n} OC(s) • <b>{reais(total.get(f.id)!.v)}</b></>}</span>

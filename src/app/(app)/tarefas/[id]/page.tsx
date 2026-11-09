@@ -69,7 +69,7 @@ export default async function DetalheTarefa({ params }: { params: Promise<{ id: 
           <SeloStatus s={st} /><SeloPrazo s={t.situacao_prazo} /><SeloPrioridade p={t.prioridade} /></span>}
         acoes={<>
           {gere && !finalizada && <LinkBotao href={`/tarefas/${id}/editar`} variante="secundario">Editar</LinkBotao>}
-          <a href={`https://wa.me/?text=${zap}`} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold text-concreto-800 hover:bg-concreto-50">Compartilhar no WhatsApp</a>
+          <a href={`https://wa.me/?text=${zap}`} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-md border border-concreto-300 bg-superficie px-3 py-2 text-sm font-semibold text-concreto-800 hover:bg-concreto-50">Compartilhar no WhatsApp</a>
         </>}
       />
 
@@ -120,7 +120,7 @@ export default async function DetalheTarefa({ params }: { params: Promise<{ id: 
                     </FormAcao>
                   </details>
                 )}
-                <Link href={`/materiais/nova?tarefa=${id}`} className="flex min-h-[52px] items-center justify-center rounded-md border border-concreto-300 bg-white font-semibold hover:bg-concreto-50">▤ Solicitar material</Link>
+                <Link href={`/materiais/nova?tarefa=${id}`} className="flex min-h-[52px] items-center justify-center rounded-md border border-concreto-300 bg-superficie font-semibold hover:bg-concreto-50">▤ Solicitar material</Link>
                 <details id="impedimento" className="rounded-md border border-concreto-200">
                   <summary className="cursor-pointer px-4 py-3 font-semibold">⚠ Registrar impedimento / dificuldade</summary>
                   <FormAcao acao={registrarImpedimento} limparAoConcluir className="space-y-3 border-t border-concreto-100 p-4">

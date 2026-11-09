@@ -38,10 +38,10 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
     <>
       <Cabecalho titulo="Plano de ação" sub={`${ts.length} tarefa(s)`}
         acoes={gestor(perfil.papel) && <>
-          <Link href={f.obra ? `/tarefas/importar?obra=${f.obra}` : '/tarefas/importar'} className="inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold hover:border-sinal-400">⬆ Importar planilha de tarefas</Link>
+          <Link href={f.obra ? `/tarefas/importar?obra=${f.obra}` : '/tarefas/importar'} className="inline-flex items-center rounded-md border border-concreto-300 bg-superficie px-3 py-2 text-sm font-semibold hover:border-sinal-400">⬆ Importar planilha de tarefas</Link>
           <LinkBotao href={f.obra ? `/tarefas/nova?obra=${f.obra}` : '/tarefas/nova'}>+ Nova tarefa</LinkBotao></>} />
 
-      <form className="mb-4 grid grid-cols-2 gap-2 rounded-lg border border-concreto-200 bg-white p-3 md:grid-cols-4 xl:grid-cols-8">
+      <form className="mb-4 grid grid-cols-2 gap-2 rounded-lg border border-concreto-200 bg-superficie p-3 md:grid-cols-4 xl:grid-cols-8">
         <input type="hidden" name="visao" value={visao} />
         <select name="obra" defaultValue={f.obra ?? ''} className="entrada col-span-2"><option value="">Todas as obras</option>
           {obras?.map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}</select>
@@ -60,7 +60,7 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
           <Link href={`/tarefas?visao=${visao}`} className="rounded-md px-3 py-2 text-sm text-concreto-600 hover:bg-concreto-100">Limpar</Link>
           <div className="ml-auto flex overflow-hidden rounded-md border border-concreto-300 text-sm font-semibold">
             {[['lista', 'Lista'], ['kanban', 'Kanban'], ['calendario', 'Calendário']].map(([k, r]) => (
-              <Link key={k} href={params({ visao: k })} className={`px-3 py-2 ${visao === k ? 'bg-sinal-500 text-white' : 'bg-white text-concreto-700 hover:bg-concreto-50'}`}>{r}</Link>))}
+              <Link key={k} href={params({ visao: k })} className={`px-3 py-2 ${visao === k ? 'bg-sinal-500 text-white' : 'bg-superficie text-concreto-700 hover:bg-concreto-50'}`}>{r}</Link>))}
           </div>
         </div>
       </form>
@@ -69,7 +69,7 @@ export default async function Tarefas({ searchParams }: { searchParams: Promise<
         : visao === 'kanban' ? <Kanban tarefas={ts} />
         : visao === 'calendario' ? <Calendario tarefas={ts} mes={f.mes} link={(m) => params({ mes: m })} />
         : (
-        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie">
           <table className="tabela">
             <thead><tr><th>Nº</th><th>Serviço / local</th><th>Obra</th><th>Responsável</th><th>Início</th><th>Limite</th><th>Prazo</th><th>Prioridade</th><th>Status</th><th className="w-32">Executado</th></tr></thead>
             <tbody>
@@ -113,11 +113,11 @@ function Kanban({ tarefas }: { tarefas: any[] }) {
         return (
           <div key={c.titulo} className="w-72 shrink-0 snap-start rounded-lg bg-concreto-100 p-2">
             <div className="mb-2 flex items-center justify-between px-1 text-xs font-bold uppercase tracking-wide text-concreto-600">
-              {c.titulo}<span className="rounded bg-white px-1.5 font-mono">{itens.length}</span>
+              {c.titulo}<span className="rounded bg-superficie px-1.5 font-mono">{itens.length}</span>
             </div>
             <div className="space-y-2">
               {itens.map((t) => (
-                <Link key={t.id} href={`/tarefas/${t.id}`} className={`block rounded-md border border-concreto-200 border-l-4 bg-white p-3 text-sm shadow-sm hover:border-sinal-400 ${borda[t.situacao_prazo as SituacaoPrazo]}`}>
+                <Link key={t.id} href={`/tarefas/${t.id}`} className={`block rounded-md border border-concreto-200 border-l-4 bg-superficie p-3 text-sm shadow-sm hover:border-sinal-400 ${borda[t.situacao_prazo as SituacaoPrazo]}`}>
                   <div className="flex justify-between gap-2 text-xs text-concreto-500"><span className="font-mono">{codTarefa(t.numero)}</span><span>{data(t.fim_previsto)}</span></div>
                   <div className="mt-1 font-semibold leading-snug">{t.titulo}</div>
                   <div className="mt-1 text-xs text-concreto-500">{t.encarregado_nome} • {t.obra_codigo}</div>
@@ -143,7 +143,7 @@ function Calendario({ tarefas, mes, link }: { tarefas: any[]; mes?: string; link
   const hoje = hojeISO();
   const cores: Record<SituacaoPrazo, string> = { no_prazo: 'bg-ok-50 text-ok-700', atencao: 'bg-atencao-50 text-atencao-700', atrasado: 'bg-atraso-50 text-atraso-700', concluido: 'bg-concreto-100 text-concreto-600' };
   return (
-    <div className="rounded-lg border border-concreto-200 bg-white">
+    <div className="rounded-lg border border-concreto-200 bg-superficie">
       <div className="flex items-center justify-between border-b border-concreto-100 px-4 py-2">
         <Link href={link(mesAnt)} className="rounded px-2 py-1 hover:bg-concreto-100">←</Link>
         <b className="capitalize">{primeiro.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' })}</b>

@@ -61,7 +61,7 @@ export default async function PlanilhaObra({ params, searchParams }: { params: P
       <AbasObra id={id} atual="planilha" />
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div className="col-span-2 rounded-lg border border-concreto-200 bg-white px-4 py-3">
+        <div className="col-span-2 rounded-lg border border-concreto-200 bg-superficie px-4 py-3">
           <div className="text-xs font-semibold uppercase tracking-wide text-concreto-500">Avanço físico-financeiro</div>
           <div className="mt-1 font-mono text-2xl font-bold">{obra.avanco_fisico}%</div>
           <Progresso valor={obra.avanco_fisico} cor="bg-ok-500" />
@@ -104,7 +104,7 @@ export default async function PlanilhaObra({ params, searchParams }: { params: P
       </Cartao>
 
       {gere && (
-        <details className="mt-5 rounded-lg border border-concreto-200 bg-white">
+        <details className="mt-5 rounded-lg border border-concreto-200 bg-superficie">
           <summary className="cursor-pointer px-4 py-3 text-sm font-bold uppercase tracking-wide text-concreto-700">Substituir planilha</summary>
           <div className="border-t border-concreto-100 p-4">
             {nMed ? <p className="text-sm text-concreto-600">Já existem {nMed} lançamento(s) de execução nesta planilha. Para preservar o histórico do avanço, ela não pode ser substituída — acréscimos e supressões serão tratados como aditivo (próxima etapa).</p>

@@ -51,7 +51,7 @@ export default async function Dossies({ searchParams }: { searchParams: Promise<
         <Indicador rotulo="Com pendência" valor={pastas.length - completas} tom={pastas.length - completas ? 'atencao' : 'neutro'} href="/cadastros/dossies?falta=1" />
         <Indicador rotulo="Documentos guardados" valor={(docs ?? []).length} />
       </div>
-      <form className="mb-4 flex flex-wrap gap-2 rounded-lg border border-concreto-200 bg-white p-3">
+      <form className="mb-4 flex flex-wrap gap-2 rounded-lg border border-concreto-200 bg-superficie p-3">
         <input name="q" defaultValue={sp.q ?? ''} placeholder="Nome ou matrícula…" className="entrada w-auto min-w-[200px] flex-1" />
         <select name="obra" defaultValue={sp.obra ?? ''} className="entrada w-auto"><option value="">Todas as obras</option><option value="sem">Escritório / sem obra</option>
           {obras?.map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}</select>
@@ -65,7 +65,7 @@ export default async function Dossies({ searchParams }: { searchParams: Promise<
           {pastas.map(({ f, ds, r, foto }) => {
             const pct = Math.round((r.ok / Math.max(r.total, 1)) * 100);
             return (
-              <Link key={f.id} href={`/cadastros/funcionarios/${f.id}/dossie`} className="group flex min-w-0 flex-col rounded-lg border border-concreto-200 bg-white hover:border-sinal-400">
+              <Link key={f.id} href={`/cadastros/funcionarios/${f.id}/dossie`} className="group flex min-w-0 flex-col rounded-lg border border-concreto-200 bg-superficie hover:border-sinal-400">
                 <div className="flex items-center gap-3 border-b border-concreto-100 p-3">
                   {foto ? <img src={foto} alt="" className="h-12 w-12 flex-none rounded-md object-cover" />
                     : <span className="flex h-12 w-12 flex-none items-center justify-center rounded-md bg-concreto-100 text-sm font-bold text-concreto-500">{iniciais(f.nome)}</span>}

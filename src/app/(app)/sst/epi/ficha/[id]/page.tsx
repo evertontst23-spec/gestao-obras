@@ -65,20 +65,20 @@ export default async function FichaEPI({ params }: { params: Promise<{ id: strin
       <div className="nao-imprimir mb-4 flex flex-wrap items-center justify-between gap-2">
         <Link href="/sst/epi/fichas" className="link text-sm">← Fichas de EPI</Link>
         <div className="flex gap-2">
-          <Link href={`/sst/epi/nova?func=${id}`} className="rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold">+ Entregar EPI</Link>
+          <Link href={`/sst/epi/nova?func=${id}`} className="rounded-md border border-concreto-300 bg-superficie px-3 py-2 text-sm font-semibold">+ Entregar EPI</Link>
           <BotaoImprimir rotulo="Imprimir ficha" />
         </div>
       </div>
       {faltam > 0 && <p className="nao-imprimir mx-auto mb-3 max-w-5xl rounded-md bg-atencao-50 px-4 py-2 text-sm font-semibold text-atencao-800">⚠ {faltam} EPI(s) aguardando a assinatura do funcionário. Clique em “Assinar” em cada linha.</p>}
       {podeAssinar && (pend ?? []).map((p) => (
-        <FormAcao key={p.id} acao={definirEntregadorEPI} className="nao-imprimir mx-auto mb-3 flex max-w-5xl flex-wrap items-center gap-2 rounded-md border border-concreto-200 bg-white px-4 py-2 text-sm">
+        <FormAcao key={p.id} acao={definirEntregadorEPI} className="nao-imprimir mx-auto mb-3 flex max-w-5xl flex-wrap items-center gap-2 rounded-md border border-concreto-200 bg-superficie px-4 py-2 text-sm">
           <input type="hidden" name="pendente" value={p.id} />
           <span>Entrega de <b>{data(p.data)}</b> — entregue por:</span>
           <select name="entregador" defaultValue={p.entregue_por_func ?? ''} className="entrada w-auto min-w-[220px] py-1">
             <option value="">— informar —</option>{(equipe ?? []).filter((x) => x.id !== id).map((x) => <option key={x.id} value={x.id}>{x.nome}{x.funcao_nome ? ` — ${x.funcao_nome}` : ''}</option>)}</select>
           <Botao variante="secundario">Salvar</Botao>
         </FormAcao>))}
-      <article className="mx-auto max-w-5xl rounded-lg border border-concreto-200 bg-white p-6 text-sm print:max-w-none print:border-0 print:p-0">
+      <article className="mx-auto max-w-5xl rounded-lg border border-concreto-200 bg-superficie p-6 text-sm print:max-w-none print:border-0 print:p-0">
         <header className="mb-3 grid grid-cols-[1fr_auto] items-end gap-4 border-b-2 border-concreto-800 pb-3">
           <div>
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-sinal-700">NR-06 — Equipamento de Proteção Individual</div>
@@ -108,7 +108,7 @@ export default async function FichaEPI({ params }: { params: Promise<{ id: strin
           <table className="w-full border-collapse text-xs">
             <thead><tr className="bg-concreto-100">{['Data da entrega', 'Qtd.', 'EPI', 'Nº do CA', 'Motivo', 'Entregue por', 'Troca / devolução', 'Assinatura do empregado'].map((h) => <th key={h} className={`${cel} text-left`}>{h}</th>)}</tr></thead>
             <tbody>{linhas.map((l) => (
-              <tr key={l.chave} className={l.pendente ? 'bg-atencao-50/60 print:bg-white' : ''}>
+              <tr key={l.chave} className={l.pendente ? 'bg-atencao-50/60 print:bg-superficie' : ''}>
                 <td className={`${cel} whitespace-nowrap`}>{data(l.data)}</td>
                 <td className={`${cel} whitespace-nowrap`}>{l.qtd} {l.unidade}</td>
                 <td className={cel}>{l.epi}</td>

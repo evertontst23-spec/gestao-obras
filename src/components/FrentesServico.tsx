@@ -49,7 +49,7 @@ export function FrentesServico({ funcionarios, tarefas, inicial }: { funcionario
             {fr.equipe.map((p, j) => (
               <div key={j} className="flex items-center gap-2">
                 <input value={p.nome} readOnly={!!p.funcionario_id} onChange={(e) => muda(i, { equipe: fr.equipe.map((x, k) => (k === j ? { ...x, nome: e.target.value } : x)) })}
-                  placeholder="Nome" className={`entrada min-w-0 flex-1 ${p.funcionario_id ? 'bg-white' : ''}`} />
+                  placeholder="Nome" className={`entrada min-w-0 flex-1 ${p.funcionario_id ? 'bg-superficie' : ''}`} />
                 <input value={p.funcao} onChange={(e) => muda(i, { equipe: fr.equipe.map((x, k) => (k === j ? { ...x, funcao: e.target.value } : x)) })}
                   placeholder="Função" className="entrada w-36" />
                 <button type="button" aria-label="Tirar da frente" onClick={() => muda(i, { equipe: fr.equipe.filter((_, k) => k !== j) })} className="px-2 text-atraso-700">✕</button>
@@ -60,8 +60,8 @@ export function FrentesServico({ funcionarios, tarefas, inicial }: { funcionario
                 <optgroup label="Equipe da obra">{funcionarios.filter((f) => f.daObra).map((f) => <option key={f.id} value={f.id} disabled={usados.has(f.id)}>{f.nome}{f.funcao ? ` — ${f.funcao}` : ''}</option>)}</optgroup>
                 <optgroup label="Outras obras / escritório">{funcionarios.filter((f) => !f.daObra).map((f) => <option key={f.id} value={f.id} disabled={usados.has(f.id)}>{f.nome}{f.funcao ? ` — ${f.funcao}` : ''}</option>)}</optgroup>
               </select>
-              <button type="button" onClick={() => muda(i, { equipe: [...fr.equipe, { nome: '', funcao: '' }] })} className="rounded-md border border-concreto-300 bg-white px-3 text-xs font-semibold">+ Pessoa sem cadastro</button>
-              {i === 0 && fr.equipe.length === 0 && <button type="button" onClick={() => addEquipeObra(i)} className="rounded-md border border-concreto-300 bg-white px-3 text-xs font-semibold">+ Toda a equipe da obra</button>}
+              <button type="button" onClick={() => muda(i, { equipe: [...fr.equipe, { nome: '', funcao: '' }] })} className="rounded-md border border-concreto-300 bg-superficie px-3 text-xs font-semibold">+ Pessoa sem cadastro</button>
+              {i === 0 && fr.equipe.length === 0 && <button type="button" onClick={() => addEquipeObra(i)} className="rounded-md border border-concreto-300 bg-superficie px-3 text-xs font-semibold">+ Toda a equipe da obra</button>}
             </div>
           </div>
         </fieldset>))}

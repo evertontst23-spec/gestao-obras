@@ -31,7 +31,7 @@ export default async function NovaSolicitacao({ searchParams }: { searchParams: 
         <Cabecalho titulo="Solicitar material" sub="Para qual obra?" />
         {!obras?.length ? <Vazio>Você não está vinculado a nenhuma obra ativa.</Vazio> : (
           <div className="space-y-2">{obras.map((o) => (
-            <Link key={o.id} href={`/materiais/nova?obra=${o.id}`} className="block min-h-[56px] rounded-lg border border-concreto-200 bg-white p-4 font-semibold hover:border-sinal-400">
+            <Link key={o.id} href={`/materiais/nova?obra=${o.id}`} className="block min-h-[56px] rounded-lg border border-concreto-200 bg-superficie p-4 font-semibold hover:border-sinal-400">
               <span className="font-mono text-xs text-concreto-500">{o.codigo}</span><br />{o.nome}</Link>))}
           </div>)}
       </div>

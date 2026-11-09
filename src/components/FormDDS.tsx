@@ -54,7 +54,7 @@ export function FormDDS({ obra, equipe, hoje }: { obra: string; equipe: { id: st
           <button type="button" className="text-sm font-semibold text-sinal-700" onClick={() => setMarcados(marcados.length === equipe.length ? [] : equipe.map((e) => e.id))}>
             {marcados.length === equipe.length ? 'desmarcar todos' : 'marcar todos'}</button></div>
         <div className="grid gap-2 sm:grid-cols-2">{equipe.map((e) => (
-          <label key={e.id} className={`flex min-h-[48px] cursor-pointer items-center gap-3 rounded-md border px-3 ${marcados.includes(e.id) ? 'border-ok-500 bg-ok-50' : 'border-concreto-200 bg-white'}`}>
+          <label key={e.id} className={`flex min-h-[48px] cursor-pointer items-center gap-3 rounded-md border px-3 ${marcados.includes(e.id) ? 'border-ok-500 bg-ok-50' : 'border-concreto-200 bg-superficie'}`}>
             <input type="checkbox" checked={marcados.includes(e.id)} onChange={() => alternar(e.id)} className="h-5 w-5 accent-ok-500" />
             <span className="text-sm"><b>{e.nome}</b><span className="block text-xs text-concreto-500">{e.funcao}</span></span>
           </label>))}</div>

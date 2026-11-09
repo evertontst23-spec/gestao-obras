@@ -28,9 +28,9 @@ export default async function Notificacoes({ searchParams }: { searchParams: Pro
     <div className="mx-auto max-w-2xl">
       <Cabecalho titulo="Central de notificações"
         sub={<a href={todas ? '/notificacoes' : '/notificacoes?todas=1'} className="link">{todas ? 'Mostrar só não lidas' : 'Mostrar todas'}</a>}
-        acoes={!!lista?.some((n) => !n.lida) && <form action={marcarTodas}><button className="rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold">Marcar todas como lidas</button></form>} />
+        acoes={!!lista?.some((n) => !n.lida) && <form action={marcarTodas}><button className="rounded-md border border-concreto-300 bg-superficie px-3 py-2 text-sm font-semibold">Marcar todas como lidas</button></form>} />
       {!lista?.length ? <Vazio>Nenhuma notificação {todas ? '' : 'nova'}.</Vazio> : (
-        <ul className="divide-y divide-concreto-100 overflow-hidden rounded-lg border border-concreto-200 bg-white">
+        <ul className="divide-y divide-concreto-100 overflow-hidden rounded-lg border border-concreto-200 bg-superficie">
           {lista.map((n) => (
             <li key={n.id}>
               <a href={`/notificacoes/abrir/${n.id}`} className={`flex gap-3 p-4 hover:bg-concreto-50 ${n.lida ? 'opacity-60' : ''}`}>

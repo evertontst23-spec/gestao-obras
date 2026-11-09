@@ -44,7 +44,7 @@ export default async function Funcionarios({ searchParams }: { searchParams: Pro
       {porEmpresa.size > 0 && (
         <div className="mb-4 flex flex-wrap gap-2">
           {[...porEmpresa].sort((a, b) => b[1].n - a[1].n).map(([nome, e]) => (
-            <Link key={nome} href={`/cadastros/funcionarios?empresa=${e.id}`} className={`rounded-full border px-3 py-1 text-sm font-semibold ${sp.empresa === e.id ? 'border-sinal-500 bg-sinal-50 text-sinal-700' : 'border-concreto-300 bg-white text-concreto-700 hover:border-sinal-400'}`}>{nome} <span className="font-mono text-concreto-500">{e.n}</span></Link>))}
+            <Link key={nome} href={`/cadastros/funcionarios?empresa=${e.id}`} className={`rounded-full border px-3 py-1 text-sm font-semibold ${sp.empresa === e.id ? 'border-sinal-500 bg-sinal-50 text-sinal-700' : 'border-concreto-300 bg-superficie text-concreto-700 hover:border-sinal-400'}`}>{nome} <span className="font-mono text-concreto-500">{e.n}</span></Link>))}
           {sp.empresa && <Link href="/cadastros/funcionarios" className="px-2 py-1 text-sm text-concreto-500 hover:underline">limpar</Link>}
         </div>)}
       {pendentes > 0 && <p className="mb-3 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">⚠ {pendentes} cadastro(s) com dados a confirmar (CPF, admissão, salário…). Abra o funcionário para completar.</p>}
@@ -55,7 +55,7 @@ export default async function Funcionarios({ searchParams }: { searchParams: Pro
         <Indicador rotulo="Vencem em 30 dias" valor={fs.reduce((s, f) => s + Number(f.documentos_a_vencer), 0)} tom={fs.some((f) => f.documentos_a_vencer > 0) ? 'atencao' : 'ok'} />
       </div>
       {porObra.size > 1 && <p className="mb-3 text-xs text-concreto-500">Por obra: {[...porObra.entries()].map(([o, n]) => `${o}: ${n}`).join(' • ')}</p>}
-      <form className="mb-3 flex flex-wrap gap-2 rounded-lg border border-concreto-200 bg-white p-3">
+      <form className="mb-3 flex flex-wrap gap-2 rounded-lg border border-concreto-200 bg-superficie p-3">
         <input name="q" defaultValue={sp.q} placeholder="Nome, CPF ou matrícula…" className="entrada min-w-[200px] flex-1" />
         <select name="obra" defaultValue={sp.obra ?? ''} className="entrada w-auto"><option value="">Todas as obras</option><option value="sem">Escritório / sem obra</option>
           {obras?.map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}</select>
@@ -65,7 +65,7 @@ export default async function Funcionarios({ searchParams }: { searchParams: Pro
         <button className="rounded-md bg-concreto-800 px-4 text-sm font-semibold text-white">Filtrar</button>
       </form>
       {!fs.length ? <Vazio>Nenhum funcionário encontrado.</Vazio> : (
-        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie">
           <table className="tabela">
             <thead><tr><th></th><th>Matrícula</th><th>Nome</th><th>Empresa</th><th>Função</th><th>Obra</th><th>Admissão</th><th className="text-right">Salário</th><th>Situação</th><th>Dossiê</th></tr></thead>
             <tbody>{fs.map((f) => (

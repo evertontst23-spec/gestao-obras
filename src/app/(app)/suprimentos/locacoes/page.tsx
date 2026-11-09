@@ -45,10 +45,10 @@ export default async function Locacoes({ searchParams }: { searchParams: Promise
           <select name="obra" defaultValue={sp.obra ?? ''} className="entrada w-64">
             <option value="">Todas</option>{(obras ?? []).map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}
           </select></label>
-        <button className="rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold">Filtrar</button>
+        <button className="rounded-md border border-concreto-300 bg-superficie px-3 py-2 text-sm font-semibold">Filtrar</button>
       </form>
       {!lista.length ? <Vazio>Nenhuma locação {sit === 'abertas' ? 'em aberto' : 'nesta situação'}. Para pedir uma locação, use “Solicitar material” e escolha <b>Locação</b> no item.</Vazio> : (
-        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie">
           <table className="tabela">
             <thead><tr><th>Equipamento / material</th><th>Qtd.</th><th>Obra</th><th>Período</th><th>Restam</th><th>Fornecedor</th><th>Situação</th>{podeControlar && <th>Devolver / prorrogar</th>}</tr></thead>
             <tbody>{lista.map((i) => {

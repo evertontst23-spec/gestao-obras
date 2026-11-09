@@ -48,7 +48,7 @@ export default async function DetalheObra({ params }: { params: Promise<{ id: st
       <AbasObra id={id} atual="geral" />
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <div className="col-span-2 rounded-lg border border-concreto-200 bg-white px-4 py-3">
+        <div className="col-span-2 rounded-lg border border-concreto-200 bg-superficie px-4 py-3">
           <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-concreto-500">Avanço físico
             <Link href={`/obras/${id}/avanco`} className="link normal-case">detalhar →</Link></div>
           <div className="mt-1 font-mono text-2xl font-bold">{obra.avanco_fisico}%</div>
@@ -141,7 +141,7 @@ export default async function DetalheObra({ params }: { params: Promise<{ id: st
       </div>
 
       {gere && (
-        <details className="mt-5 rounded-lg border border-concreto-200 bg-white">
+        <details className="mt-5 rounded-lg border border-concreto-200 bg-superficie">
           <summary className="cursor-pointer px-4 py-3 text-sm font-bold uppercase tracking-wide text-concreto-700">Editar dados da obra</summary>
           <div className="border-t border-concreto-100 p-4">
             <FormAcao acao={atualizarObra}>

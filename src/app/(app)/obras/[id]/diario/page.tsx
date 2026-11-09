@@ -43,7 +43,7 @@ export default async function Diario({ params }: { params: Promise<{ id: string 
         <div className="lg:col-span-3">
           {!ds.length ? <Vazio>Nenhum diário registrado.</Vazio> : (
             <div className="space-y-2">{ds.map((d) => (
-              <Link key={d.id} href={`/obras/${id}/diario/${d.id}`} className="block rounded-lg border border-concreto-200 bg-white p-3 hover:border-sinal-400">
+              <Link key={d.id} href={`/obras/${id}/diario/${d.id}`} className="block rounded-lg border border-concreto-200 bg-superficie p-3 hover:border-sinal-400">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="font-semibold">{data(d.data)} <span className="text-sm font-normal text-concreto-500">{SEM[new Date(d.data + 'T12:00:00').getDay()]}</span></div>
                   <div className="flex gap-1 text-xs">

@@ -69,7 +69,7 @@ export default async function Suprimentos({ searchParams }: { searchParams: Prom
       {fila === 'estoque' && podeVerificar && (() => {
         const semSaldo = lista.filter((i) => saldoDe(i) <= 0);
         return semSaldo.length >= 2 && (
-          <FormAcao acao={verificarEstoqueLote} className="mb-3 flex flex-wrap items-center gap-3 rounded-md border-2 border-concreto-800 bg-white p-3">
+          <FormAcao acao={verificarEstoqueLote} className="mb-3 flex flex-wrap items-center gap-3 rounded-md border-2 border-concreto-800 bg-superficie p-3">
             <input type="hidden" name="modo" value="cotacao" />
             {semSaldo.map((i) => <input key={i.id} type="hidden" name="itens" value={i.id} />)}
             <span className="flex-1 text-sm"><b>{semSaldo.length} itens</b> sem estoque no sistema.</span>
@@ -77,7 +77,7 @@ export default async function Suprimentos({ searchParams }: { searchParams: Prom
           </FormAcao>);
       })()}
       {!lista.length ? <Vazio>Nada pendente nesta fila. 👍</Vazio> : (
-        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie">
           <table className="tabela">
             <thead><tr><th>Pedido</th><th>Material</th><th>Qtd.</th><th>Obra / serviço</th><th>Necessário</th>{fila !== 'estoque' && <><th>Previsão</th><th>Fornecedor</th></>}<th>Prior.</th><th>Status</th><th></th></tr></thead>
             <tbody>{lista.map((i) => (

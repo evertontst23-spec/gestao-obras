@@ -16,7 +16,7 @@ function Formulario({ obraId, itens, itemInicial, aoConcluir }: { obraId: string
       <div className="space-y-3">
         <p className="rounded-md bg-ok-50 px-3 py-2 text-sm font-semibold text-ok-700">✓ {estado.ok}</p>
         <FotoUpload obraId={obraId} medicaoId={estado.id} categoria="execucao" rotulo="📷 Fotos do que foi executado" />
-        <button type="button" onClick={aoConcluir} className="min-h-[44px] w-full rounded-md border border-concreto-300 bg-white text-sm font-semibold">+ Novo lançamento</button>
+        <button type="button" onClick={aoConcluir} className="min-h-[44px] w-full rounded-md border border-concreto-300 bg-superficie text-sm font-semibold">+ Novo lançamento</button>
       </div>
     );
   }

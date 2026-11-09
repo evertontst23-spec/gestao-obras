@@ -65,7 +65,7 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
     const p = o.pg === undefined ? pg : o.pg; if (p) q.set('pg', p);
     return `${base}?${q.toString()}`;
   };
-  const chip = (ativo: boolean) => `rounded-md border px-3 py-1.5 text-sm font-semibold ${ativo ? 'border-sinal-500 bg-sinal-500 text-white' : 'border-concreto-300 bg-white text-concreto-700 hover:border-sinal-400'}`;
+  const chip = (ativo: boolean) => `rounded-md border px-3 py-1.5 text-sm font-semibold ${ativo ? 'border-sinal-500 bg-sinal-500 text-white' : 'border-concreto-300 bg-superficie text-concreto-700 hover:border-sinal-400'}`;
   const rotPag = (p: PagResumo) => `${p.tipo === 'saldo' ? 'Saldo' : p.tipo === 'adiantamento' ? 'Adiantamento' : 'Pagamento'} de ${data(p.data_pagamento).slice(0, 5)}`;
 
   if (!doMes.length) return <Vazio>Nenhum fechamento de salários em {nomeMes(mes)}. Crie em <Link className="link" href="/dp/pagamentos">Pagamentos</Link>.</Vazio>;
@@ -84,7 +84,7 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
 
       {!umPagamento && <div className="nao-imprimir mb-4 flex flex-wrap items-center gap-2 text-sm">
         {doMes.map((p) => (
-          <Link key={p.id} href={`/dp/pagamentos/${p.id}`} className="flex items-center gap-1 rounded-md border border-concreto-200 bg-white px-2 py-1 hover:border-sinal-400">
+          <Link key={p.id} href={`/dp/pagamentos/${p.id}`} className="flex items-center gap-1 rounded-md border border-concreto-200 bg-superficie px-2 py-1 hover:border-sinal-400">
             <b>{rotPag(p)}</b> <span className="font-mono">{reais(soma(todos, (i) => i.pagamento_id === p.id))}</span> <Selo cor={STATUS_PAG[p.status].cor}>{STATUS_PAG[p.status].rotulo}</Selo></Link>))}
         <span className="text-xs text-concreto-500">abrir para incluir/retirar linhas ou fechar no financeiro</span>
       </div>}
@@ -92,7 +92,7 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
         <ExportarC6Pagamento key={p.id} supabase={supabase} pagamentoId={p.id} compacto />))}
 
       {/* filtros */}
-      <div className="nao-imprimir mb-5 space-y-2 rounded-lg border border-concreto-200 bg-white p-3">
+      <div className="nao-imprimir mb-5 space-y-2 rounded-lg border border-concreto-200 bg-superficie p-3">
         <div className="flex flex-wrap items-center gap-2">
           <span className="w-28 text-sm font-semibold text-concreto-600">Separar por:</span>
           {(Object.keys(VER) as Ver[]).map((v) => <Link key={v} href={url({ ver: v, g: null })} className={chip(ver === v)}>{VER[v]}</Link>)}

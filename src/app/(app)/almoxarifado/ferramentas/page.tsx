@@ -45,7 +45,7 @@ export default async function Ferramentas({ searchParams }: { searchParams: Prom
           </form>
           {!lista?.length ? <Vazio>Nenhuma ferramenta emprestada.</Vazio> : (
             <div className="space-y-2">{lista.map((c) => (
-              <div key={c.id} className={`rounded-lg border bg-white p-3 text-sm ${c.atrasada ? 'border-atraso-300' : 'border-concreto-200'}`}>
+              <div key={c.id} className={`rounded-lg border bg-superficie p-3 text-sm ${c.atrasada ? 'border-atraso-300' : 'border-concreto-200'}`}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span><b>{c.descricao}</b> — {num(c.quantidade)} {c.unidade} • <b>{c.funcionario_nome}</b>
                     <span className="block text-xs text-concreto-500">nº {c.id} • {c.obra_codigo ?? 'Depósito central'} • saiu {dataHora(c.retirada_em)}{c.previsao_devolucao && ` • devolver até ${data(c.previsao_devolucao)}`}{c.observacao && ` • ${c.observacao}`}</span>

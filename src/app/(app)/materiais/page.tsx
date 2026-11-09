@@ -24,9 +24,9 @@ export default async function Materiais({ searchParams }: { searchParams: Promis
       <Cabecalho titulo={perfil.papel === 'encarregado' ? 'Meus pedidos de material' : 'Solicitações de material'}
         sub={f.status ? STATUS_SOLICITACAO[f.status]?.rotulo : 'Em aberto'}
         acoes={<div className="flex flex-wrap gap-2">
-          <Link href={f.obra ? `/materiais/pedido?obra=${f.obra}${f.status ? `&status=${f.status}` : ''}` : '/materiais/pedido'} className="inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold hover:border-sinal-400"><Icone nome="imprimir" className="mr-1.5 h-4 w-4" />Pedido em PDF por obra</Link>
+          <Link href={f.obra ? `/materiais/pedido?obra=${f.obra}${f.status ? `&status=${f.status}` : ''}` : '/materiais/pedido'} className="inline-flex items-center rounded-md border border-concreto-300 bg-superficie px-3 py-2 text-sm font-semibold hover:border-sinal-400"><Icone nome="imprimir" className="mr-1.5 h-4 w-4" />Pedido em PDF por obra</Link>
           {pode && <LinkBotao href={f.obra ? `/materiais/nova?obra=${f.obra}` : '/materiais/nova'}>+ Solicitar material</LinkBotao>}</div>} />
-      <form className="mb-4 flex flex-wrap gap-2 rounded-lg border border-concreto-200 bg-white p-3">
+      <form className="mb-4 flex flex-wrap gap-2 rounded-lg border border-concreto-200 bg-superficie p-3">
         <select name="obra" defaultValue={f.obra ?? ''} className="entrada w-auto min-w-[200px] flex-1"><option value="">Todas as obras</option>
           {obras?.map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}</select>
         <select name="status" defaultValue={f.status ?? ''} className="entrada w-auto"><option value="">Em aberto</option>
@@ -35,7 +35,7 @@ export default async function Materiais({ searchParams }: { searchParams: Promis
         <button className="rounded-md bg-concreto-800 px-4 py-2 text-sm font-semibold text-white">Filtrar</button>
       </form>
       {!lista?.length ? <Vazio>Nenhuma solicitação encontrada.</Vazio> : (
-        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie">
           <table className="tabela">
             <thead><tr><th>Nº</th><th>Obra / serviço</th><th>Solicitante</th><th>Pedido em</th><th>Necessário</th><th>Prioridade</th><th>Itens</th><th>Status</th></tr></thead>
             <tbody>{lista.map((s) => (

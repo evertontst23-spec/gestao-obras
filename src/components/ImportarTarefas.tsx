@@ -103,19 +103,19 @@ export function ImportarTarefas({ obra, encarregados, etapas, hoje, padrao = '' 
           <input ref={ref} type="file" accept=".xlsx,.xls,.ods,.csv,.txt" className="hidden" onChange={(e) => abrir(e.target.files?.[0])} />
           {estado === 'lendo' ? 'Lendo…' : nomeArq ? `📎 ${nomeArq} (trocar)` : '📂 Escolher planilha (Excel ou CSV)'}
         </label>
-        <button type="button" onClick={baixarModelo} className="min-h-[48px] rounded-md border border-concreto-300 bg-white px-3 text-sm font-semibold hover:border-sinal-400">⬇ Baixar modelo</button>
+        <button type="button" onClick={baixarModelo} className="min-h-[48px] rounded-md border border-concreto-300 bg-superficie px-3 text-sm font-semibold hover:border-sinal-400">⬇ Baixar modelo</button>
       </div>
 
       {aba && mapa && (
         <>
-          <div className="grid gap-3 rounded-lg border border-concreto-200 bg-white p-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 rounded-lg border border-concreto-200 bg-superficie p-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
             {abas.length > 1 && <label className="text-xs text-concreto-600">Aba<select value={abaSel} onChange={(e) => trocarAba(e.target.value)} className="entrada block">{abas.map((a) => <option key={a.nome}>{a.nome}</option>)}</select></label>}
             <label className="text-xs text-concreto-600">Linha do cabeçalho<input type="number" min={1} value={mapa.linha + 1} onChange={(e) => setMapa({ ...mapa, linha: Math.max(0, Number(e.target.value) - 1) })} className="entrada block" /></label>
             <label className="text-xs text-concreto-600">Responsável (da obra) *<select value={respPadrao} onChange={(e) => setRespPadrao(e.target.value)} className="entrada block"><option value="">Escolha…</option>{encarregados.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}</select></label>
             <label className="text-xs text-concreto-600">Início quando vazio<input type="date" value={iniPadrao} onChange={(e) => setIniPadrao(e.target.value)} className="entrada block" /></label>
             <label className="text-xs text-concreto-600">Prazo quando sem fim (dias)<input type="number" min={0} value={diasPadrao} onChange={(e) => setDiasPadrao(e.target.value)} className="entrada block" /></label>
           </div>
-          <details className="rounded-lg border border-concreto-200 bg-white p-3 text-sm" open={!mapa.colunas.titulo && mapa.colunas.titulo !== 0}>
+          <details className="rounded-lg border border-concreto-200 bg-superficie p-3 text-sm" open={!mapa.colunas.titulo && mapa.colunas.titulo !== 0}>
             <summary className="cursor-pointer font-semibold">Colunas reconhecidas ({Object.keys(mapa.colunas).length}) — ajustar</summary>
             <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {CAMPOS.map((c) => (
@@ -127,13 +127,13 @@ export function ImportarTarefas({ obra, encarregados, etapas, hoje, padrao = '' 
             </div>
           </details>
           {!encarregados.length && <p className="rounded-md bg-atraso-50 px-3 py-2 text-sm text-atraso-700">Não há usuário que possa ser responsável (encarregado, engenheiro ou diretoria).</p>}
-          <div className="rounded-lg border border-concreto-200 bg-white">
+          <div className="rounded-lg border border-concreto-200 bg-superficie">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-concreto-100 px-3 py-2 text-sm">
               <b>{linhas.length} tarefa(s) encontrada(s)</b>
               {bloqueadas.length > 0 && <span className="text-atraso-700">{bloqueadas.length} sem responsável ou com prazo inválido</span>}
             </div>
             <div className="max-h-[460px] overflow-auto"><table className="tabela text-xs">
-              <thead className="sticky top-0 bg-white"><tr><th>Linha</th><th>Serviço</th><th>Local</th><th className="text-right">Qtd.</th><th>Início</th><th>Fim</th><th>Responsável</th><th>Etapa</th><th>Prior.</th></tr></thead>
+              <thead className="sticky top-0 bg-superficie"><tr><th>Linha</th><th>Serviço</th><th>Local</th><th className="text-right">Qtd.</th><th>Início</th><th>Fim</th><th>Responsável</th><th>Etapa</th><th>Prior.</th></tr></thead>
               <tbody>{linhas.slice(0, 300).map((l) => (
                 <tr key={l.n} className={!l.encarregado_id || l.fim_previsto < l.inicio_previsto ? 'bg-atraso-50' : ''}>
                   <td className="text-concreto-500">{l.n}</td>

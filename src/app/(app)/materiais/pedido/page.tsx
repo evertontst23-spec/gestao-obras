@@ -52,7 +52,7 @@ export default async function PedidoPDF({ searchParams }: { searchParams: Promis
       <div className="nao-imprimir mb-4 space-y-3">
         <Link href={sp.sm ? `/materiais/${sp.sm}` : `/materiais${sp.obra ? `?obra=${sp.obra}` : ''}`} className="link text-sm">← Voltar</Link>
         {!sp.sm && (
-          <form className="flex flex-wrap items-end gap-2 rounded-lg border border-concreto-200 bg-white p-3 text-sm">
+          <form className="flex flex-wrap items-end gap-2 rounded-lg border border-concreto-200 bg-superficie p-3 text-sm">
             <label className="text-xs text-concreto-600">Obra<select name="obra" defaultValue={sp.obra ?? ''} required className="entrada block w-auto min-w-[220px]"><option value="">Escolha a obra…</option>
               {obras?.map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}</select></label>
             <label className="text-xs text-concreto-600">Situação<select name="status" defaultValue={sp.status ?? ''} className="entrada block w-auto"><option value="">Em aberto</option><option value="todas">Todas</option>
@@ -66,7 +66,7 @@ export default async function PedidoPDF({ searchParams }: { searchParams: Promis
       </div>
 
       {!sp.sm && !sp.obra ? <Vazio>Escolha a obra para montar o pedido em PDF.</Vazio> : !(sms ?? []).length ? <Vazio>Nenhum pedido de material encontrado com esses filtros.</Vazio> : (
-        <article className="mx-auto max-w-4xl rounded-lg border border-concreto-200 bg-white p-6 text-sm print:border-0 print:p-0">
+        <article className="mx-auto max-w-4xl rounded-lg border border-concreto-200 bg-superficie p-6 text-sm print:border-0 print:p-0">
           <div className="flex flex-wrap items-start justify-between gap-3 border-b-2 border-concreto-800 pb-3">
             <div>
               <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-sinal-700">CAD Engenharia e Segurança do Trabalho</div>

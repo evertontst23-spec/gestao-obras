@@ -95,7 +95,7 @@ export default async function BancoEspera({ searchParams }: { searchParams: Prom
       </div>
       {porFuncao.size > 0 && (
         <p className="mb-4 flex flex-wrap gap-2 text-xs">{[...porFuncao].sort((a, b) => b[1] - a[1]).map(([f, n]) => (
-          <Link key={f} href={`/cadastros/espera?sit=aguardando&funcao=${encodeURIComponent(f === 'Sem função' ? '' : f)}`} className="rounded-full border border-concreto-300 bg-white px-3 py-1 hover:border-sinal-400"><b>{n}</b> {f}</Link>))}</p>)}
+          <Link key={f} href={`/cadastros/espera?sit=aguardando&funcao=${encodeURIComponent(f === 'Sem função' ? '' : f)}`} className="rounded-full border border-concreto-300 bg-superficie px-3 py-1 hover:border-sinal-400"><b>{n}</b> {f}</Link>))}</p>)}
 
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="space-y-3 lg:col-span-2">
@@ -103,14 +103,14 @@ export default async function BancoEspera({ searchParams }: { searchParams: Prom
             <input type="hidden" name="sit" value={sit} />
             <label className="text-xs text-concreto-500">Buscar<input name="q" defaultValue={sp.q ?? ''} placeholder="Nome ou celular" className="entrada w-52" /></label>
             <label className="text-xs text-concreto-500">Função<input name="funcao" list="funcoes-espera" defaultValue={sp.funcao ?? ''} className="entrada w-44" /></label>
-            <button className="rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold">Filtrar</button>
+            <button className="rounded-md border border-concreto-300 bg-superficie px-3 py-2 text-sm font-semibold">Filtrar</button>
             {(sp.q || sp.funcao) && <Link href={url(sit).replace(/&funcao=[^&]*/, '')} className="px-2 py-2 text-sm text-concreto-500 underline">limpar</Link>}
           </form>
           {!filtrados.length ? <Vazio>Ninguém {sit === 'abertos' ? 'aguardando' : 'nesta situação'}. Cadastre ao lado quem quer entrar na fila.</Vazio> : (
             <div className="space-y-2">{filtrados.map((c, i) => {
               const st = SITUACAO[c.status] ?? SITUACAO.aguardando;
               return (
-                <details key={c.id} className="rounded-lg border border-concreto-200 bg-white">
+                <details key={c.id} className="rounded-lg border border-concreto-200 bg-superficie">
                   <summary className="flex cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3">
                     <span className="w-6 text-right font-mono text-xs text-concreto-400">{i + 1}</span>
                     {c.documentos?.rosto && urlDoc.get(c.documentos.rosto)

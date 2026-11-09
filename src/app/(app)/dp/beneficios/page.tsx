@@ -67,7 +67,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
     if (ob && v === 'obra') q.set('obra', ob); if (em && v === 'empresa') q.set('emp', em); if (tp) q.set('tipo', tp);
     return `/dp/beneficios?${q.toString()}`;
   };
-  const chip = (ativo: boolean) => `rounded-md border px-3 py-1.5 text-sm font-semibold ${ativo ? 'border-sinal-500 bg-sinal-500 text-white' : 'border-concreto-300 bg-white text-concreto-700 hover:border-sinal-400'}`;
+  const chip = (ativo: boolean) => `rounded-md border px-3 py-1.5 text-sm font-semibold ${ativo ? 'border-sinal-500 bg-sinal-500 text-white' : 'border-concreto-300 bg-superficie text-concreto-700 hover:border-sinal-400'}`;
   const extras = linhas.filter((l) => Number(l.dias_retroativos) > 0 && (!obraSel || l.obra_id === obraSel) && (!empSel || empDe(l) === empSel));
   const tiposVisiveis = TIPOS.filter(([t]) => !filtro || t === filtro);
 
@@ -97,7 +97,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
         {pode && (
           <details className="relative">
             <summary className="cursor-pointer rounded-md border border-dashed border-concreto-400 px-3 py-1.5 font-semibold text-concreto-600">+ novo mês</summary>
-            <FormAcao acao={criarMesBeneficios} className="absolute z-10 mt-2 flex w-72 flex-col gap-2 rounded-md border border-concreto-200 bg-white p-3 shadow">
+            <FormAcao acao={criarMesBeneficios} className="absolute z-10 mt-2 flex w-72 flex-col gap-2 rounded-md border border-concreto-200 bg-superficie p-3 shadow">
               <Campo rotulo="Mês"><input type="month" name="mes" required className="entrada" /></Campo>
               <Campo rotulo="Dias úteis"><input name="dias_uteis" required inputMode="numeric" className="entrada" /></Campo>
               <Botao>Criar</Botao>
@@ -132,7 +132,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
         </div>
 
         {/* filtros */}
-        <div className="nao-imprimir mb-5 space-y-2 rounded-lg border border-concreto-200 bg-white p-3">
+        <div className="nao-imprimir mb-5 space-y-2 rounded-lg border border-concreto-200 bg-superficie p-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="w-24 text-sm font-semibold text-concreto-600">Separar por:</span>
             <Link href={url({ ver: 'obra' })} className={chip(!porEmp)}>Obra (centro de custo)</Link>
@@ -157,7 +157,7 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
                 <input type="hidden" name="mes" value={mes} />{filtro && <input type="hidden" name="tipo" value={filtro} />}
                 <select name="obra" className="entrada w-auto py-1.5 text-sm" defaultValue=""><option value="" disabled>+ outra obra…</option>
                   {(obras ?? []).filter((o) => !grupos.has(o.id)).map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}</select>
-                <button className="rounded-md border border-concreto-300 bg-white px-2 py-1.5 text-sm font-semibold">abrir</button>
+                <button className="rounded-md border border-concreto-300 bg-superficie px-2 py-1.5 text-sm font-semibold">abrir</button>
               </form>)}
           </div>)}
           <div className="flex flex-wrap items-center gap-2">

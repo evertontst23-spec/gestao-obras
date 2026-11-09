@@ -64,7 +64,7 @@ export default async function Painel({ searchParams }: { searchParams: Promise<{
         sub={`${obrasLista.length} obra(s) • ${total} tarefa(s) no filtro`}
         acoes={<><LinkBotao href="/tarefas/nova">+ Nova tarefa</LinkBotao><LinkBotao href="/tarefas?visao=kanban" variante="secundario">Kanban</LinkBotao></>} />
 
-      <form className="mb-5 flex flex-wrap gap-2 rounded-lg border border-concreto-200 bg-white p-3">
+      <form className="mb-5 flex flex-wrap gap-2 rounded-lg border border-concreto-200 bg-superficie p-3">
         <select name="obra" defaultValue={f.obra ?? ''} className="entrada w-auto min-w-[220px] flex-1"><option value="">Todas as obras</option>
           {obras?.map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}</select>
         <input type="date" name="de" defaultValue={f.de} className="entrada w-auto" aria-label="De" />
@@ -84,7 +84,7 @@ export default async function Painel({ searchParams }: { searchParams: Promise<{
         <Indicador rotulo="Não conformidades" valor={ncs?.length ?? 0} tom={(ncs ?? []).some((n) => n.vencida) ? 'atraso' : ncs?.length ? 'atencao' : 'ok'}
           href={f.obra ? `/qualidade?obra=${f.obra}` : '/qualidade'} detalhe={`${(ncs ?? []).filter((n) => n.vencida).length} com correção vencida`} />
         <Indicador rotulo="Materiais em risco" valor={riscos?.length ?? 0} tom={riscos?.length ? 'atraso' : 'ok'} href="/materiais?risco=1" />
-        <div className="col-span-2 rounded-lg border border-concreto-200 bg-white px-4 py-3 sm:col-span-3">
+        <div className="col-span-2 rounded-lg border border-concreto-200 bg-superficie px-4 py-3 sm:col-span-3">
           <div className="text-xs font-semibold uppercase tracking-wide text-concreto-500">Conclusão dos serviços (aprovados / total)</div>
           <div className="mt-1 font-mono text-2xl font-bold">{pctConclusao}%</div>
           <Progresso valor={pctConclusao} cor="bg-ok-500" />

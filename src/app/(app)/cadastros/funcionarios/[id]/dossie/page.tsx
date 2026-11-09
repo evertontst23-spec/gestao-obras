@@ -58,7 +58,7 @@ export default async function Dossie({ params }: { params: Promise<{ id: string 
         <Link href={`/cadastros/funcionarios/${id}`} className="link text-sm">← Voltar à ficha</Link>
         <BotaoImprimir rotulo="Imprimir / salvar PDF" />
       </div>
-      <article className="mx-auto max-w-5xl rounded-lg border border-concreto-200 bg-white p-6 text-sm print:border-0 print:p-0">
+      <article className="mx-auto max-w-5xl rounded-lg border border-concreto-200 bg-superficie p-6 text-sm print:border-0 print:p-0">
         <div className="flex items-start gap-4 border-b-2 border-concreto-800 pb-3">
           {foto ? <img src={foto} alt="" className="h-28 w-28 rounded-md border border-concreto-300 object-cover" />
             : <div className="flex h-28 w-28 items-center justify-center rounded-md border border-dashed border-concreto-300 text-[11px] text-concreto-400">sem foto</div>}
@@ -90,7 +90,7 @@ export default async function Dossie({ params }: { params: Promise<{ id: string 
                     return (
                       <div key={s.tipo} className={`flex min-w-0 flex-col overflow-hidden rounded-md border text-xs ${venc ? 'border-atraso-500' : cheio ? 'border-concreto-300' : s.obrigatorio ? 'border-dashed border-atencao-500' : 'border-dashed border-concreto-300'}`}>
                         <a href={link} target={link?.startsWith('http') ? '_blank' : undefined} rel="noreferrer"
-                          className={`flex h-28 items-center justify-center overflow-hidden ${cheio ? 'bg-concreto-50' : 'bg-white'} ${link ? 'hover:opacity-90' : 'pointer-events-none'}`}>
+                          className={`flex h-28 items-center justify-center overflow-hidden ${cheio ? 'bg-concreto-50' : 'bg-superficie'} ${link ? 'hover:opacity-90' : 'pointer-events-none'}`}>
                           {img ? <img src={img} alt={s.rotulo} className="h-full w-full object-cover" />
                             : cheio ? <span className="text-3xl" aria-hidden>{s.sistema === 'epi' ? '🦺' : s.sistema === 'os' ? '📋' : s.sistema === 'biometria' ? '🙂' : '📄'}</span>
                             : <span className="px-2 text-center text-[11px] text-concreto-400">{s.obrigatorio ? 'falta' : 'vazio'}</span>}

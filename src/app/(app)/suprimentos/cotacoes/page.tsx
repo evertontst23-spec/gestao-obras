@@ -34,7 +34,7 @@ export default async function Cotacoes({ searchParams }: { searchParams: Promise
         ? <Link href="/suprimentos/cotacoes" className="link">← voltar às cotações</Link>
         : excluidas.size > 0 && <Link href="/suprimentos/cotacoes?excluidas=1" className="link">ver excluídas ({excluidas.size})</Link>}</p>
       {!todas.length ? <Vazio>{verExcluidas ? 'Nenhuma cotação excluída.' : 'Nenhuma cotação.'}</Vazio> : (
-        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie">
           <table className="tabela">
             <thead><tr><th>Nº</th><th>Obra</th><th>Itens</th><th>Propostas</th><th>Escolhida</th><th className="text-right">Valor</th><th>Status</th><th>Criada</th></tr></thead>
             <tbody>{todas.map((c) => (

@@ -68,12 +68,12 @@ export default async function Folha({ searchParams }: { searchParams: Promise<{ 
       <div className="nao-imprimir mb-4 flex flex-wrap items-center gap-2 text-sm">
         <span className="font-semibold text-concreto-600">Mês:</span>
         {comps.map((c) => (
-          <Link key={c} href={`/dp/folha?mes=${c}`} className={`rounded-md border px-3 py-1.5 text-sm font-semibold capitalize ${c === mes ? 'border-sinal-500 bg-sinal-500 text-white' : 'border-concreto-300 bg-white text-concreto-700 hover:border-sinal-400'}`}>{nomeMes(c)}</Link>))}
-        <form className="flex items-center gap-1"><input type="month" name="mes" defaultValue={mes} className="entrada w-auto py-1.5" /><button className="rounded-md border border-concreto-300 bg-white px-2 py-1.5 font-semibold">ir</button></form>
+          <Link key={c} href={`/dp/folha?mes=${c}`} className={`rounded-md border px-3 py-1.5 text-sm font-semibold capitalize ${c === mes ? 'border-sinal-500 bg-sinal-500 text-white' : 'border-concreto-300 bg-superficie text-concreto-700 hover:border-sinal-400'}`}>{nomeMes(c)}</Link>))}
+        <form className="flex items-center gap-1"><input type="month" name="mes" defaultValue={mes} className="entrada w-auto py-1.5" /><button className="rounded-md border border-concreto-300 bg-superficie px-2 py-1.5 font-semibold">ir</button></form>
       </div>
       <Fechamentos supabase={supabase} mes={mes} pags={pags} ver={sp.ver} g={sp.g} pg={sp.pg} rh={rh} />
 
-      <details className="nao-imprimir mt-8 rounded-lg border border-concreto-200 bg-white p-3" open={!!sp.obra}>
+      <details className="nao-imprimir mt-8 rounded-lg border border-concreto-200 bg-superficie p-3" open={!!sp.obra}>
         <summary className="cursor-pointer text-sm font-bold text-concreto-700">Prévia pelo ponto (referência: salário cheio do mês, horas extras e faltas) — {nomeMes(mes)}</summary>
         <div className="mt-3">
       <div className="mb-3 flex justify-end"><BaixarCSV nome={`folha-previa-${mes}`} cabecalho={cab} linhas={csv} /></div>
@@ -111,7 +111,7 @@ export default async function Folha({ searchParams }: { searchParams: Promise<{ 
                 <td>{g.fechadaObra ? <Selo cor="bg-ok-50 text-ok-700">Fechada</Selo> : <Selo cor="bg-concreto-100 text-concreto-700">Prévia</Selo>}</td>
                 <td className="nao-imprimir">{!g.fechadaObra && g.obra && rh && (
                   <FormAcao acao={fecharFolhaObra}><input type="hidden" name="mes" value={mes} /><input type="hidden" name="obra" value={g.obra} /><input type="hidden" name="codigo" value={g.codigo} />
-                    <button className="rounded-md border border-concreto-300 bg-white px-2 py-1 text-xs font-semibold hover:border-sinal-400">Fechar folha da obra</button></FormAcao>)}</td>
+                    <button className="rounded-md border border-concreto-300 bg-superficie px-2 py-1 text-xs font-semibold hover:border-sinal-400">Fechar folha da obra</button></FormAcao>)}</td>
               </tr>))}</tbody>
           </table></div>
           <p className="mt-2 text-xs text-concreto-500">Cada obra pode ter a sua folha fechada separadamente. Os custos de cada folha fechada entram no centro de custo da obra (Financeiro). Quem está no escritório (sem obra) entra na folha geral.</p>
@@ -123,7 +123,7 @@ export default async function Folha({ searchParams }: { searchParams: Promise<{ 
             <Botao variante="escuro">Fechar folha da obra {codObra.get(sp.obra)}</Botao></FormAcao>
         </Cartao>)}
       {!linhas.length ? <Vazio>Nenhum funcionário ativo nesta competência.</Vazio> : (
-        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white"><table className="tabela whitespace-nowrap">
+        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie"><table className="tabela whitespace-nowrap">
           <thead><tr><th>Funcionário</th><th>Obra</th><th className="text-right">Salário + adic.</th><th className="text-right">HE 70%</th><th className="text-right">HE 100%</th><th className="text-right">DSR</th><th className="text-right">Faltas / atrasos</th><th className="text-right">Bruto</th><th className="text-right">INSS</th><th className="text-right">VT</th><th className="text-right">Líquido</th></tr></thead>
           <tbody>{linhas.map((l) => (
             <tr key={l.funcionario_id}>

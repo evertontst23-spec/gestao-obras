@@ -32,8 +32,8 @@ export function FormAcao({ acao, children, className = '', limparAoConcluir = fa
 }
 
 const VARIANTES = {
-  primario: 'bg-sinal-500 text-white hover:bg-sinal-600',
-  secundario: 'border border-concreto-300 bg-white text-concreto-800 hover:bg-concreto-50',
+  primario: 'bg-sinal-500 text-white shadow-sm hover:bg-sinal-600',
+  secundario: 'border border-concreto-300 bg-superficie text-concreto-800 hover:bg-concreto-50',
   perigo: 'bg-atraso-500 text-white hover:bg-atraso-700',
   sucesso: 'bg-ok-500 text-white hover:bg-ok-700',
   escuro: 'bg-concreto-800 text-white hover:bg-concreto-900',

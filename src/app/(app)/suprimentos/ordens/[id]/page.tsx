@@ -53,7 +53,7 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
   const podeEntrada = ['almoxarifado', 'admin', 'compras'].includes(p);
   const podeExcluirDoc = ['compras', 'financeiro', 'almoxarifado', 'admin'].includes(p);
   const Desfazer = ({ titulo, texto, acao, botao, ph }: { titulo: string; texto: string; acao: typeof desfazerOC; botao: string; ph: string }) => (
-    <details className="rounded-lg border border-atraso-200 bg-white text-sm">
+    <details className="rounded-lg border border-atraso-200 bg-superficie text-sm">
       <summary className="cursor-pointer px-4 py-3 font-semibold text-atraso-700">↩ {titulo}</summary>
       <p className="px-4 text-xs text-concreto-600">{texto}</p>
       <FormAcao acao={acao} className="flex flex-wrap gap-2 border-t border-concreto-100 p-4">
@@ -72,7 +72,7 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
             {o.nf_divergente && <Selo cor="bg-atraso-500 text-white">NF divergente</Selo>}
             {o.entrega_atrasada && <Selo cor="bg-atraso-50 text-atraso-700">Entrega atrasada</Selo>}</span>}
           acoes={<><BotaoImprimir rotulo="Imprimir OC (vai com o retirante)" />
-            {['compras', 'admin', 'financeiro'].includes(p) && <Link href={`/suprimentos/cotacoes/${o.cotacao_id}`} className="inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold">Cotação {o.cotacao_codigo}</Link>}</>} />
+            {['compras', 'admin', 'financeiro'].includes(p) && <Link href={`/suprimentos/cotacoes/${o.cotacao_id}`} className="inline-flex items-center rounded-md border border-concreto-300 bg-superficie px-3 py-2 text-sm font-semibold">Cotação {o.cotacao_codigo}</Link>}</>} />
       </div>
 
       {o.status === 'cancelada'
@@ -80,7 +80,7 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
         : (
         <ol className="nao-imprimir mb-5 grid gap-2 sm:grid-cols-5">
           {etapas.map((e, k) => (
-            <li key={k} className={`relative rounded-lg border-2 px-3 py-2 text-sm ${e.feito ? 'border-ok-500 bg-ok-50' : k === atual ? 'border-sinal-500 bg-sinal-50' : 'border-concreto-200 bg-white text-concreto-400'}`}>
+            <li key={k} className={`relative rounded-lg border-2 px-3 py-2 text-sm ${e.feito ? 'border-ok-500 bg-ok-50' : k === atual ? 'border-sinal-500 bg-sinal-50' : 'border-concreto-200 bg-superficie text-concreto-400'}`}>
               <div className="flex items-center gap-2 font-bold">
                 <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs text-white ${e.feito ? 'bg-ok-600' : k === atual ? 'bg-sinal-500' : 'bg-concreto-300'}`}>{e.feito ? '✓' : k + 1}</span>
                 <span className={e.feito ? 'text-ok-800' : k === atual ? 'text-sinal-800' : ''}>{e.t}</span></div>
@@ -92,7 +92,7 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">
           {/* Documento da OC (também é o que sai na impressão) */}
-          <section className="rounded-lg border border-concreto-200 bg-white p-5">
+          <section className="rounded-lg border border-concreto-200 bg-superficie p-5">
             <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-concreto-200 pb-3">
               <div><div className="text-xs font-bold uppercase tracking-[0.2em] text-sinal-700">Ordem de compra</div>
                 <div className="font-mono text-2xl font-black">{codOC(o.numero)}</div>
@@ -250,7 +250,7 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
               texto="Tudo o que foi recebido nesta OC sai do estoque e a OC volta a aguardar entrega; depois é só lançar o recebimento certo. Não funciona se o material já foi enviado ao encarregado ou usado." />)}
 
           {p === 'admin' && ['emitida', 'pronta_coleta'].includes(o.status) && (
-            <details className="rounded-lg border border-concreto-200 bg-white text-sm">
+            <details className="rounded-lg border border-concreto-200 bg-superficie text-sm">
               <summary className="cursor-pointer px-4 py-3 text-atraso-700">Cancelar OC</summary>
               <FormAcao acao={cancelarOC} className="flex gap-2 border-t border-concreto-100 p-4">
                 <input type="hidden" name="oc_id" value={id} />

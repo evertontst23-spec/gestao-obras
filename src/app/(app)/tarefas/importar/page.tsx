@@ -17,7 +17,7 @@ export default async function ImportarTarefasPagina({ searchParams }: { searchPa
       <>
         <Cabecalho titulo="Importar planilha de tarefas" sub="Escolha a obra que vai receber as tarefas" />
         <div className="grid gap-2 sm:grid-cols-2">
-          {obras.map((x) => <Link key={x.id} href={`/tarefas/importar?obra=${x.id}`} className="rounded-lg border border-concreto-200 bg-white p-4 hover:border-sinal-400">
+          {obras.map((x) => <Link key={x.id} href={`/tarefas/importar?obra=${x.id}`} className="rounded-lg border border-concreto-200 bg-superficie p-4 hover:border-sinal-400">
             <div className="font-mono text-xs text-concreto-500">{x.codigo}</div><div className="font-bold">{x.nome}</div></Link>)}
         </div>
       </>);

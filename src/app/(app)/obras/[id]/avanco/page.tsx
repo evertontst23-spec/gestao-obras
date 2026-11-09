@@ -93,7 +93,7 @@ export default async function AvancoObra({ params, searchParams }: { params: Pro
       )}
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <div className="col-span-2 rounded-lg border border-concreto-200 bg-white px-4 py-3">
+        <div className="col-span-2 rounded-lg border border-concreto-200 bg-superficie px-4 py-3">
           <div className="text-xs font-semibold uppercase tracking-wide text-concreto-500">Avanço físico {planilha && valorTotal > 0 ? '(ponderado por valor)' : ''}</div>
           <div className="mt-1 font-mono text-3xl font-bold">{obra.avanco_fisico}%</div>
           <Progresso valor={obra.avanco_fisico} cor="bg-ok-500" />

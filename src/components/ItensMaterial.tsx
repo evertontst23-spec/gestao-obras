@@ -62,7 +62,7 @@ export function ItensMaterial({ insumos = [] }: { insumos?: Insumo[] }) {
             <div className="mb-2 inline-flex overflow-hidden rounded-md border border-concreto-300 text-sm font-semibold" role="group" aria-label="Compra ou locação">
               {(['compra', 'locacao'] as const).map((m) => (
                 <button key={m} type="button" onClick={() => muda(l.k, { modalidade: m })} aria-pressed={l.modalidade === m}
-                  className={`px-4 py-1.5 ${l.modalidade === m ? (m === 'compra' ? 'bg-concreto-800 text-white' : 'bg-sky-700 text-white') : 'bg-white text-concreto-700'}`}>
+                  className={`px-4 py-1.5 ${l.modalidade === m ? (m === 'compra' ? 'bg-concreto-800 text-white' : 'bg-sky-700 text-white') : 'bg-superficie text-concreto-700'}`}>
                   {m === 'compra' ? '🛒 Compra' : '🔁 Locação'}</button>))}
             </div>
             {l.modalidade === 'locacao' && (
@@ -72,7 +72,7 @@ export function ItensMaterial({ insumos = [] }: { insumos?: Insumo[] }) {
                 <label className="text-[11px] text-concreto-500">Fim da locação *
                   <input type="date" value={l.fim} required min={l.ini || undefined} onChange={(e) => muda(l.k, { fim: e.target.value })} className="entrada" /></label>
                 <div className="col-span-2 flex items-end text-xs text-sky-800 sm:col-span-1">
-                  {dias(l.ini, l.fim) > 0 ? <span className="rounded bg-white px-2 py-1 font-semibold">{dias(l.ini, l.fim)} dia(s) de locação</span> : 'Período que o equipamento fica na obra'}
+                  {dias(l.ini, l.fim) > 0 ? <span className="rounded bg-superficie px-2 py-1 font-semibold">{dias(l.ini, l.fim)} dia(s) de locação</span> : 'Período que o equipamento fica na obra'}
                 </div>
               </div>)}
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">

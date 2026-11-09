@@ -157,7 +157,7 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
         )}
 
         {comprador && aberta && (itens?.length ?? 0) > 1 && (
-          <details className="rounded-lg border border-concreto-200 bg-white text-sm lg:col-span-2">
+          <details className="rounded-lg border border-concreto-200 bg-superficie text-sm lg:col-span-2">
             <summary className="cursor-pointer px-4 py-3 font-semibold text-sinal-700">↩ Tirar itens desta cotação (voltam para a fila, sem cancelar a cotação)</summary>
             <FormAcao acao={tirarItensCotacao} className="space-y-2 border-t border-concreto-100 p-4">
               <input type="hidden" name="cotacao_id" value={id} />
@@ -251,7 +251,7 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
         {c.parecer && <Cartao titulo="Decisão"><p className="text-sm">{c.parecer}</p><p className="text-xs text-concreto-500">{c.decidido_nome} • {dataHora(c.decidido_em)}</p></Cartao>}
 
         {comprador && !exc && ['em_cotacao', 'aguardando_aprovacao', 'cancelada'].includes(c.status) && (
-          <details className="rounded-lg border border-atraso-200 bg-white text-sm lg:col-span-2">
+          <details className="rounded-lg border border-atraso-200 bg-superficie text-sm lg:col-span-2">
             <summary className="cursor-pointer px-4 py-3 font-semibold text-atraso-700">🗑 Excluir cotação</summary>
             <p className="px-4 text-xs text-concreto-600">A cotação some da lista e os itens voltam para a fila de cotação. Fica guardado no histórico quem excluiu e o motivo.
               {c.status !== 'cancelada' && ' Só quer corrigir um valor? Use “corrigir valores” na proposta — não precisa excluir.'}</p>
@@ -263,7 +263,7 @@ export default async function DetalheCotacao({ params }: { params: Promise<{ id:
           </details>)}
 
         {comprador && !exc && ['em_cotacao', 'aguardando_aprovacao'].includes(c.status) && (
-          <details className="rounded-lg border border-concreto-200 bg-white text-sm lg:col-span-2">
+          <details className="rounded-lg border border-concreto-200 bg-superficie text-sm lg:col-span-2">
             <summary className="cursor-pointer px-4 py-3 text-atraso-700">Cancelar cotação</summary>
             <p className="px-4 text-xs text-concreto-500">Para corrigir um valor errado não precisa cancelar: use “corrigir valores” na proposta.</p>
             <FormAcao acao={cancelarCotacao} className="flex gap-2 border-t border-concreto-100 p-4">

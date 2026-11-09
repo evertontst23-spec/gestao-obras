@@ -45,7 +45,7 @@ export default async function Estoque({ searchParams }: { searchParams: Promise<
             <button className="rounded-md bg-concreto-800 px-4 text-sm font-semibold text-white">Filtrar</button>
           </form>
           {!lista.length ? <Vazio>Nenhum saldo encontrado.</Vazio> : (
-            <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white">
+            <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie">
               <table className="tabela">
                 <thead><tr><th>Código</th><th>Insumo</th><th>Local</th><th className="text-right">Saldo</th><th className="text-right">Mínimo</th></tr></thead>
                 <tbody>{lista.map((s) => (

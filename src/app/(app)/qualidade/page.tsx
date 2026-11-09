@@ -39,7 +39,7 @@ export default async function Qualidade({ searchParams }: { searchParams: Promis
         <Indicador rotulo="Encerradas" valor={todas.filter((n) => n.status === 'verificada').length} tom="ok" href={link({ status: 'verificada' })} />
       </div>
 
-      <form className="mb-4 flex flex-wrap gap-2 rounded-lg border border-concreto-200 bg-white p-3">
+      <form className="mb-4 flex flex-wrap gap-2 rounded-lg border border-concreto-200 bg-superficie p-3">
         {!f.obra && <select name="obra" defaultValue="" className="entrada w-auto min-w-[200px] flex-1"><option value="">Todas as obras</option>
           {obras?.map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}</select>}
         {f.obra && <input type="hidden" name="obra" value={f.obra} />}
@@ -52,7 +52,7 @@ export default async function Qualidade({ searchParams }: { searchParams: Promis
       {!filtradas.length ? <Vazio>Nenhuma não conformidade {f.status ? 'neste filtro' : 'pendente'}. 👍</Vazio> : (
         <div className="grid gap-3 md:grid-cols-2">
           {filtradas.map((n) => (
-            <Link key={n.id} href={`/qualidade/${n.id}`} className={`block rounded-lg border-2 bg-white p-4 hover:border-sinal-400 ${n.vencida ? 'border-atraso-500' : 'border-concreto-200'}`}>
+            <Link key={n.id} href={`/qualidade/${n.id}`} className={`block rounded-lg border-2 bg-superficie p-4 hover:border-sinal-400 ${n.vencida ? 'border-atraso-500' : 'border-concreto-200'}`}>
               <div className="flex flex-wrap items-center justify-between gap-2"><span className="font-mono text-sm font-bold">{n.codigo}</span>
                 <span className="flex gap-1"><SeloGravidade g={n.gravidade} /><SeloNC s={n.status} /></span></div>
               <p className="mt-1 font-semibold leading-snug">{n.descricao}</p>

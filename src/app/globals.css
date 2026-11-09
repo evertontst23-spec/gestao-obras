@@ -2,28 +2,243 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== Temas (o usuário escolhe em Aparência) ===== */
 @layer base {
+  :root, [data-tema='claro'] {
+    --concreto-50: 244 245 247;
+    --concreto-100: 237 239 242;
+    --concreto-200: 227 230 234;
+    --concreto-300: 205 210 217;
+    --concreto-400: 154 161 172;
+    --concreto-500: 107 114 128;
+    --concreto-600: 75 85 99;
+    --concreto-700: 55 65 81;
+    --concreto-800: 31 41 55;
+    --concreto-900: 17 24 39;
+    --sinal-50: 255 244 236;
+    --sinal-100: 255 230 211;
+    --sinal-300: 253 186 140;
+    --sinal-400: 251 146 60;
+    --sinal-500: 234 88 12;
+    --sinal-600: 194 65 12;
+    --sinal-700: 178 58 11;
+    --sinal-800: 154 52 18;
+    --ok-50: 236 253 243;
+    --ok-100: 209 250 224;
+    --ok-500: 22 163 74;
+    --ok-600: 21 128 61;
+    --ok-700: 21 128 61;
+    --ok-800: 22 101 52;
+    --atencao-50: 255 251 235;
+    --atencao-100: 254 243 199;
+    --atencao-200: 253 230 138;
+    --atencao-500: 217 119 6;
+    --atencao-700: 180 83 9;
+    --atencao-800: 146 64 14;
+    --atraso-50: 254 242 242;
+    --atraso-100: 254 226 226;
+    --atraso-200: 254 202 202;
+    --atraso-300: 252 165 165;
+    --atraso-500: 220 38 38;
+    --atraso-600: 200 30 30;
+    --atraso-700: 185 28 28;
+    --superficie: 255 255 255;
+    --menu-fundo: 255 255 255;
+    --menu-texto: 55 65 81;
+    --menu-mudo: 107 114 128;
+    --menu-hover: 243 244 246;
+    --menu-ativo: 255 241 231;
+    --menu-ativo-texto: 194 65 12;
+    --menu-borda: 232 234 238;
+    --menu-marca: 234 88 12;
+    --raio-md: 10px; --raio-lg: 16px; --raio-xl: 20px; --sombra: 0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.04); --fonte: 'Plus Jakarta Sans'; color-scheme: light;
+  }
+  [data-tema='escuro'] {
+    --concreto-50: 10 14 21;
+    --concreto-100: 22 28 39;
+    --concreto-200: 37 45 59;
+    --concreto-300: 51 60 76;
+    --concreto-400: 107 115 133;
+    --concreto-500: 154 163 178;
+    --concreto-600: 181 188 200;
+    --concreto-700: 205 211 220;
+    --concreto-800: 226 230 236;
+    --concreto-900: 243 245 248;
+    --sinal-50: 42 26 16;
+    --sinal-100: 58 36 20;
+    --sinal-300: 253 186 116;
+    --sinal-400: 253 186 116;
+    --sinal-500: 249 115 22;
+    --sinal-600: 251 146 60;
+    --sinal-700: 253 186 116;
+    --sinal-800: 254 215 170;
+    --ok-50: 15 36 25;
+    --ok-100: 20 51 31;
+    --ok-500: 22 163 74;
+    --ok-600: 34 197 94;
+    --ok-700: 134 239 172;
+    --ok-800: 187 247 208;
+    --atencao-50: 42 33 16;
+    --atencao-100: 58 45 18;
+    --atencao-200: 92 71 22;
+    --atencao-500: 217 119 6;
+    --atencao-700: 252 211 77;
+    --atencao-800: 253 230 138;
+    --atraso-50: 44 20 22;
+    --atraso-100: 63 26 29;
+    --atraso-200: 95 35 40;
+    --atraso-300: 127 45 51;
+    --atraso-500: 220 38 38;
+    --atraso-600: 239 68 68;
+    --atraso-700: 252 165 165;
+    --superficie: 18 24 36;
+    --menu-fundo: 14 19 28;
+    --menu-texto: 199 205 216;
+    --menu-mudo: 139 147 161;
+    --menu-hover: 27 34 48;
+    --menu-ativo: 31 39 54;
+    --menu-ativo-texto: 255 255 255;
+    --menu-borda: 28 35 48;
+    --menu-marca: 251 146 60;
+    --raio-md: 10px; --raio-lg: 16px; --raio-xl: 20px; --sombra: 0 0 0 1px rgba(255,255,255,.02); --fonte: 'Inter'; color-scheme: dark;
+  }
+  [data-tema='petroleo'] {
+    --concreto-50: 238 242 244;
+    --concreto-100: 227 233 236;
+    --concreto-200: 211 220 224;
+    --concreto-300: 185 198 203;
+    --concreto-400: 133 151 160;
+    --concreto-500: 86 104 112;
+    --concreto-600: 67 85 92;
+    --concreto-700: 47 65 71;
+    --concreto-800: 29 46 51;
+    --concreto-900: 15 31 36;
+    --sinal-50: 255 244 236;
+    --sinal-100: 255 230 211;
+    --sinal-300: 253 186 140;
+    --sinal-400: 251 146 60;
+    --sinal-500: 234 88 12;
+    --sinal-600: 194 65 12;
+    --sinal-700: 178 58 11;
+    --sinal-800: 154 52 18;
+    --ok-50: 236 253 243;
+    --ok-100: 209 250 224;
+    --ok-500: 22 163 74;
+    --ok-600: 21 128 61;
+    --ok-700: 21 128 61;
+    --ok-800: 22 101 52;
+    --atencao-50: 255 251 235;
+    --atencao-100: 254 243 199;
+    --atencao-200: 253 230 138;
+    --atencao-500: 217 119 6;
+    --atencao-700: 180 83 9;
+    --atencao-800: 146 64 14;
+    --atraso-50: 254 242 242;
+    --atraso-100: 254 226 226;
+    --atraso-200: 254 202 202;
+    --atraso-300: 252 165 165;
+    --atraso-500: 220 38 38;
+    --atraso-600: 200 30 30;
+    --atraso-700: 185 28 28;
+    --superficie: 255 255 255;
+    --menu-fundo: 12 52 56;
+    --menu-texto: 207 227 228;
+    --menu-mudo: 141 184 186;
+    --menu-hover: 18 70 75;
+    --menu-ativo: 255 255 255;
+    --menu-ativo-texto: 12 52 56;
+    --menu-borda: 26 74 79;
+    --menu-marca: 251 146 60;
+    --raio-md: 6px; --raio-lg: 10px; --raio-xl: 14px; --sombra: 0 1px 2px rgba(12,52,56,.06); --fonte: 'Manrope'; color-scheme: light;
+  }
   html { -webkit-tap-highlight-color: transparent; }
-  body { @apply bg-concreto-50 text-concreto-900 antialiased; }
+  body { @apply bg-concreto-50 text-concreto-900 antialiased; font-feature-settings: 'tnum' 1; }
+  [data-tema] { @apply bg-concreto-50 text-concreto-900; font-family: var(--fonte), ui-sans-serif, system-ui, sans-serif; }
 }
+
+/* Escuro: botões escuros continuam escuros com texto branco; etiquetas coloridas ficam translúcidas */
+[data-tema='escuro'] :is(.bg-concreto-700, .bg-concreto-800, .bg-concreto-900) { background-color: #2A3343; }
+[data-tema='escuro'] :is(.hover\:bg-concreto-900:hover, .hover\:bg-concreto-700:hover) { background-color: #35405360; }
+[data-tema='escuro'] .border-concreto-800 { border-color: #3A4456; }
+[data-tema='escuro'] .bg-ok-700, [data-tema='escuro'] .hover\:bg-ok-700:hover { background-color: #15803D; }
+[data-tema='escuro'] .bg-atraso-700, [data-tema='escuro'] .hover\:bg-atraso-700:hover { background-color: #B91C1C; }
+[data-tema='escuro'] .bg-sinal-700 { background-color: #C2410C; }
+[data-tema='escuro'] :is(.bg-sky-50, .bg-sky-100, .bg-blue-100, .bg-indigo-50, .bg-indigo-100) { background-color: rgba(56,189,248,.14); }
+[data-tema='escuro'] :is(.bg-violet-50, .bg-violet-100) { background-color: rgba(167,139,250,.16); }
+[data-tema='escuro'] :is(.bg-teal-50, .bg-teal-100) { background-color: rgba(45,212,191,.14); }
+[data-tema='escuro'] :is(.bg-amber-50, .bg-amber-100) { background-color: rgba(251,191,36,.14); }
+[data-tema='escuro'] :is(.text-sky-700, .text-sky-800, .text-blue-800, .text-indigo-800) { color: #7DD3FC; }
+[data-tema='escuro'] :is(.text-violet-800, .text-violet-900) { color: #C4B5FD; }
+[data-tema='escuro'] :is(.text-teal-800, .text-teal-900) { color: #5EEAD4; }
+[data-tema='escuro'] .text-amber-800 { color: #FCD34D; }
+[data-tema='escuro'] :is(.ring-sky-200, .ring-amber-200, .border-sky-200, .border-amber-200, .border-violet-300) { --tw-ring-color: rgba(255,255,255,.12); border-color: rgba(255,255,255,.12); }
 
 @layer components {
   .entrada {
-    @apply block w-full rounded-md border border-concreto-300 bg-white px-3 py-2 text-base text-concreto-900
+    @apply block w-full rounded-md border border-concreto-300 bg-superficie px-3 py-2 text-base text-concreto-900
            placeholder:text-concreto-400 focus:border-sinal-500 focus:outline-none focus:ring-2 focus:ring-sinal-100 sm:text-sm;
   }
   .tabela { @apply w-full text-left text-sm; }
-  .tabela th { @apply border-b border-concreto-200 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-concreto-500; }
-  .tabela td { @apply border-b border-concreto-100 px-3 py-2 align-top; }
+  .tabela th { @apply border-b border-concreto-200 bg-concreto-50/60 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-concreto-500; }
+  .tabela td { @apply border-b border-concreto-100 px-3 py-2.5 align-top; }
   .tabela tr:hover td { @apply bg-concreto-50; }
   .link { @apply font-semibold text-sinal-700 hover:underline; }
 }
 
-/* Impressão: só o conteúdo (OC, fichas, relatórios) */
+/* Impressão: só o conteúdo (OC, fichas, relatórios), sempre no tema claro */
 @media print {
+  [data-tema] {
+    --concreto-50: 244 245 247;
+    --concreto-100: 237 239 242;
+    --concreto-200: 227 230 234;
+    --concreto-300: 205 210 217;
+    --concreto-400: 154 161 172;
+    --concreto-500: 107 114 128;
+    --concreto-600: 75 85 99;
+    --concreto-700: 55 65 81;
+    --concreto-800: 31 41 55;
+    --concreto-900: 17 24 39;
+    --sinal-50: 255 244 236;
+    --sinal-100: 255 230 211;
+    --sinal-300: 253 186 140;
+    --sinal-400: 251 146 60;
+    --sinal-500: 234 88 12;
+    --sinal-600: 194 65 12;
+    --sinal-700: 178 58 11;
+    --sinal-800: 154 52 18;
+    --ok-50: 236 253 243;
+    --ok-100: 209 250 224;
+    --ok-500: 22 163 74;
+    --ok-600: 21 128 61;
+    --ok-700: 21 128 61;
+    --ok-800: 22 101 52;
+    --atencao-50: 255 251 235;
+    --atencao-100: 254 243 199;
+    --atencao-200: 253 230 138;
+    --atencao-500: 217 119 6;
+    --atencao-700: 180 83 9;
+    --atencao-800: 146 64 14;
+    --atraso-50: 254 242 242;
+    --atraso-100: 254 226 226;
+    --atraso-200: 254 202 202;
+    --atraso-300: 252 165 165;
+    --atraso-500: 220 38 38;
+    --atraso-600: 200 30 30;
+    --atraso-700: 185 28 28;
+    --superficie: 255 255 255;
+    --menu-fundo: 255 255 255;
+    --menu-texto: 55 65 81;
+    --menu-mudo: 107 114 128;
+    --menu-hover: 243 244 246;
+    --menu-ativo: 255 241 231;
+    --menu-ativo-texto: 194 65 12;
+    --menu-borda: 232 234 238;
+    --menu-marca: 234 88 12;
+    --raio-md: 10px; --raio-lg: 16px; --raio-xl: 20px; --sombra: 0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.04); --fonte: 'Plus Jakarta Sans'; color-scheme: light;
+  }
   aside, header, nav, .nao-imprimir { display: none !important; }
   main { margin: 0 !important; padding: 0 !important; }
-  body { background: #fff !important; }
+  body, [data-tema] { background: #fff !important; }
   .so-imprimir { display: block !important; }
   section, details { break-inside: avoid; }
 }

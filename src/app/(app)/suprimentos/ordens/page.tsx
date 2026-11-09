@@ -29,7 +29,7 @@ export default async function Ordens({ searchParams }: { searchParams: Promise<{
         <Indicador rotulo="Entrega atrasada" valor={t.filter((o) => o.entrega_atrasada).length} tom={t.some((o) => o.entrega_atrasada) ? 'atraso' : 'ok'} />
       </div>
       {!lista?.length ? <Vazio>Nenhuma ordem de compra.</Vazio> : (
-        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie">
           <table className="tabela">
             <thead><tr><th>OC</th><th>Obra</th><th>Fornecedor</th><th className="text-right">Valor</th><th>NF</th><th>Previsão</th><th>Status</th></tr></thead>
             <tbody>{lista.map((o) => (

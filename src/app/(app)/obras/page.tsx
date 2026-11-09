@@ -16,7 +16,7 @@ export default async function Obras() {
       {!obras?.length ? <Vazio>Nenhuma obra cadastrada ou vinculada a você.</Vazio> : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {obras.map((o) => (
-            <Link key={o.id} href={`/obras/${o.id}`} className="block rounded-lg border border-concreto-200 bg-white p-4 transition hover:border-sinal-400">
+            <Link key={o.id} href={`/obras/${o.id}`} className="block rounded-lg border border-concreto-200 bg-superficie p-4 transition hover:border-sinal-400">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="font-mono text-xs text-concreto-500">{o.codigo}</div>

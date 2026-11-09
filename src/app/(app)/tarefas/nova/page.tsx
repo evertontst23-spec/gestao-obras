@@ -23,7 +23,7 @@ export default async function NovaTarefa({ searchParams }: { searchParams: Promi
       <>
         <Cabecalho titulo="Nova tarefa" sub="Selecione a obra" />
         <div className="grid gap-2 sm:grid-cols-2">
-          {obras.map((o) => <Link key={o.id} href={`/tarefas/nova?obra=${o.id}`} className="rounded-lg border border-concreto-200 bg-white p-4 hover:border-sinal-400">
+          {obras.map((o) => <Link key={o.id} href={`/tarefas/nova?obra=${o.id}`} className="rounded-lg border border-concreto-200 bg-superficie p-4 hover:border-sinal-400">
             <div className="font-mono text-xs text-concreto-500">{o.codigo}</div><div className="font-bold">{o.nome}</div></Link>)}
         </div>
       </>
@@ -41,7 +41,7 @@ export default async function NovaTarefa({ searchParams }: { searchParams: Promi
   return (
     <>
       <Cabecalho titulo="Nova tarefa" sub={<>Obra: <b>{o.codigo} — {o.nome}</b> · <Link href="/tarefas/nova" className="link">trocar</Link></>}
-        acoes={<Link href={`/tarefas/importar?obra=${obraSel}`} className="inline-flex items-center rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold hover:border-sinal-400">⬆ Importar várias pela planilha</Link>} />
+        acoes={<Link href={`/tarefas/importar?obra=${obraSel}`} className="inline-flex items-center rounded-md border border-concreto-300 bg-superficie px-3 py-2 text-sm font-semibold hover:border-sinal-400">⬆ Importar várias pela planilha</Link>} />
       <Cartao>
         <FormAcao acao={criarTarefa} limparAoConcluir>
           <input type="hidden" name="obra_id" value={obraSel} />

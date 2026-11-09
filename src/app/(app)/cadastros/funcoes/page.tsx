@@ -45,7 +45,7 @@ export default async function Funcoes() {
       {!funcoes?.length ? <Vazio>Nenhuma função cadastrada.</Vazio> : (
         <div className="space-y-2">
           {funcoes.map((f) => (
-            <details key={f.id} className={`rounded-lg border border-concreto-200 bg-white ${f.ativo ? '' : 'opacity-60'}`}>
+            <details key={f.id} className={`rounded-lg border border-concreto-200 bg-superficie ${f.ativo ? '' : 'opacity-60'}`}>
               <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-3 px-4 py-3">
                 <span><b>{f.nome}</b> {f.cbo && <span className="text-xs text-concreto-500">CBO {f.cbo}</span>}</span>
                 <span className="flex flex-wrap items-center gap-3 text-sm">

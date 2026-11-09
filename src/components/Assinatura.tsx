@@ -35,7 +35,7 @@ export const Assinatura = forwardRef<AssinaturaRef, { rotulo?: string }>(functio
       <div className="mb-1 flex items-center justify-between text-sm font-semibold text-concreto-700">{rotulo}
         {!vazia && <button type="button" className="text-xs text-atraso-700" onClick={() => { const c = canvas.current!; c.getContext('2d')!.clearRect(0, 0, c.width, c.height); setVazia(true); }}>limpar</button>}</div>
       <canvas ref={canvas} onPointerDown={inicio} onPointerMove={mover} onPointerUp={fim} onPointerLeave={fim}
-        className="h-36 w-full touch-none rounded-md border-2 border-dashed border-concreto-300 bg-white" />
+        className="h-36 w-full touch-none rounded-md border-2 border-dashed border-concreto-300 bg-superficie" />
       {vazia && <p className="mt-1 text-xs text-concreto-500">Assine com o dedo dentro do quadro.</p>}
     </div>
   );

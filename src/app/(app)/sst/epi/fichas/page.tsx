@@ -49,10 +49,10 @@ export default async function FichasEPI({ searchParams }: { searchParams: Promis
         <label className="text-xs text-concreto-500">Obra
           <select name="obra" defaultValue={sp.obra ?? ''} className="entrada w-60"><option value="">Todas</option>{(obras ?? []).map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}</select></label>
         <label className="text-xs text-concreto-500">Buscar<input name="q" defaultValue={sp.q ?? ''} placeholder="Nome ou matrícula" className="entrada w-52" /></label>
-        <button className="rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold">Filtrar</button>
+        <button className="rounded-md border border-concreto-300 bg-superficie px-3 py-2 text-sm font-semibold">Filtrar</button>
       </form>
       {!lista.length ? <Vazio>Nenhum funcionário neste filtro.</Vazio> : (
-        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie">
           <table className="tabela">
             <thead><tr><th>Funcionário</th><th>Função</th><th>Obra</th><th>Empresa</th><th className="text-right">EPIs assinados</th><th>Última entrega</th><th>Situação</th><th></th></tr></thead>
             <tbody>{lista.map((f) => {

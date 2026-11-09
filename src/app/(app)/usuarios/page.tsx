@@ -51,7 +51,7 @@ export default async function Usuarios() {
         </div>
         <div className="space-y-3 lg:col-span-2">
           {usuarios.map((u) => (
-            <details key={u.id} className={`rounded-lg border border-concreto-200 bg-white ${u.ativo ? '' : 'opacity-60'}`}>
+            <details key={u.id} className={`rounded-lg border border-concreto-200 bg-superficie ${u.ativo ? '' : 'opacity-60'}`}>
               <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 px-4 py-3">
                 <span><b>{u.nome}</b> <span className="text-sm text-concreto-500">{u.email}</span></span>
                 <span className="flex gap-2"><Selo cor="bg-concreto-100 text-concreto-700">{PAPEIS[u.papel]}</Selo>{u.coordenador_compras && <Selo cor="bg-sky-100 text-sky-800">Coord. compras</Selo>}{!u.ativo && <Selo cor="bg-atraso-50 text-atraso-700">Inativo</Selo>}</span>

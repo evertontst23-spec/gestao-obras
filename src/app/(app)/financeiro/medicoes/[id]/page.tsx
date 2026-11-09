@@ -35,7 +35,7 @@ export default async function BM({ params }: { params: Promise<{ id: string }> }
     <>
       <Cabecalho titulo={`${codBM(b.numero)} — ${o.codigo}`} sub={<Selo cor={STATUS_BM[b.status].cor}>{STATUS_BM[b.status].rotulo}</Selo>} acoes={<BotaoImprimir />} />
       {finGestor && <AbasFinanceiro atual="bm" />}
-      <div className="mb-4 rounded-lg border border-concreto-200 bg-white p-4 text-sm">
+      <div className="mb-4 rounded-lg border border-concreto-200 bg-superficie p-4 text-sm">
         <div className="mb-2 text-base font-bold">BOLETIM DE MEDIÇÃO Nº {String(b.numero).padStart(2, '0')}</div>
         <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
           <div><span className="text-concreto-500">Obra:</span> <b>{o.codigo} — {o.nome}</b></div>
@@ -50,7 +50,7 @@ export default async function BM({ params }: { params: Promise<{ id: string }> }
         {b.observacoes && <p className="mt-2 text-concreto-600">{b.observacoes}</p>}
         {b.status === 'cancelado' && <p className="mt-2 font-semibold text-atraso-700">Cancelado: {b.cancelado_motivo}</p>}
       </div>
-      <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white"><table className="tabela whitespace-nowrap text-xs sm:text-sm">
+      <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie"><table className="tabela whitespace-nowrap text-xs sm:text-sm">
         <thead><tr><th>Item</th><th>Descrição</th><th>Un</th><th className="text-right">Contratado</th><th className="text-right">Acum. anterior</th><th className="text-right">Este período</th><th className="text-right">Acumulado</th><th className="text-right">% exec.</th><th className="text-right">Preço unit.</th><th className="text-right">Valor do período</th></tr></thead>
         <tbody>{its.map((i) => {
           const acum = Number(i.quantidade_anterior) + Number(i.quantidade);

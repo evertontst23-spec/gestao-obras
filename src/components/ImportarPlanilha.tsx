@@ -78,14 +78,14 @@ export function ImportarPlanilha({ obraId, reimportar = false }: { obraId: strin
       <input ref={ref} type="file" className="hidden" accept=".xlsx,.xls,.xlsm,.ods,.csv"
         onChange={(e) => { abrir(e.target.files?.[0]); e.target.value = ''; }} />
       <button type="button" onClick={() => ref.current?.click()} disabled={estado !== 'livre'}
-        className="flex min-h-[88px] w-full flex-col items-center justify-center rounded-lg border-2 border-dashed border-concreto-300 bg-white px-4 text-center hover:border-sinal-400 disabled:opacity-60">
+        className="flex min-h-[88px] w-full flex-col items-center justify-center rounded-lg border-2 border-dashed border-concreto-300 bg-superficie px-4 text-center hover:border-sinal-400 disabled:opacity-60">
         <span className="text-base font-bold">{estado === 'lendo' ? 'Lendo planilha…' : arquivo ? `📄 ${arquivo.name} — trocar arquivo` : `📊 ${reimportar ? 'Reimportar' : 'Lançar'} planilha da obra`}</span>
         <span className="text-xs text-concreto-500">Excel (.xlsx, .xls), LibreOffice (.ods) ou CSV — orçamento sintético, EAP ou planilha de quantitativos</span>
       </button>
       {erro && <p role="alert" className="rounded-md bg-atraso-50 px-3 py-2 text-sm font-medium text-atraso-700">{erro}</p>}
 
       {aba && mapa && resultado && (
-        <div className="space-y-4 rounded-lg border border-concreto-200 bg-white p-4">
+        <div className="space-y-4 rounded-lg border border-concreto-200 bg-superficie p-4">
           <div>
             <h3 className="font-bold">O sistema entendeu a planilha assim:</h3>
             <p className="text-sm text-concreto-500">Confira e ajuste se algo estiver trocado. Nada é gravado até você confirmar.</p>
@@ -124,7 +124,7 @@ export function ImportarPlanilha({ obraId, reimportar = false }: { obraId: strin
 
           <div className="max-h-[420px] overflow-auto rounded-md border border-concreto-200">
             <table className="tabela text-xs">
-              <thead className="sticky top-0 bg-white"><tr><th>Lin.</th><th>Item</th><th>Descrição</th><th>Ref.</th><th>Und</th><th className="text-right">Qtd.</th><th className="text-right">P. unit.</th><th className="text-right">Total</th></tr></thead>
+              <thead className="sticky top-0 bg-superficie"><tr><th>Lin.</th><th>Item</th><th>Descrição</th><th>Ref.</th><th>Und</th><th className="text-right">Qtd.</th><th className="text-right">P. unit.</th><th className="text-right">Total</th></tr></thead>
               <tbody>{resultado.itens.slice(0, 300).map((it, i) => (
                 <tr key={i} className={it.tipo === 'grupo' ? 'bg-concreto-50 font-bold' : ''}>
                   <td className="text-concreto-400">{it.linha}</td>

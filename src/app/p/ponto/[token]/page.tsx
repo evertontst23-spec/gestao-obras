@@ -43,15 +43,15 @@ export default async function MeuPonto({ params, searchParams }: { params: Promi
         <div className="text-sm text-concreto-300">Matrícula {r.funcionario.matricula}{r.funcionario.funcao ? ` • ${r.funcionario.funcao}` : ''}{r.funcionario.obra ? ` • ${r.funcionario.obra}` : ''}</div>
       </header>
       <nav className="mb-4 flex items-center justify-between">
-        <Link href={`?mes=${somaMes(r.mes, -1)}`} className="rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold">← Anterior</Link>
+        <Link href={`?mes=${somaMes(r.mes, -1)}`} className="rounded-md border border-concreto-300 bg-superficie px-3 py-2 text-sm font-semibold">← Anterior</Link>
         <div className="text-center font-semibold">{nomeMes(r.mes).replace(/^./, (c) => c.toUpperCase())}{r.fechada && <div className="text-xs font-normal normal-case text-concreto-500">folha fechada</div>}</div>
-        {r.mes < atual ? <Link href={`?mes=${somaMes(r.mes, 1)}`} className="rounded-md border border-concreto-300 bg-white px-3 py-2 text-sm font-semibold">Próximo →</Link> : <span className="w-[92px]" />}
+        {r.mes < atual ? <Link href={`?mes=${somaMes(r.mes, 1)}`} className="rounded-md border border-concreto-300 bg-superficie px-3 py-2 text-sm font-semibold">Próximo →</Link> : <span className="w-[92px]" />}
       </nav>
       <div className="mb-4 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
         {[['Trabalhado', hm(tot('trabalhado_min'))], ['Hora extra', hm(tot('he_util_min') + tot('he_100_min'))], ['Atrasos', hm(tot('atraso_min'))], ['Faltas', String(faltas)]].map(([a, b]) => (
-          <div key={a} className="rounded-lg border border-concreto-200 bg-white p-3"><div className="text-[11px] font-semibold uppercase text-concreto-500">{a}</div><div className="font-mono text-lg font-bold">{b}</div></div>))}
+          <div key={a} className="rounded-lg border border-concreto-200 bg-superficie p-3"><div className="text-[11px] font-semibold uppercase text-concreto-500">{a}</div><div className="font-mono text-lg font-bold">{b}</div></div>))}
       </div>
-      <div className="overflow-hidden rounded-lg border border-concreto-200 bg-white">
+      <div className="overflow-hidden rounded-lg border border-concreto-200 bg-superficie">
         {r.dias.length === 0 && <p className="p-4 text-sm text-concreto-500">Nenhum dia neste mês.</p>}
         {r.dias.map((d) => (
           <div key={d.data} className={`flex items-center justify-between gap-2 border-b border-concreto-100 px-3 py-2 text-sm ${d.dia_semana === 7 || d.feriado ? 'bg-concreto-50' : ''}`}>
@@ -72,7 +72,7 @@ export default async function MeuPonto({ params, searchParams }: { params: Promi
       </div>
       <p className="mt-2 text-xs text-concreto-500">Horários riscados foram corrigidos pelo RH (o original fica guardado).</p>
 
-      <section className="mt-6 rounded-lg border border-concreto-200 bg-white p-4">
+      <section className="mt-6 rounded-lg border border-concreto-200 bg-superficie p-4">
         <h2 className="mb-1 font-bold">Algo errado? Peça a correção</h2>
         <p className="mb-3 text-sm text-concreto-600">Escolha o dia e explique. O RH confere e responde aqui.</p>
         {r.fechada && r.mes !== atual && <p className="mb-3 text-xs text-concreto-500">A folha deste mês já foi fechada; pedidos de dias deste mês serão analisados pelo RH separadamente.</p>}
@@ -88,7 +88,7 @@ export default async function MeuPonto({ params, searchParams }: { params: Promi
         <section className="mt-6">
           <h2 className="mb-2 font-bold">Meus pedidos</h2>
           <div className="space-y-2">{r.pedidos.map((p, i) => (
-            <div key={i} className="rounded-lg border border-concreto-200 bg-white p-3 text-sm">
+            <div key={i} className="rounded-lg border border-concreto-200 bg-superficie p-3 text-sm">
               <div className="flex justify-between"><b>{dt(p.data)}</b>
                 <span className={`rounded px-2 text-xs font-semibold ${p.status === 'aberta' ? 'bg-atencao-100 text-atencao-800' : p.status === 'corrigida' ? 'bg-ok-50 text-ok-700' : 'bg-concreto-100 text-concreto-600'}`}>{p.status === 'aberta' ? 'Aguardando o RH' : p.status === 'corrigida' ? 'Corrigido' : 'Não aceito'}</span></div>
               <p className="mt-1 text-concreto-700">{p.mensagem}</p>

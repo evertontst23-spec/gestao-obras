@@ -13,9 +13,9 @@ export const metadata = { title: 'Minhas tarefas' };
 function CartaoTarefa({ t }: { t: any }) {
   const st = t.status as StatusTarefa;
   const base = 'flex min-h-[48px] items-center justify-center rounded-md border px-2 text-center text-sm font-semibold';
-  const botao = `${base} border-concreto-300 bg-white active:bg-concreto-100`;
+  const botao = `${base} border-concreto-300 bg-superficie active:bg-concreto-100`;
   return (
-    <article className={`rounded-lg border-2 bg-white p-4 shadow-sm ${t.situacao_prazo === 'atrasado' ? 'border-atraso-500' : t.situacao_prazo === 'atencao' ? 'border-atencao-500' : 'border-concreto-200'}`}>
+    <article className={`rounded-lg border-2 bg-superficie p-4 shadow-sm ${t.situacao_prazo === 'atrasado' ? 'border-atraso-500' : t.situacao_prazo === 'atencao' ? 'border-atencao-500' : 'border-concreto-200'}`}>
       <Link href={`/tarefas/${t.id}`} className="block">
         <div className="flex items-center justify-between gap-2 text-xs text-concreto-500"><span className="font-mono">{codTarefa(t.numero)} • {t.obra_codigo}</span><SeloPrioridade p={t.prioridade} /></div>
         <h3 className="mt-1 text-lg font-bold leading-tight">{t.titulo}</h3>
@@ -34,7 +34,7 @@ function CartaoTarefa({ t }: { t: any }) {
         {st === 'em_andamento' && <Link href={`/tarefas/${t.id}#andamento`} className={`${base} col-span-2 border-sinal-500 bg-sinal-500 text-white active:bg-sinal-600`}>↗ Atualizar andamento</Link>}
         <Link href={`/materiais/nova?tarefa=${t.id}`} className={botao}>▤ Solicitar material</Link>
         <Link href={`/tarefas/${t.id}#impedimento`} className={botao}>⚠ Impedimento</Link>
-        {st === 'em_andamento' && <Link href={`/tarefas/${t.id}#concluir`} className={`${base} col-span-2 border-ok-500 bg-white text-ok-700`}>⚑ Concluir serviço</Link>}
+        {st === 'em_andamento' && <Link href={`/tarefas/${t.id}#concluir`} className={`${base} col-span-2 border-ok-500 bg-superficie text-ok-700`}>⚑ Concluir serviço</Link>}
       </div>
     </article>
   );
@@ -72,7 +72,7 @@ export default async function Campo() {
           <h2 className="font-bold text-sinal-700">📦 Material chegou? Confirme o recebimento</h2>
           <ul className="mt-2 space-y-2">{aConfirmar!.map((e) => {
             const it = e.solicitacao_itens as unknown as { material: string; unidade: string; solicitacao_id: string; solicitacoes: { numero: number } };
-            return <li key={e.id}><Link href={`/materiais/${it.solicitacao_id}`} className="flex justify-between rounded-md bg-white p-3 text-sm font-semibold">
+            return <li key={e.id}><Link href={`/materiais/${it.solicitacao_id}`} className="flex justify-between rounded-md bg-superficie p-3 text-sm font-semibold">
               <span>{it.material}</span><span>{e.quantidade_enviada} {it.unidade} →</span></Link></li>;
           })}</ul>
         </section>
@@ -82,7 +82,7 @@ export default async function Campo() {
         <section className="rounded-lg border-2 border-atraso-500 bg-atraso-50 p-4">
           <h2 className="font-bold text-atraso-700">⚑ Correções que você precisa fazer</h2>
           <ul className="mt-2 space-y-2">{correcoes!.map((n) => (
-            <li key={n.id}><Link href={`/qualidade/${n.id}`} className="block rounded-md bg-white p-3">
+            <li key={n.id}><Link href={`/qualidade/${n.id}`} className="block rounded-md bg-superficie p-3">
               <div className="flex items-center justify-between gap-2 text-xs"><span className="font-mono font-bold">{n.codigo} • {n.obra_codigo}</span><SeloGravidade g={n.gravidade} /></div>
               <div className="mt-1 font-semibold">{n.descricao}</div>
               <div className={`text-xs ${n.vencida ? 'font-bold text-atraso-700' : 'text-concreto-500'}`}>📍 {n.local ?? '—'} • corrigir até {data(n.prazo_correcao)}</div>
@@ -98,7 +98,7 @@ export default async function Campo() {
       {proximas.length > 0 && (
         <section>
           <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-concreto-500">Próximas</h2>
-          <ul className="divide-y divide-concreto-100 rounded-lg border border-concreto-200 bg-white">
+          <ul className="divide-y divide-concreto-100 rounded-lg border border-concreto-200 bg-superficie">
             {proximas.map((t) => <li key={t.id}><Link href={`/tarefas/${t.id}`} className="flex items-center justify-between gap-2 p-3">
               <span className="min-w-0"><span className="block truncate font-semibold">{t.titulo}</span><span className="text-xs text-concreto-500">começa {data(t.inicio_previsto)} • {t.local ?? t.obra_codigo}</span></span>
               <SeloStatus s={t.status} /></Link></li>)}
@@ -109,7 +109,7 @@ export default async function Campo() {
       {validacao.length > 0 && (
         <section>
           <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-concreto-500">Aguardando o engenheiro validar</h2>
-          <ul className="divide-y divide-concreto-100 rounded-lg border border-concreto-200 bg-white">
+          <ul className="divide-y divide-concreto-100 rounded-lg border border-concreto-200 bg-superficie">
             {validacao.map((t) => <li key={t.id}><Link href={`/tarefas/${t.id}`} className="flex justify-between gap-2 p-3 text-sm"><span className="truncate">{t.titulo}</span><SeloStatus s={t.status} /></Link></li>)}
           </ul>
         </section>
@@ -121,7 +121,7 @@ export default async function Campo() {
           <div className="space-y-2">{minhasObras!.map((o) => {
             const temPlanilha = ((o.planilhas as unknown as { id: string }[]) ?? []).length > 0;
             return (
-              <div key={o.id} className="rounded-lg border border-concreto-200 bg-white p-3">
+              <div key={o.id} className="rounded-lg border border-concreto-200 bg-superficie p-3">
                 <div className="mb-2 text-sm font-semibold"><span className="font-mono text-xs text-concreto-500">{o.codigo}</span> {o.nome}</div>
                 <div className="grid grid-cols-2 gap-2">
                   {temPlanilha && <Link href={`/obras/${o.id}/avanco#lancar`} className="flex min-h-[48px] items-center justify-center rounded-md bg-ok-500 text-sm font-semibold text-white">↗ Lançar execução</Link>}
@@ -140,7 +140,7 @@ export default async function Campo() {
         </div>
         {!pedidos?.length ? <Vazio>Nenhum pedido em aberto.</Vazio> : (
           <ul className="space-y-2">{pedidos.map((p) => (
-            <li key={p.id}><Link href={`/materiais/${p.id}`} className="block rounded-lg border border-concreto-200 bg-white p-3">
+            <li key={p.id}><Link href={`/materiais/${p.id}`} className="block rounded-lg border border-concreto-200 bg-superficie p-3">
               <div className="flex items-center justify-between gap-2"><span className="font-mono font-bold">{codSM(p.numero)}</span><SeloSolicitacao s={p.status} /></div>
               <div className="mt-1 text-sm">{p.tarefa_titulo ?? p.obra_nome}</div>
               <div className="text-xs text-concreto-500">{p.itens_entregues}/{p.total_itens} entregues • preciso até {data(p.data_necessidade)}</div>

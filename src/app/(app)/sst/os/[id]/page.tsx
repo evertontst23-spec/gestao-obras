@@ -17,7 +17,7 @@ export default async function DetalheOS({ params }: { params: Promise<{ id: stri
     <>
       <AbasSST atual="os" />
       <div className="nao-imprimir mb-4 flex justify-end"><BotaoImprimir rotulo="Imprimir OS" /></div>
-      <article className="mx-auto max-w-3xl rounded-lg border border-concreto-200 bg-white p-6 text-sm print:border-0 print:p-0">
+      <article className="mx-auto max-w-3xl rounded-lg border border-concreto-200 bg-superficie p-6 text-sm print:border-0 print:p-0">
         <header className="mb-4 border-b-2 border-concreto-800 pb-3 text-center">
           <div className="text-xs font-bold uppercase tracking-[0.2em] text-sinal-700">NR-01, item 1.4.1 "c"</div>
           <h1 className="text-xl font-black">ORDEM DE SERVIÇO DE SEGURANÇA E SAÚDE NO TRABALHO</h1>
@@ -42,7 +42,7 @@ export default async function DetalheOS({ params }: { params: Promise<{ id: stri
         </div>
       </article>
       {!o.ciencia_em && !o.substituida && ['admin', 'seguranca', 'engenheiro', 'encarregado'].includes(perfil.papel) && (
-        <div className="mx-auto mt-5 max-w-3xl rounded-lg border-2 border-ok-500 bg-white p-4"><CienciaOS os={id} /></div>)}
+        <div className="mx-auto mt-5 max-w-3xl rounded-lg border-2 border-ok-500 bg-superficie p-4"><CienciaOS os={id} /></div>)}
     </>
   );
 }

@@ -49,7 +49,7 @@ export default async function Lancamentos({ searchParams }: { searchParams: Prom
       <div className="grid gap-5 xl:grid-cols-3">
         <div className="xl:col-span-2">
           {!ls.length ? <Vazio>Nenhum lançamento com esses filtros.</Vazio> : (
-            <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white"><table className="tabela">
+            <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie"><table className="tabela">
               <thead><tr><th>Vencimento</th><th>Descrição</th><th>Obra</th><th className="text-right">Valor</th><th>Situação</th></tr></thead>
               <tbody>{ls.map((l) => {
                 const s = situacaoLanc(l, hoje);

@@ -63,7 +63,7 @@ export default async function Notas({ searchParams }: { searchParams: Promise<F>
       <div className="grid gap-5 xl:grid-cols-3">
         <div className="space-y-5 xl:col-span-2">
           {!ls.length ? <Vazio>Nenhuma nota neste mês com esses filtros.</Vazio> : (
-            <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white"><table className="tabela">
+            <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie"><table className="tabela">
               <thead><tr><th>Data</th><th>Nota</th><th>Obra</th><th className="text-right">Valor</th><th /></tr></thead>
               <tbody>{ls.map((n) => (
                 <tr key={n.id} className={n.status === 'cancelada' ? 'opacity-50' : ''}>

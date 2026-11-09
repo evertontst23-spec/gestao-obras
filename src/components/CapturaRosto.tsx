@@ -59,7 +59,7 @@ export function CapturaRosto({ onCaptura, rotulo = 'Capturar rosto' }: { onCaptu
         <div className="pointer-events-none absolute inset-6 rounded-full border-4 border-sinal-400/70" />
       </div>
       {estado !== 'capturando' && estado !== 'carregando' && (
-        <button type="button" onClick={iniciar} className="min-h-[48px] w-full rounded-md border-2 border-concreto-300 bg-white px-3 text-sm font-semibold hover:border-sinal-400">
+        <button type="button" onClick={iniciar} className="min-h-[48px] w-full rounded-md border-2 border-concreto-300 bg-superficie px-3 text-sm font-semibold hover:border-sinal-400">
           🙂 {estado === 'ok' ? 'Capturar novamente' : rotulo}
         </button>)}
       {msg && <p className={`text-center text-sm ${estado === 'erro' ? 'text-atraso-700' : estado === 'ok' ? 'font-semibold text-ok-700' : 'text-concreto-600'}`}>{msg}</p>}

@@ -14,7 +14,7 @@ export default async function NovoDDS({ searchParams }: { searchParams: Promise<
   const sel = obra ?? (obras?.length === 1 ? obras[0].id : undefined);
   if (!sel) return (
     <><Cabecalho titulo="Novo DDS" sub="Em qual obra?" /><AbasSST atual="dds" />
-      <div className="mx-auto max-w-xl space-y-2">{obras?.map((o) => <Link key={o.id} href={`/sst/dds/novo?obra=${o.id}`} className="block rounded-lg border border-concreto-200 bg-white p-4 font-semibold hover:border-sinal-400"><span className="font-mono text-xs text-concreto-500">{o.codigo}</span><br />{o.nome}</Link>)}</div></>);
+      <div className="mx-auto max-w-xl space-y-2">{obras?.map((o) => <Link key={o.id} href={`/sst/dds/novo?obra=${o.id}`} className="block rounded-lg border border-concreto-200 bg-superficie p-4 font-semibold hover:border-sinal-400"><span className="font-mono text-xs text-concreto-500">{o.codigo}</span><br />{o.nome}</Link>)}</div></>);
   const { data: equipe } = await supabase.rpc('equipe_da_obra', { p_obra: sel });
   const o = obras?.find((x) => x.id === sel);
   return (

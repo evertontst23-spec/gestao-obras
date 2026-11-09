@@ -52,7 +52,7 @@ export default async function Insumos({ searchParams }: { searchParams: Promise<
       </form>
       {(lista ?? []).some((i) => i.revisar) && <p className="mb-3 rounded-md bg-sinal-50 px-3 py-2 text-sm text-sinal-800">Insumos marcados com <b>novo</b> foram cadastrados automaticamente a partir de pedidos de material. Confira nome, unidade e categoria e salve para tirar a marca.</p>}
       {!lista?.length ? <Vazio>Nenhum insumo encontrado.</Vazio> : (
-        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie">
           <table className="tabela">
             <thead><tr><th>Código</th><th>Descrição</th><th>Categoria</th><th>Un.</th><th className="text-right">Estoque total</th><th className="text-right">Mínimo</th><th></th></tr></thead>
             <tbody>{lista.map((i) => {

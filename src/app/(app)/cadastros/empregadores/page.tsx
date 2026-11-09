@@ -52,7 +52,7 @@ export default async function Empregadores() {
       <Cabecalho titulo="Empresas contratantes" sub="De quem é cada funcionário: equipe própria, fornecedoras de mão de obra e CLTs de empresas parceiras." />
       {!lista?.length ? <Vazio>Nenhuma empresa cadastrada.</Vazio> : (
         <div className="mb-5 space-y-2">{lista.map((e) => (
-          <details key={e.id} className={`rounded-lg border border-concreto-200 bg-white ${e.ativo ? '' : 'opacity-60'}`}>
+          <details key={e.id} className={`rounded-lg border border-concreto-200 bg-superficie ${e.ativo ? '' : 'opacity-60'}`}>
             <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 px-4 py-3">
               <span><b>{e.nome}</b> <Selo cor="bg-concreto-100 text-concreto-700">{TIPO[e.tipo]}</Selo>{e.fechamento_externo && <Selo cor="bg-sky-100 text-sky-800">fechamento pela empresa</Selo>}{e.ponto_externo && <Selo cor="bg-atencao-100 text-atencao-800">ponto fora do sistema</Selo>}</span>
               <span className="text-xs text-concreto-600">{taxa(e)} • adiantamento {String(e.adiantamento_pct).replace('.', ',')}% dia {e.dia_adiantamento}, saldo dia {e.dia_saldo} • <Link className="link" href={`/cadastros/funcionarios?empresa=${e.id}`}>{cont.get(e.id) ?? 0} ativo(s)</Link></span>

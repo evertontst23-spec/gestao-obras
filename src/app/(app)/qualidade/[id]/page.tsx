@@ -103,7 +103,7 @@ export default async function DetalheNC({ params, searchParams }: { params: Prom
             </ol>
           </Cartao>
           {gere && !['verificada', 'cancelada'].includes(n.status) && (
-            <details className="rounded-lg border border-concreto-200 bg-white text-sm">
+            <details className="rounded-lg border border-concreto-200 bg-superficie text-sm">
               <summary className="cursor-pointer px-4 py-3 text-atraso-700">Cancelar registro</summary>
               <FormAcao acao={cancelarNC} className="space-y-2 border-t border-concreto-100 p-4">
                 <input type="hidden" name="nc" value={id} />

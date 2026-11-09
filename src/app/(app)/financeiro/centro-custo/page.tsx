@@ -66,7 +66,7 @@ export default async function CentroCusto({ searchParams }: { searchParams: Prom
       </div>
       {!lista.length ? <Vazio>Nenhum lançamento no período.</Vazio> : (
         <div className="space-y-5">
-          <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-white"><table className="tabela whitespace-nowrap">
+          <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie"><table className="tabela whitespace-nowrap">
             <thead><tr><th>Obra</th>{cats.map((c) => <th key={c} className="text-right">{CATEGORIAS_DESPESA[c].replace(/ \(.*\)/, '')}</th>)}<th className="text-right">Custo total</th><th className="text-right">Receitas</th><th className="text-right">Resultado</th></tr></thead>
             <tbody>
               {lista.map((x) => (
