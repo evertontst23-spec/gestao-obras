@@ -142,6 +142,15 @@ export async function salvarInsumo(_: EstadoAcao, f: FormData): Promise<EstadoAc
   return { ok: id ? 'Insumo atualizado.' : `Insumo ${salvo?.codigo ?? d.codigo} cadastrado.` };
 }
 
+/** Exclui o insumo cadastrado errado; se já foi usado (pedido, OC, estoque…), só desativa. */
+export async function excluirInsumo(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { data: r, error } = await supabase.rpc('insumo_excluir', { p_id: txt(f, 'id') });
+  if (error) return { erro: erroCadastro(error) };
+  revalidatePath('/cadastros/insumos');
+  return { ok: r === 'excluido' ? 'Insumo excluído.' : 'Este insumo já foi usado em pedidos/estoque — foi desativado (some das listas, mas o histórico fica).' };
+}
+
 // ---------------- Empresas contratantes
 export async function salvarEmpregador(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
   const id = txt(f, 'id');

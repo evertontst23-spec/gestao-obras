@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { exigirPapel } from '@/lib/sessao';
 import { Cabecalho, Cartao, Campo, Selo, Vazio } from '@/components/ui';
 import { FormAcao, Botao } from '@/components/formulario';
-import { salvarInsumo } from '../acoes';
+import { excluirInsumo, salvarInsumo } from '../acoes';
 import { CATEGORIAS_INSUMO, UNIDADES } from '@/lib/dominio';
 import { num } from '@/lib/formato';
 
@@ -66,7 +66,11 @@ export default async function Insumos({ searchParams }: { searchParams: Promise<
                   <td className={`text-right font-mono ${Number(i.estoque_minimo) > 0 && s < Number(i.estoque_minimo) ? 'font-bold text-atraso-700' : ''}`}>{num(s, 3)}</td>
                   <td className="text-right font-mono text-concreto-500">{num(i.estoque_minimo, 3)}</td>
                   <td>{pode && <details><summary className="link cursor-pointer text-xs">editar</summary>
-                    <div className="mt-2 w-[min(80vw,900px)]"><FormAcao acao={salvarInsumo}><Campos i={i} /></FormAcao></div></details>}</td>
+                    <div className="mt-2 w-[min(80vw,900px)]"><FormAcao acao={salvarInsumo}><Campos i={i} /></FormAcao></div></details>}
+                    {pode && <details className="mt-1"><summary className="cursor-pointer text-xs font-semibold text-atraso-700">excluir</summary>
+                      <FormAcao acao={excluirInsumo} className="mt-1 w-56 space-y-1 text-xs"><input type="hidden" name="id" value={i.id} />
+                        <p className="text-concreto-600">Excluir <b>{i.codigo}</b>? Se já foi usado em pedido, OC ou estoque, ele só é desativado.</p>
+                        <Botao variante="perigo">Confirmar exclusão</Botao></FormAcao></details>}</td>
                 </tr>);
             })}</tbody>
           </table>
