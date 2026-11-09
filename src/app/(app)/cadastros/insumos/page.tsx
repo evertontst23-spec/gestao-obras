@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { exigirPapel } from '@/lib/sessao';
 import { Cabecalho, Cartao, Campo, Selo, Vazio } from '@/components/ui';
 import { FormAcao, Botao } from '@/components/formulario';
@@ -40,6 +41,7 @@ export default async function Insumos({ searchParams }: { searchParams: Promise<
   return (
     <>
       <Cabecalho titulo="Insumos" sub="Código único por insumo — usado nos pedidos, cotações, estoque e EPI. Só o comprador cadastra." />
+      <p className="mb-4 rounded-md border border-atencao-200 bg-atencao-50 px-3 py-2 text-sm text-atencao-800">Nota de almoço, combustível, frete ou compra avulsa <b>não é insumo</b> — registre em <Link className="link font-semibold" href="/financeiro/notas">Notas e despesas</Link>.</p>
       <datalist id="un-ins">{UNIDADES.map((u) => <option key={u} value={u} />)}</datalist>
       {pode && <Cartao titulo="Novo insumo" className="mb-5"><FormAcao acao={salvarInsumo} limparAoConcluir><Campos /></FormAcao></Cartao>}
       <form className="mb-3 flex flex-wrap gap-2">
