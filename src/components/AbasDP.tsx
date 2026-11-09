@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { obterSessao } from '@/lib/sessao';
+import { AbasCad } from '@/components/cad';
 /** Abas do RH/DP — cada perfil vê só o que pode usar */
-export async function AbasDP({ atual, mes }: { atual: string; mes?: string }) {
+export async function AbasDP({ atual, mes, v2 = false }: { atual: string; mes?: string; v2?: boolean }) {
   const { supabase, perfil } = await obterSessao();
   const q = mes ? `?mes=${mes}` : '';
   const rh = ['admin', 'rh'].includes(perfil.papel);
@@ -20,6 +21,8 @@ export async function AbasDP({ atual, mes }: { atual: string; mes?: string }) {
   ];
   const abas = todas.filter((a) => a[3].includes(perfil.papel));
   if (abas.length < 2) return null;
+  // visual novo (identidade CAD) — por enquanto só na tela de Pagamentos
+  if (v2) return <AbasCad itens={abas.map(([k, r, h]) => ({ chave: k, rotulo: r, href: h, ativo: atual === k, alerta: k === 'correcoes' && !!count }))} />;
   return (
     <nav className="nao-imprimir -mx-4 mb-5 flex gap-1 overflow-x-auto border-b border-concreto-200 px-4 md:mx-0 md:px-0">
       {abas.map(([k, r, h]) => <Link key={k} href={h} className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm font-semibold ${atual === k ? 'border-sinal-500 text-sinal-700' : 'border-transparent text-concreto-500 hover:text-concreto-800'} ${k === 'correcoes' && count ? 'text-atraso-700' : ''}`}>{r}</Link>)}

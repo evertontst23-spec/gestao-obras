@@ -4,6 +4,8 @@
 
 /* ===== Temas (o usuário escolhe em Aparência) ===== */
 @layer base {
+  :root, [data-tema='claro'], [data-tema='petroleo'] { --info-50: 239 246 255; --info-500: 59 130 246; --info-700: 29 78 216; --elevada: 249 250 251; }
+  [data-tema='escuro'] { --info-50: 19 34 56; --info-500: 96 165 250; --info-700: 147 197 253; --elevada: 27 34 48; }
   :root, [data-tema='claro'] {
     --concreto-50: 244 245 247;
     --concreto-100: 237 239 242;
@@ -150,6 +152,60 @@
     --menu-borda: 26 74 79;
     --menu-marca: 251 146 60;
     --raio-md: 6px; --raio-lg: 10px; --raio-xl: 14px; --sombra: 0 1px 2px rgba(12,52,56,.06); --fonte: 'Manrope'; color-scheme: light;
+  }
+  /* CAD oficial (identidade nova — em aprovação, aplicada só na tela de Pagamentos) */
+  [data-tema='cad'] {
+    --concreto-50: 11 16 24;
+    --concreto-100: 17 24 36;
+    --concreto-200: 43 52 66;
+    --concreto-300: 58 69 86;
+    --concreto-400: 124 137 154;
+    --concreto-500: 163 173 187;
+    --concreto-600: 195 203 214;
+    --concreto-700: 218 224 232;
+    --concreto-800: 233 237 242;
+    --concreto-900: 245 247 250;
+    --sinal-50: 42 29 18;
+    --sinal-100: 59 40 24;
+    --sinal-300: 249 185 127;
+    --sinal-400: 247 163 92;
+    --sinal-500: 244 138 50;
+    --sinal-600: 232 121 36;
+    --sinal-700: 247 163 92;
+    --sinal-800: 251 208 168;
+    --ok-50: 15 36 24;
+    --ok-100: 20 51 31;
+    --ok-500: 34 197 94;
+    --ok-600: 34 197 94;
+    --ok-700: 74 222 128;
+    --ok-800: 187 247 208;
+    --atencao-50: 42 33 16;
+    --atencao-100: 56 43 18;
+    --atencao-200: 92 71 22;
+    --atencao-500: 245 158 11;
+    --atencao-700: 251 191 36;
+    --atencao-800: 253 230 138;
+    --atraso-50: 44 21 23;
+    --atraso-100: 61 27 30;
+    --atraso-200: 95 35 40;
+    --atraso-300: 127 45 51;
+    --atraso-500: 239 68 68;
+    --atraso-600: 248 113 113;
+    --atraso-700: 248 113 113;
+    --info-50: 19 34 56;
+    --info-500: 96 165 250;
+    --info-700: 147 197 253;
+    --superficie: 20 28 40;
+    --elevada: 27 37 51;
+    --menu-fundo: 17 24 36;
+    --menu-texto: 163 173 187;
+    --menu-mudo: 124 137 154;
+    --menu-hover: 27 37 51;
+    --menu-ativo: 27 37 51;
+    --menu-ativo-texto: 245 247 250;
+    --menu-borda: 43 52 66;
+    --menu-marca: 244 138 50;
+    --raio-md: 8px; --raio-lg: 12px; --raio-xl: 16px; --sombra: none; --fonte: 'Inter'; color-scheme: dark;
   }
   html { -webkit-tap-highlight-color: transparent; }
   body { @apply bg-concreto-50 text-concreto-900 antialiased; font-feature-settings: 'tnum' 1; }
