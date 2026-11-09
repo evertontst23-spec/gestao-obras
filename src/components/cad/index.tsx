@@ -103,16 +103,16 @@ export function VazioCad({ icone, titulo, children }: { icone?: ReactNode; titul
   );
 }
 
-/** Abas internas de um módulo (sublinhado laranja no item ativo) */
+/** Abas internas de um módulo: pílulas; no computador quebram linha (todas visíveis), no celular rolam de lado */
 export function AbasCad({ itens }: { itens: { chave: string; rotulo: ReactNode; href: string; ativo: boolean; alerta?: boolean }[] }) {
   return (
-    <nav aria-label="Seções" className="nao-imprimir -mx-4 mb-6 overflow-x-auto border-b border-concreto-200 px-4 md:mx-0 md:px-0">
-      <ul className="flex min-w-max gap-6">
+    <nav aria-label="Seções" className="nao-imprimir -mx-4 mb-6 overflow-x-auto px-4 md:mx-0 md:overflow-visible md:px-0">
+      <ul className="flex min-w-max gap-1 md:min-w-0 md:flex-wrap">
         {itens.map((a) => (
           <li key={a.chave}>
             <Link href={a.href} aria-current={a.ativo ? 'page' : undefined}
-              className={`-mb-px flex items-center gap-1.5 whitespace-nowrap border-b-2 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sinal-500
-                ${a.ativo ? 'border-sinal-500 text-concreto-900' : 'border-transparent text-concreto-500 hover:border-concreto-300 hover:text-concreto-800'}`}>
+              className={`flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sinal-500
+                ${a.ativo ? 'bg-elevada text-concreto-900 ring-1 ring-inset ring-concreto-200' : 'text-concreto-500 hover:bg-superficie hover:text-concreto-800'}`}>
               {a.rotulo}{a.alerta && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-atraso-500" />}
             </Link>
           </li>))}
