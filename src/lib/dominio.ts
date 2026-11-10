@@ -10,7 +10,7 @@ export type StatusMaterial =
 export type Prioridade = 'baixa' | 'normal' | 'alta' | 'urgente';
 export type SituacaoPrazo = 'no_prazo' | 'atencao' | 'atrasado' | 'concluido';
 
-export interface Perfil { id: string; nome: string; email: string | null; telefone: string | null; papel: Papel; ativo: boolean; coordenador_compras?: boolean; tema?: 'claro' | 'escuro' | 'petroleo' }
+export interface Perfil { id: string; nome: string; email: string | null; telefone: string | null; papel: Papel; ativo: boolean; coordenador_compras?: boolean; tema?: 'claro' | 'escuro' | 'petroleo' | 'cad' }
 
 export const PAPEIS: Record<Papel, string> = {
   admin: 'Diretoria / Administrador',
