@@ -18,13 +18,14 @@ export default async function FinanceiroObra({ params }: { params: Promise<{ id:
   const { supabase, perfil } = await obterSessao();
   if (!['admin', 'financeiro', 'engenheiro'].includes(perfil.papel)) redirect(`/obras/${id}`);
   const hoje = hojeISO();
-  const [{ data: obra }, { data: resumo }, { data: lancs }, { data: bms }, { data: forn }, { data: transfs }] = await Promise.all([
+  const [{ data: obra }, { data: resumo }, { data: lancs }, { data: bms }, { data: forn }, { data: transfs }, { data: tcusto }] = await Promise.all([
     supabase.from('obras').select('*').eq('id', id).maybeSingle(),
     supabase.from('v_financeiro_obras').select('*').eq('id', id).maybeSingle(),
     supabase.from('lancamentos').select('*').eq('obra_id', id).neq('status', 'cancelado').order('vencimento', { ascending: false }).limit(2000),
     supabase.from('boletins_medicao').select('id, numero, periodo_inicio, periodo_fim, valor_bruto, valor_liquido, status').eq('obra_id', id).order('numero', { ascending: false }),
     supabase.from('fornecedores').select('id, nome').eq('ativo', true).order('nome'),
     supabase.from('v_transferencias').select('origem_id, destino_id, valor_total').or(`origem_id.eq.${id},destino_id.eq.${id}`),
+    supabase.from('v_transferencias_custo').select('origem_obra_id, destino_obra_id, categoria, valor').eq('status', 'ativa').or(`origem_obra_id.eq.${id},destino_obra_id.eq.${id}`),
   ]);
   if (!obra || !resumo) notFound();
   const edita = ['admin', 'financeiro'].includes(perfil.papel);
@@ -37,6 +38,15 @@ export default async function FinanceiroObra({ params }: { params: Promise<{ id:
   // material transferido entre obras: entra no custo de material de quem recebeu e sai de quem enviou
   const transf = (transfs ?? []).reduce((t, x) => t + (x.destino_id === id ? 1 : -1) * Number(x.valor_total ?? 0), 0);
   if (transf) custoCat.set('material', (custoCat.get('material') ?? 0) + transf);
+  // transferências de custo (valor) entre obras
+  const transfCat = new Map<string, number>();
+  for (const t of tcusto ?? []) {
+    const v = (t.destino_obra_id === id ? 1 : -1) * Number(t.valor);
+    transfCat.set(t.categoria, (transfCat.get(t.categoria) ?? 0) + v);
+    custoCat.set(t.categoria, (custoCat.get(t.categoria) ?? 0) + v);
+  }
+  const transfValor = [...transfCat.values()].reduce((a, b) => a + b, 0);
+  const ajusteTotal = transf + transfValor;
   const medidoPct = contrato ? (Number(resumo.medido_aprovado) / contrato) * 100 : 0;
   const custoPct = orc ? (custoTotal / orc) * 100 : 0;
   const v = (k: string) => String(obra[k] ?? '').replace('.', ',');
@@ -49,7 +59,7 @@ export default async function FinanceiroObra({ params }: { params: Promise<{ id:
         <Indicador rotulo="Contrato" valor={contrato ? reais(contrato) : '—'} detalhe={obra.valor_contrato ? undefined : resumo.valor_planilha ? 'valor da planilha' : 'não informado'} />
         <Indicador rotulo="Medido (aprovado)" valor={reais(resumo.medido_aprovado)} detalhe={contrato ? `${num(medidoPct, 1)}% do contrato` : undefined} tom="sinal" />
         <Indicador rotulo="Recebido" valor={reais(resumo.recebido)} tom="ok" detalhe={`a receber ${reais(resumo.a_receber)}`} />
-        <Indicador rotulo="Custo (pago + a pagar)" valor={reais(custoTotal)} detalhe={transf ? `${transf > 0 ? '+' : '−'} ${reais(Math.abs(transf))} material transferido → ${reais(custoTotal + transf)}` : orc ? `${num(custoPct, 1)}% do orçamento de custo` : `pago ${reais(resumo.pago)}`} tom={orc && custoPct > medidoPct + 10 ? 'atraso' : 'neutro'} />
+        <Indicador rotulo="Custo (pago + a pagar)" valor={reais(custoTotal)} detalhe={ajusteTotal ? `${ajusteTotal > 0 ? '+' : '−'} ${reais(Math.abs(ajusteTotal))} de transferências → ${reais(custoTotal + ajusteTotal)}` : orc ? `${num(custoPct, 1)}% do orçamento de custo` : `pago ${reais(resumo.pago)}`} tom={orc && custoPct > medidoPct + 10 ? 'atraso' : 'neutro'} />
         <Indicador rotulo="Caixa da obra" valor={reais(Number(resumo.recebido) - Number(resumo.pago))} tom={Number(resumo.recebido) - Number(resumo.pago) < 0 ? 'atraso' : 'ok'} detalhe="recebido − pago" />
       </div>
       {orc > 0 && contrato > 0 && (
@@ -65,7 +75,8 @@ export default async function FinanceiroObra({ params }: { params: Promise<{ id:
           {!l.length ? <Vazio>Sem lançamentos nesta obra.</Vazio> : <GraficoFluxo meses={fluxoMensal(l, hoje)} hoje={hoje} />}
         </Cartao>
         <Cartao titulo="Custo por categoria">
-          {!custoCat.size ? <Vazio>Sem custos.</Vazio> : <table className="tabela"><tbody>{[...custoCat].sort((a, b) => b[1] - a[1]).map(([c, val]) => <tr key={c}><td>{CATEGORIAS_DESPESA[c]}</td><td className="text-right font-mono">{reais(val)}{c === 'material' && transf ? <div className={`text-xs ${transf < 0 ? 'text-atraso-700' : 'text-ok-700'}`}>{transf > 0 ? 'recebeu' : 'enviou'} {reais(Math.abs(transf))} de outras obras</div> : null}</td></tr>)}</tbody></table>}
+          {!custoCat.size ? <Vazio>Sem custos.</Vazio> : <table className="tabela"><tbody>{[...custoCat].sort((a, b) => b[1] - a[1]).map(([c, val]) => <tr key={c}><td>{CATEGORIAS_DESPESA[c]}</td><td className="text-right font-mono">{reais(val)}{c === 'material' && transf ? <div className={`text-xs ${transf < 0 ? 'text-atraso-700' : 'text-ok-700'}`}>material: {transf > 0 ? 'recebeu' : 'enviou'} {reais(Math.abs(transf))}</div> : null}
+                {transfCat.get(c) ? <div className={`text-xs ${transfCat.get(c)! < 0 ? 'text-atraso-700' : 'text-ok-700'}`}>transferência de custo: {transfCat.get(c)! > 0 ? '+' : '−'} {reais(Math.abs(transfCat.get(c)!))}</div> : null}</td></tr>)}</tbody></table>}
         </Cartao>
       </div>
       <div className="mt-5 grid gap-5 lg:grid-cols-3">

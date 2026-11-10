@@ -19,12 +19,14 @@ export default async function CentroCusto({ searchParams }: { searchParams: Prom
   const { supabase } = await exigirPapel('admin', 'financeiro');
   const hoje = hojeISO();
   const de = ok(sp.de) ?? `${hoje.slice(0, 4)}-01`, ate = ok(sp.ate) ?? hoje.slice(0, 7);
-  const [{ data: lancs }, { data: obras }, { data: transfs }] = await Promise.all([
+  const [{ data: lancs }, { data: obras }, { data: transfs }, { data: tcusto }] = await Promise.all([
     supabase.from('lancamentos').select('obra_id, tipo, categoria, valor, valor_liquidado, status, competencia, origem')
       .neq('status', 'cancelado').gte('competencia', `${de}-01`).lte('competencia', fimDoMes(ate)).limit(20000),
     supabase.from('obras').select('id, codigo, nome, situacao, orcamento_custo').order('codigo'),
     supabase.from('v_transferencias').select('origem_id, origem_nome, destino_id, destino_nome, valor_total')
       .gte('criado_em', `${de}-01`).lte('criado_em', `${fimDoMes(ate)}T23:59:59`),
+    supabase.from('v_transferencias_custo').select('origem_obra_id, destino_obra_id, categoria, valor').eq('status', 'ativa')
+      .gte('competencia', `${de}-01`).lte('competencia', fimDoMes(ate)),
   ]);
   // material transferido entre obras: quem enviou "perde" esse custo de material, quem recebeu "ganha"
   const mov = new Map<string, { nome: string; recebeu: number; enviou: number }>();
@@ -51,20 +53,22 @@ export default async function CentroCusto({ searchParams }: { searchParams: Prom
     linhas.set(k, r);
   }
   // transferência de material entre obras: o custo sai da obra de origem e vai para a de destino (o total da empresa não muda)
-  type LinhaT = Linha & { transf: number };
+  type LinhaT = Linha & { transf: Record<string, number> };
   const linhaDe = (k: string) => {
     const o = k !== 'adm' ? info.get(k) : null;
     const r = (linhas.get(k) ?? { id: k, codigo: o?.codigo ?? 'ADM', nome: o?.nome ?? 'Administração central (sem obra)', desp: {}, despesa: 0, pago: 0, receita: 0, orcamento: o?.orcamento_custo ?? null }) as LinhaT;
-    r.transf ??= 0; linhas.set(k, r); return r;
+    r.transf ??= {}; linhas.set(k, r); return r;
   };
-  for (const t of transfs ?? []) {
-    const v = Number(t.valor_total ?? 0);
-    if (!v) continue;
-    const de = linhaDe(t.origem_id ?? 'adm'), para = linhaDe(t.destino_id ?? 'adm');
-    de.desp.material = (de.desp.material ?? 0) - v; de.despesa -= v; de.transf -= v;
-    para.desp.material = (para.desp.material ?? 0) + v; para.despesa += v; para.transf += v;
-  }
-  if ((transfs ?? []).length && !cats.includes('material')) cats.unshift('material');
+  const mover = (deK: string, paraK: string, cat: string, v: number) => {
+    if (!v) return;
+    const de = linhaDe(deK), para = linhaDe(paraK);
+    de.desp[cat] = (de.desp[cat] ?? 0) - v; de.despesa -= v; de.transf[cat] = (de.transf[cat] ?? 0) - v;
+    para.desp[cat] = (para.desp[cat] ?? 0) + v; para.despesa += v; para.transf[cat] = (para.transf[cat] ?? 0) + v;
+    if (!cats.includes(cat)) cats.push(cat);
+  };
+  for (const t of transfs ?? []) mover(t.origem_id ?? 'adm', t.destino_id ?? 'adm', 'material', Number(t.valor_total ?? 0));
+  for (const t of tcusto ?? []) mover(t.origem_obra_id ?? 'adm', t.destino_obra_id ?? 'adm', t.categoria, Number(t.valor));
+  cats = Object.keys(CATEGORIAS_DESPESA).filter((c) => cats.includes(c));
   let lista = [...linhas.values()].sort((a, b) => (a.id === 'adm' ? 1 : b.id === 'adm' ? -1 : a.codigo.localeCompare(b.codigo)));
   if (sp.obra) lista = lista.filter((x) => x.id === sp.obra);
   const tot = (f: (x: Linha) => number) => lista.reduce((s, x) => s + f(x), 0);
@@ -98,7 +102,7 @@ export default async function CentroCusto({ searchParams }: { searchParams: Prom
                 <tr key={x.id}>
                   <td><Link className="link font-semibold" href={x.id === 'adm' ? '/financeiro/lancamentos?obra=adm&situacao=todos' : `/obras/${x.id}/financeiro`}>{x.codigo}</Link><div className="text-xs text-concreto-500">{x.nome}</div></td>
                   {cats.map((c) => <td key={c} className="text-right font-mono">{x.desp[c] ? reais(x.desp[c]) : '—'}
-                    {c === 'material' && (x as LinhaT).transf ? <div className={`text-xs font-normal ${(x as LinhaT).transf < 0 ? 'text-atraso-700' : 'text-ok-700'}`}>{(x as LinhaT).transf > 0 ? '+' : '−'} {reais(Math.abs((x as LinhaT).transf))} transf.</div> : null}</td>)}
+                    {(x as LinhaT).transf?.[c] ? <div className={`text-xs font-normal ${(x as LinhaT).transf[c] < 0 ? 'text-atraso-700' : 'text-ok-700'}`}>{(x as LinhaT).transf[c] > 0 ? '+' : '−'} {reais(Math.abs((x as LinhaT).transf[c]))} transf.</div> : null}</td>)}
                   <td className="text-right font-mono font-bold">{reais(x.despesa)}{x.orcamento ? <div className="text-xs font-normal text-concreto-500">orçado {reais(x.orcamento)}</div> : null}</td>
                   <td className="text-right font-mono">{x.receita ? reais(x.receita) : '—'}</td>
                   <td className={`text-right font-mono font-semibold ${x.receita - x.despesa < 0 ? 'text-atraso-700' : 'text-ok-700'}`}>{reais(x.receita - x.despesa)}</td>
@@ -125,6 +129,7 @@ export default async function CentroCusto({ searchParams }: { searchParams: Prom
               <li><b>Mão de obra e benefícios:</b> ao fechar um pagamento da equipe (dia 20 ou 05), cada linha vai para a obra do funcionário. A taxa das empresas também é dividida por obra.</li>
               <li><b>Folha fechada por obra:</b> salários, INSS, FGTS e benefícios entram no centro de custo daquela obra.</li>
               <li><b>Material:</b> cada ordem de compra entra na obra que pediu. Quem está no escritório ou sem obra fica em “Administração central”. Material transferido de uma obra para outra muda de centro de custo junto (pelo custo médio de compra).</li>
+              <li><b>Transferência de custo:</b> valores passados de uma obra para outra em <Link className="link" href="/financeiro/transferencias">Transferência entre obras</Link> saem da origem e entram no destino, na categoria escolhida (marcados “transf.”).</li>
             </ul>
           </Cartao>
         </div>)}
