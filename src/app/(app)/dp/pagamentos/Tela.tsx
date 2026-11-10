@@ -6,7 +6,7 @@
  */
 import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
-import { ArrowRight, Building2, CalendarClock, CalendarDays, CheckCircle2, ChevronRight, ClipboardList, Filter, Info,
+import { ArrowRight, ArrowUpRight, Building2, CalendarClock, CalendarDays, CheckCircle2, ChevronDown, ChevronRight, ClipboardList, Filter,
   MoreHorizontal, Plus, Receipt, UserMinus, Wallet, X } from 'lucide-react';
 import { Badge, VazioCad } from '@/components/cad';
 import { Botao, FormAcao } from '@/components/formulario';
@@ -86,125 +86,161 @@ export function TelaPagamentos({ abas, lista, obras, obraPag, obraFiltro, verCan
     if (g?.mes === m) g.itens.push(p); else grupos.push({ mes: m, itens: [p] });
   }
 
+  const Tile = ({ rot, sub, children, className = '' }: { rot: ReactNode; sub?: ReactNode; children?: ReactNode; className?: string }) => (
+    <div className={`flex items-center justify-between gap-4 rounded-lg bg-elevada px-5 py-4 ${className}`}>
+      <div className="min-w-0"><div className="text-[15px] leading-snug text-concreto-800">{rot}</div>{sub && <div className="mt-0.5 text-sm leading-snug text-concreto-400">{sub}</div>}</div>
+      {children}
+    </div>
+  );
+
   return (
     <div className="pb-8">
       {/* Cabeçalho */}
-      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-concreto-900 sm:text-[32px]">Pagamentos da equipe</h1>
-          <details className="group mt-2 max-w-2xl">
-            <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-2 text-[15px] text-concreto-500 hover:text-concreto-700 [&::-webkit-details-marker]:hidden">
-              Adiantamento no dia 20, saldo no dia 05.
-              <span className="inline-flex items-center gap-1 text-sm font-medium text-sinal-700"><Info aria-hidden className="h-4 w-4" />Como funciona</span>
-            </summary>
-            <p className="mt-3 rounded-xl bg-superficie p-4 text-sm leading-relaxed text-concreto-600">{DESCRICAO}</p>
-          </details>
+      <header className="-mx-4 mb-8 border-b border-concreto-200 px-4 pb-7 md:-mx-10 md:px-10">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-4">
+              <span aria-hidden className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-concreto-200 bg-superficie text-concreto-800"><Wallet className="h-5 w-5" strokeWidth={1.7} /></span>
+              <h1 className="text-[28px] font-semibold tracking-tight text-concreto-900 sm:text-[34px]">Pagamentos da equipe</h1>
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-[15px] text-concreto-600">
+              <span className="inline-flex items-center gap-2"><CalendarClock aria-hidden className="h-4 w-4 text-concreto-400" />Adiantamento dia 20</span>
+              <span className="inline-flex items-center gap-2"><Wallet aria-hidden className="h-4 w-4 text-concreto-400" />Saldo dia 05</span>
+              <span className="inline-flex items-center gap-2"><Building2 aria-hidden className="h-4 w-4 text-concreto-400" />{obraFiltro ? (obras.find((o) => o.id === obraFiltro)?.nome ?? 'Obra') : 'Todas as obras'}
+                <span className="rounded-full border border-concreto-200 bg-superficie px-2 py-0.5 text-xs text-concreto-500">{lista.length} {lista.length === 1 ? 'pagamento' : 'pagamentos'}</span></span>
+            </div>
+          </div>
+          {pode && (
+            <button type="button" onClick={() => setGaveta({ modo: 'novo' })}
+              className="nao-imprimir inline-flex h-11 items-center gap-2 rounded-lg bg-concreto-900 px-5 text-[15px] font-medium text-concreto-50 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sinal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-concreto-50">
+              <Plus aria-hidden className="h-[18px] w-[18px]" strokeWidth={2.2} />Novo pagamento
+            </button>)}
         </div>
-        {pode && (
-          <button type="button" onClick={() => setGaveta({ modo: 'novo' })}
-            className="nao-imprimir inline-flex h-11 items-center gap-2 rounded-xl bg-sinal-500 px-5 text-sm font-semibold text-concreto-50 shadow-[0_8px_24px_-10px_rgb(var(--sinal-500))] transition-colors hover:bg-sinal-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sinal-500/30">
-            <Plus aria-hidden className="h-[18px] w-[18px]" strokeWidth={2.4} />Novo pagamento
-          </button>)}
       </header>
 
       {abas}
 
-      {/* Destaque + indicadores */}
-      <section aria-label="Indicadores" className="mb-10 grid gap-4 xl:grid-cols-3">
-        <div className="relative overflow-hidden rounded-2xl border border-concreto-200 bg-superficie p-5 sm:p-6 xl:col-span-2">
-          <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-sinal-500/10 blur-3xl" />
-          <div className="relative flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 text-sm text-concreto-500"><CalendarClock aria-hidden className="h-4 w-4" />Próximo pagamento</div>
-              {proximo ? (
-                <>
-                  <div className="mt-3 text-[34px] font-semibold leading-none tracking-tight text-concreto-900 tabular-nums sm:text-[40px]">{reais(proximo.total)}</div>
-                  <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-concreto-500"><span>{data(proximo.data_pagamento)}</span><Situacao status={proximo.status} /></div>
-                </>
-              ) : <div className="mt-3 text-[40px] font-semibold leading-none text-concreto-300">—<span className="ml-3 align-middle text-sm font-normal text-concreto-400">nenhum em aberto</span></div>}
+      {/* Painel de indicadores (3 colunas) */}
+      <section aria-label="Indicadores" className="mb-10 grid overflow-hidden rounded-xl border border-concreto-200 lg:grid-cols-3">
+        <div className="space-y-3 border-b border-concreto-200 p-5 sm:p-8 lg:border-b-0 lg:border-r">
+          <h2 className="mb-5 text-[15px] text-concreto-600">Próximo pagamento</h2>
+          {proximo ? (<>
+            <Link href={`/dp/pagamentos/${proximo.id}`} className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sinal-500">
+              <Tile rot="Valor" sub={data(proximo.data_pagamento)}>
+                <span className="flex items-center gap-2 whitespace-nowrap text-[26px] font-semibold tracking-tight text-concreto-900 tabular-nums">{reais(proximo.total)}<ChevronRight aria-hidden className="h-5 w-5 text-concreto-400" /></span>
+              </Tile>
+            </Link>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg bg-elevada px-4 py-4 text-center"><div className="text-xl font-semibold text-concreto-900 tabular-nums">{proximo.funcionarios}</div><div className="mt-1 text-sm text-concreto-500">Funcionários</div></div>
+              <div className="flex flex-col items-center justify-center gap-2 rounded-lg bg-elevada px-4 py-4"><Situacao status={proximo.status} /><div className="text-sm text-concreto-500">Situação</div></div>
             </div>
-            {proximo && (
-              <Link href={`/dp/pagamentos/${proximo.id}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-concreto-200 px-4 text-sm font-medium text-concreto-800 hover:bg-elevada focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sinal-500">
-                Abrir<ArrowRight aria-hidden className="h-4 w-4" /></Link>)}
-          </div>
-          {proximo && <div className="relative mt-5 sm:mt-6"><Divisao p={proximo} /></div>}
+          </>) : <Tile rot="Nenhum em aberto" sub="Crie o próximo em “Novo pagamento”" />}
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-1">
-          <div className="flex items-center gap-4 rounded-2xl border border-concreto-200 bg-superficie p-4 sm:p-6">
-            <span aria-hidden className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-ok-50 text-ok-700 sm:flex"><CheckCircle2 className="h-6 w-6" strokeWidth={1.8} /></span>
-            <div className="min-w-0"><div className="text-[13px] text-concreto-500 sm:text-sm">Pago neste mês</div><div className="mt-1 text-lg sm:text-2xl font-semibold tracking-tight text-concreto-900 tabular-nums">{reais(totalPagoMes)}</div></div>
-          </div>
-          <div className="flex items-center gap-4 rounded-2xl border border-concreto-200 bg-superficie p-4 sm:p-6">
-            <span aria-hidden className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-atencao-50 text-atencao-700 sm:flex"><ClipboardList className="h-6 w-6" strokeWidth={1.8} /></span>
-            <div className="min-w-0"><div className="text-[13px] text-concreto-500 sm:text-sm">Em conferência</div><div className="mt-1 text-lg font-semibold tracking-tight text-concreto-900 tabular-nums sm:text-2xl">{emConferencia} <span className="block text-xs font-normal text-concreto-400 sm:inline sm:text-sm">aguardando fechamento</span></div></div>
-          </div>
+
+        <div className="space-y-3 border-b border-concreto-200 p-5 sm:p-8 lg:border-b-0 lg:border-r">
+          <h2 className="mb-5 text-[15px] text-concreto-600">Divisão do próximo</h2>
+          {proximo ? ([
+            ['Empresas', 'folha + taxa', proximo.total_empresas, 'bg-sinal-500'],
+            ['Pessoas', 'direto ao funcionário', proximo.total_pessoas, 'bg-info-500'],
+            ['Passagens e alim.', 'benefícios', proximo.total_beneficios, 'bg-concreto-400'],
+          ] as const).map(([r, sb, v, cor], k) => (
+            <Tile key={r} rot={r} sub={sb} className={k === 1 ? '' : ''}>
+              <span className="flex shrink-0 items-center gap-2.5 whitespace-nowrap text-xl font-semibold text-concreto-900 tabular-nums">{reais(v)}<span aria-hidden className={`h-2.5 w-2.5 rounded-full ${cor}`} /></span>
+            </Tile>)) : <Tile rot="—" />}
+        </div>
+
+        <div className="space-y-3 p-5 sm:p-8">
+          <h2 className="mb-5 text-[15px] text-concreto-600">Fechamento</h2>
+          <Tile rot="Pago neste mês" sub="Com baixa no mês">
+            <span className="flex shrink-0 items-center gap-2.5 whitespace-nowrap text-xl font-semibold text-concreto-900 tabular-nums">{reais(totalPagoMes)}<CheckCircle2 aria-hidden className="h-5 w-5 text-ok-600" /></span>
+          </Tile>
+          <Tile rot="Em conferência" sub="Aguardando fechamento">
+            <span className="flex shrink-0 items-center gap-2.5 whitespace-nowrap text-xl font-semibold text-concreto-900 tabular-nums">{emConferencia}<ClipboardList aria-hidden className="h-5 w-5 text-atencao-500" /></span>
+          </Tile>
         </div>
       </section>
 
-      {/* Histórico */}
-      <section aria-label="Pagamentos">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-          <h2 className="text-xl font-semibold tracking-tight text-concreto-900">Histórico</h2>
-          <div className="nao-imprimir flex flex-wrap items-center gap-2">
-            <form className="flex items-center gap-2" role="search">
-              <label className="sr-only" htmlFor="filtro-obra">Obra</label>
-              <select id="filtro-obra" name="obra" defaultValue={obraFiltro ?? ''} className={`${campo} !h-10 !w-auto max-w-[240px] !bg-superficie`}>
-                <option value="">Todas as obras</option>
-                {obras.map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}
-              </select>
-              <button className="inline-flex h-10 items-center gap-2 rounded-xl border border-concreto-200 bg-superficie px-4 text-sm font-medium text-concreto-800 hover:bg-elevada focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sinal-500">
-                <Filter aria-hidden className="h-4 w-4" />Filtrar</button>
-            </form>
+      <div className="grid items-start gap-10 xl:grid-cols-[minmax(0,1fr)_340px]">
+        {/* Lista */}
+        <section aria-label="Pagamentos" className="min-w-0">
+          <div className="nao-imprimir mb-5 flex flex-wrap items-center gap-3">
             {nCancel > 0 && (
-              <a href={verCancelados ? '/dp/pagamentos' : '/dp/pagamentos?cancelados=1'}
-                className="inline-flex h-10 items-center rounded-xl px-3 text-sm font-medium text-concreto-500 hover:bg-superficie hover:text-concreto-800">
-                {verCancelados ? `Esconder cancelados (${nCancel})` : `Mostrar cancelados (${nCancel})`}</a>)}
+              <nav aria-label="Cancelados" className="flex w-full rounded-lg border border-concreto-200 p-1 sm:w-auto">
+                <a href="/dp/pagamentos" aria-current={!verCancelados ? 'page' : undefined} className={`flex-1 rounded-md px-3.5 py-1.5 text-center text-[15px] sm:flex-none ${!verCancelados ? 'bg-elevada text-concreto-900' : 'text-concreto-500 hover:text-concreto-800'}`}>Ativos</a>
+                <a href="/dp/pagamentos?cancelados=1" aria-current={verCancelados ? 'page' : undefined} className={`flex-1 rounded-md px-3.5 py-1.5 text-center text-[15px] sm:flex-none ${verCancelados ? 'bg-elevada text-concreto-900' : 'text-concreto-500 hover:text-concreto-800'}`}>Com cancelados ({nCancel})</a>
+              </nav>)}
+            <form className="flex min-w-0 flex-1 basis-full items-center gap-2 sm:basis-auto" role="search">
+              <label className="relative min-w-0 flex-1">
+                <span className="sr-only">Obra</span>
+                <Filter aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-concreto-400" />
+                <select name="obra" defaultValue={obraFiltro ?? ''} className="h-11 w-full appearance-none rounded-lg border border-concreto-200 bg-concreto-50 pl-10 pr-9 text-[15px] text-concreto-900 hover:border-concreto-300 focus:border-concreto-400 focus:outline-none">
+                  <option value="">Todas as obras</option>
+                  {obras.map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}
+                </select>
+                <ChevronDown aria-hidden className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-concreto-400" />
+              </label>
+              <button className="h-11 rounded-lg border border-concreto-200 px-5 text-[15px] text-concreto-800 hover:bg-elevada focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sinal-500">Filtrar</button>
+            </form>
           </div>
-        </div>
 
-        {!lista.length ? <VazioCad icone={<Wallet className="h-5 w-5" />} titulo="Nenhum pagamento ainda">Crie o próximo em “Novo pagamento”.</VazioCad> : (
-          <div className="overflow-hidden rounded-2xl border border-concreto-200 bg-superficie">
-            {grupos.map((g, gi) => (
-              <div key={g.mes}>
-                <div className={`flex items-center justify-between bg-elevada/50 px-5 py-2.5 text-[13px] font-semibold text-concreto-600 ${gi ? 'border-t border-concreto-200' : ''}`}>
-                  {nomeMes(g.mes)}<span className="font-normal text-concreto-400">{g.itens.length} {g.itens.length === 1 ? 'pagamento' : 'pagamentos'}</span>
-                </div>
-                <ul className="divide-y divide-concreto-200">
-                  {g.itens.map((p) => {
-                    const cancel = p.status === 'cancelado';
-                    const Ic = ICONE_TIPO[p.tipo] ?? Wallet;
-                    return (
-                      <li key={p.id} className="group relative flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-elevada/60 sm:items-center sm:gap-4 sm:px-5 sm:py-4">
-                        <div aria-hidden className={`flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl border sm:h-12 sm:w-12 border-concreto-200 bg-concreto-50 leading-none ${cancel ? 'opacity-50' : ''}`}>
-                          <span className="text-base font-semibold text-concreto-900">{p.data_pagamento.slice(8, 10)}</span>
-                          <span className="mt-1 text-[11px] font-medium uppercase text-concreto-400">{MES[Number(p.data_pagamento.slice(5, 7)) - 1]}</span>
-                        </div>
-                        <button type="button" onClick={() => setGaveta({ modo: 'detalhe', id: p.id })}
-                          className="min-w-0 flex-1 text-left after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-sinal-500">
-                          <span className={`block text-[15px] font-medium leading-snug ${cancel ? 'text-concreto-400' : 'text-concreto-900'}`}>{p.titulo}</span>
-                          <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-concreto-500">
-                            <span className="inline-flex items-center gap-1.5"><Ic aria-hidden className="h-3.5 w-3.5" />{TIPO_PAG[p.tipo]}</span>
-                            <span className="text-concreto-300">·</span><span>{obraDe(p.id)}</span>
-                            <span className="text-concreto-300">·</span><span>{p.funcionarios} {p.funcionarios === 1 ? 'funcionário' : 'funcionários'}</span>
-                          </span>
-                          <span className="mt-2.5 flex items-center justify-between gap-2 sm:hidden">
-                            <span className={`text-[15px] font-semibold tabular-nums ${cancel ? 'text-concreto-400 line-through' : 'text-concreto-900'}`}>{reais(p.total)}</span>
+          {!lista.length ? <VazioCad icone={<Wallet className="h-5 w-5" />} titulo="Nenhum pagamento ainda">Crie o próximo em “Novo pagamento”.</VazioCad> : (
+            <div className="space-y-8">
+              {grupos.map((g) => (
+                <div key={g.mes}>
+                  <p className="mb-3 text-sm text-concreto-500">{nomeMes(g.mes)}</p>
+                  <ul className="divide-y divide-concreto-200 overflow-hidden rounded-xl border border-concreto-200">
+                    {g.itens.map((p) => {
+                      const cancel = p.status === 'cancelado';
+                      const Ic = ICONE_TIPO[p.tipo] ?? Wallet;
+                      return (
+                        <li key={p.id} className="relative grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4 gap-y-2 px-4 py-4 sm:px-5 sm:py-5 md:items-center transition-colors hover:bg-superficie md:grid-cols-[auto_minmax(0,1.5fr)_minmax(0,1fr)_auto_auto]">
+                          <span aria-hidden className={`flex h-10 w-10 items-center justify-center rounded-full border border-concreto-200 bg-superficie sm:h-11 sm:w-11 ${cancel ? 'text-concreto-400' : 'text-concreto-800'}`}><Ic className="h-5 w-5" strokeWidth={1.7} /></span>
+                          <button type="button" onClick={() => setGaveta({ modo: 'detalhe', id: p.id })}
+                            className="min-w-0 text-left after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-sinal-500">
+                            <span className={`block text-base font-semibold leading-snug ${cancel ? 'text-concreto-400 line-through' : 'text-concreto-900'}`}>{p.titulo}</span>
+                            <span className="mt-0.5 block text-[15px] text-concreto-500">{obraDe(p.id)}</span>
+                          </button>
+                          <div className="col-start-2 min-w-0 md:col-start-auto">
+                            <div className="text-[15px] text-concreto-700">{TIPO_PAG[p.tipo]}</div>
+                            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-concreto-500">
+                              <CalendarDays aria-hidden className="h-3.5 w-3.5" />{data(p.data_pagamento)}<span className="text-concreto-300">·</span>{p.funcionarios} func.
+                              {p.status === 'pago' && p.pago_em && <><span className="text-concreto-300">·</span>pago {data(p.pago_em)}</>}
+                            </div>
+                          </div>
+                          <div className="col-start-2 flex items-center justify-between gap-2 md:col-start-auto md:flex-col md:items-end md:gap-1.5">
+                            <span className={`text-[17px] font-semibold tabular-nums ${cancel ? 'text-concreto-400' : 'text-concreto-900'}`}>{reais(p.total)}</span>
                             <Situacao status={p.status} />
-                          </span>
-                        </button>
-                        <div className="hidden shrink-0 flex-col items-end gap-1.5 sm:flex">
-                          <span className={`text-base font-semibold tabular-nums ${cancel ? 'text-concreto-400 line-through' : 'text-concreto-900'}`}>{reais(p.total)}</span>
-                          <Situacao status={p.status} />
-                        </div>
-                        <Link href={hrefAbrir(p.id)} aria-label={`Abrir ${p.titulo}`}
-                          className="relative z-10 hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg text-concreto-400 hover:bg-concreto-200/50 hover:text-concreto-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sinal-500 sm:flex">
-                          <ChevronRight aria-hidden className="h-5 w-5" /></Link>
-                      </li>);
-                  })}
-                </ul>
-              </div>))}
-          </div>)}
-      </section>
+                          </div>
+                          <Link href={hrefAbrir(p.id)} aria-label={`Abrir ${p.titulo}`}
+                            className="relative z-10 hidden h-9 w-9 items-center justify-center rounded-md text-concreto-400 hover:bg-elevada hover:text-concreto-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sinal-500 md:flex">
+                            <ChevronRight aria-hidden className="h-5 w-5" /></Link>
+                        </li>);
+                    })}
+                  </ul>
+                </div>))}
+            </div>)}
+        </section>
+
+        {/* Lateral: como funciona e atalhos */}
+        <aside className="space-y-8 xl:sticky xl:top-24">
+          <section>
+            <h2 className="mb-3 text-lg font-semibold text-concreto-900">Como funciona</h2>
+            <p className="text-[15px] leading-relaxed text-concreto-600">{DESCRICAO}</p>
+            <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-[15px]">
+              <Link href="/dp/folha" className="inline-flex items-center gap-2 text-concreto-800 hover:text-concreto-900"><Receipt aria-hidden className="h-4 w-4 text-concreto-400" />Folha<ArrowUpRight aria-hidden className="h-3.5 w-3.5 text-concreto-400" /></Link>
+              <Link href="/dp/beneficios" className="inline-flex items-center gap-2 text-concreto-800 hover:text-concreto-900"><Receipt aria-hidden className="h-4 w-4 text-concreto-400" />Benefícios<ArrowUpRight aria-hidden className="h-3.5 w-3.5 text-concreto-400" /></Link>
+            </div>
+          </section>
+          <section className="border-t border-concreto-200 pt-8">
+            <h2 className="mb-4 text-lg font-semibold text-concreto-900">Cálculo automático</h2>
+            <ul className="divide-y divide-concreto-200 text-[15px]">
+              {[['Adiantamento', '50% empresas · 40% CAD'], ['Saldo do mês', 'faltas e horas extras'], ['Rescisões', 'acerto de quem saiu'], ['Empresas', 'taxa administrativa'], ['Passagens e alimentação', 'por dia útil']].map(([a, b]) => (
+                <li key={a} className="flex items-center justify-between gap-3 py-3"><span className="text-concreto-800">{a}</span><span className="text-right text-sm text-concreto-500">{b}</span></li>))}
+            </ul>
+            <p className="mt-4 text-sm leading-relaxed text-concreto-500">Nada vai para o financeiro até você fechar. Depois de conferir, feche e, quando pagar, dê baixa.</p>
+          </section>
+        </aside>
+      </div>
 
       {/* Gaveta lateral (celular: tela cheia) */}
       {gaveta && (
