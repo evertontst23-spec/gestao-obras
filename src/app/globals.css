@@ -4,6 +4,8 @@
 
 /* ===== Temas (o usuário escolhe em Aparência) ===== */
 @layer base {
+  :root, [data-tema='claro'], [data-tema='petroleo'] { --info-50: 239 246 255; --info-500: 59 130 246; --info-700: 29 78 216; --elevada: 249 250 251; }
+  [data-tema='escuro'] { --info-50: 19 34 56; --info-500: 96 165 250; --info-700: 147 197 253; --elevada: 27 34 48; }
   :root, [data-tema='claro'] {
     --concreto-50: 244 245 247;
     --concreto-100: 237 239 242;
@@ -150,6 +152,60 @@
     --menu-borda: 26 74 79;
     --menu-marca: 251 146 60;
     --raio-md: 6px; --raio-lg: 10px; --raio-xl: 14px; --sombra: 0 1px 2px rgba(12,52,56,.06); --fonte: 'Manrope'; color-scheme: light;
+  }
+  /* CAD oficial (identidade nova — em aprovação, aplicada só na tela de Pagamentos) */
+  [data-tema='cad'] {
+    --concreto-50: 0 0 0;
+    --concreto-100: 10 10 10;
+    --concreto-200: 36 36 36;
+    --concreto-300: 51 51 51;
+    --concreto-400: 135 135 135;
+    --concreto-500: 161 161 161;
+    --concreto-600: 194 194 194;
+    --concreto-700: 214 214 214;
+    --concreto-800: 229 229 229;
+    --concreto-900: 237 237 237;
+    --sinal-50: 42 26 14;
+    --sinal-100: 58 36 20;
+    --sinal-300: 249 185 127;
+    --sinal-400: 247 163 92;
+    --sinal-500: 244 138 50;
+    --sinal-600: 232 121 36;
+    --sinal-700: 247 163 92;
+    --sinal-800: 251 208 168;
+    --ok-50: 11 36 22;
+    --ok-100: 16 51 30;
+    --ok-500: 34 197 94;
+    --ok-600: 63 207 117;
+    --ok-700: 91 224 138;
+    --ok-800: 187 247 208;
+    --atencao-50: 42 33 8;
+    --atencao-100: 56 43 12;
+    --atencao-200: 92 71 22;
+    --atencao-500: 245 165 36;
+    --atencao-700: 247 185 85;
+    --atencao-800: 253 230 138;
+    --atraso-50: 43 17 19;
+    --atraso-100: 61 23 25;
+    --atraso-200: 95 35 40;
+    --atraso-300: 127 45 51;
+    --atraso-500: 238 68 68;
+    --atraso-600: 242 109 109;
+    --atraso-700: 248 113 113;
+    --info-50: 13 26 46;
+    --info-500: 10 114 239;
+    --info-700: 82 168 255;
+    --superficie: 10 10 10;
+    --elevada: 22 22 22;
+    --menu-fundo: 0 0 0;
+    --menu-texto: 161 161 161;
+    --menu-mudo: 135 135 135;
+    --menu-hover: 20 20 20;
+    --menu-ativo: 26 26 26;
+    --menu-ativo-texto: 237 237 237;
+    --menu-borda: 31 31 31;
+    --menu-marca: 244 138 50;
+    --raio-md: 6px; --raio-lg: 10px; --raio-xl: 12px; --sombra: none; --fonte: 'Geist'; color-scheme: dark;
   }
   html { -webkit-tap-highlight-color: transparent; }
   body { @apply bg-concreto-50 text-concreto-900 antialiased; font-feature-settings: 'tnum' 1; }

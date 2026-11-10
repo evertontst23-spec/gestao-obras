@@ -13,7 +13,9 @@ export default {
         ok: v('ok', [50, 100, 500, 600, 700, 800]),
         atencao: v('atencao', [50, 100, 200, 500, 700, 800]),
         atraso: v('atraso', [50, 100, 200, 300, 500, 600, 700]),
+        info: v('info', [50, 500, 700]),
         superficie: 'rgb(var(--superficie) / <alpha-value>)',
+        elevada: 'rgb(var(--elevada) / <alpha-value>)',
         menu: {
           fundo: 'rgb(var(--menu-fundo) / <alpha-value>)', texto: 'rgb(var(--menu-texto) / <alpha-value>)',
           mudo: 'rgb(var(--menu-mudo) / <alpha-value>)', hover: 'rgb(var(--menu-hover) / <alpha-value>)',

@@ -7,6 +7,7 @@ import { reais } from '@/lib/dominio';
 import { data, hojeISO } from '@/lib/formato';
 import { criarPagamento } from './acoes';
 import { STATUS_PAG, TIPO_PAG } from './comum';
+import { TelaPagamentos, type PagLinha } from './Tela';
 
 export const metadata = { title: 'Pagamentos' };
 
@@ -39,6 +40,22 @@ export default async function Pagamentos({ searchParams }: { searchParams: Promi
   const abertos = (lista ?? []).filter((p) => p.status === 'fechado' || p.status === 'rascunho');
   const proximo = abertos.sort((x, y) => x.data_pagamento.localeCompare(y.data_pagamento))[0];
   const pagosMes = (lista ?? []).filter((p) => p.status === 'pago' && p.data_pagamento.slice(0, 7) === hojeISO().slice(0, 7));
+  // visual novo (tema "CAD") — os outros temas continuam com a tela clássica abaixo
+  if (perfil.tema === 'cad') return (
+    <TelaPagamentos
+      lista={(lista ?? []) as PagLinha[]}
+      obras={obras ?? []}
+      obraPag={Object.fromEntries(obraPag)}
+      obraFiltro={sp.obra || undefined}
+      verCancelados={!!sp.cancelados}
+      nCancel={nCancel}
+      pode={pode}
+      sugestao={s}
+      proximo={proximo as PagLinha | undefined}
+      totalPagoMes={pagosMes.reduce((t, p) => t + Number(p.total), 0)}
+      emConferencia={(lista ?? []).filter((p) => p.status === 'rascunho').length}
+    />
+  );
   return (
     <>
       <Cabecalho titulo="Pagamentos da equipe"

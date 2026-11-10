@@ -12,6 +12,8 @@ const TEMAS = [
     menu: '#0E131C', menuBorda: '#1C2330', fundo: '#0A0E15', cartao: '#121824', texto: '#F3F5F8', mudo: '#6B7385', destaque: '#F97316', ativo: '#1F2736' },
   { id: 'petroleo', nome: 'Corporativo petróleo', desc: 'Menu verde-petróleo, conteúdo claro e tabelas mais densas.',
     menu: '#0C3438', menuBorda: '#1A4A4F', fundo: '#EEF2F4', cartao: '#FFFFFF', texto: '#0F1F24', mudo: '#8597A0', destaque: '#EA580C', ativo: '#FFFFFF' },
+  { id: 'cad', nome: 'CAD — novo modelo', desc: 'Preto e cinzas neutros, menu novo com módulos recolhíveis e a nova tela de Pagamentos.',
+    menu: '#000000', menuBorda: '#1F1F1F', fundo: '#000000', cartao: '#161616', texto: '#EDEDED', mudo: '#878787', destaque: '#F48A32', ativo: '#1A1A1A' },
 ] as const;
 
 export default async function Aparencia() {
@@ -20,7 +22,7 @@ export default async function Aparencia() {
   return (
     <>
       <Cabecalho titulo="Aparência" sub="Escolha o visual do sistema. Vale só para o seu usuário, em qualquer aparelho." />
-      <div className="grid gap-5 md:grid-cols-3">
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {TEMAS.map((t) => (
           <FormAcao key={t.id} acao={escolherTema} className={`overflow-hidden rounded-xl border-2 bg-superficie shadow-cartao ${atual === t.id ? 'border-sinal-500' : 'border-concreto-200'}`}>
             <input type="hidden" name="tema" value={t.id} />
