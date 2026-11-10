@@ -22,11 +22,12 @@ export async function salvarFuncao(_: EstadoAcao, f: FormData): Promise<EstadoAc
     nome: txt(f, 'nome'), cbo: txt(f, 'cbo'), salario_base: dinheiro(f, 'salario_base') ?? 0,
     carga_diaria_horas: numero(f, 'carga_diaria_horas') ?? 8, vale_alimentacao_dia: dinheiro(f, 'vale_alimentacao_dia') ?? 0,
     vale_transporte_dia: dinheiro(f, 'vale_transporte_dia') ?? 0, adicional_insalubridade_pct: numero(f, 'adicional_insalubridade_pct') ?? 0,
+    adicional_noturno_pct: numero(f, 'adicional_noturno_pct') ?? 0,
     adicional_periculosidade: f.get('adicional_periculosidade') === 'on', epis_obrigatorios: lista(f, 'epis_obrigatorios'),
     riscos: lista(f, 'riscos'), ativo: id ? f.get('ativo') === 'on' : true,
   };
   if (!d.nome) return { erro: 'Informe o nome da função.' };
-  const ruins = numerosInvalidos(f, ['salario_base', 'carga_diaria_horas', 'vale_alimentacao_dia', 'vale_transporte_dia', 'adicional_insalubridade_pct']);
+  const ruins = numerosInvalidos(f, ['salario_base', 'carga_diaria_horas', 'vale_alimentacao_dia', 'vale_transporte_dia', 'adicional_insalubridade_pct', 'adicional_noturno_pct']);
   if (ruins.length) return { erro: 'Não entendi o valor digitado. Use, por exemplo, 1.621,00 ou 1621,00.' };
   const supabase = await criarClienteServidor();
   const { error } = id ? await supabase.from('funcoes').update(d).eq('id', id) : await supabase.from('funcoes').insert(d);

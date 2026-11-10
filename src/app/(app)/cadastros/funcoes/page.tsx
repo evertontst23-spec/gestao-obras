@@ -18,6 +18,7 @@ function CamposFuncao({ f }: { f?: any }) {
       <Campo rotulo="Vale-alimentação/dia"><input name="vale_alimentacao_dia" inputMode="decimal" defaultValue={f?.vale_alimentacao_dia ?? ''} className="entrada" /></Campo>
       <Campo rotulo="Vale-transporte/dia"><input name="vale_transporte_dia" inputMode="decimal" defaultValue={f?.vale_transporte_dia ?? ''} className="entrada" /></Campo>
       <Campo rotulo="Insalubridade (%)"><input name="adicional_insalubridade_pct" inputMode="decimal" defaultValue={f?.adicional_insalubridade_pct ?? 0} className="entrada" /></Campo>
+      <Campo rotulo="Adicional noturno (%)" dica="ex.: 20 no vigia noturno"><input name="adicional_noturno_pct" inputMode="decimal" defaultValue={f?.adicional_noturno_pct ?? 0} className="entrada" /></Campo>
       <Campo rotulo="EPIs obrigatórios" className="sm:col-span-2" dica="Separe por vírgula — usados na entrega de EPI e na Ordem de Serviço">
         <input name="epis_obrigatorios" defaultValue={(f?.epis_obrigatorios ?? []).join(', ')} className="entrada" placeholder="Capacete, Bota, Luva, Óculos" /></Campo>
       <Campo rotulo="Riscos da função" className="sm:col-span-2" dica="Separe por vírgula — usados na Ordem de Serviço (NR-01)">
@@ -53,6 +54,7 @@ export default async function Funcoes() {
                   <span className="text-xs text-concreto-500">{f.carga_diaria_horas}h/dia • VA {reais(f.vale_alimentacao_dia)} • VT {reais(f.vale_transporte_dia)}</span>
                   {f.adicional_periculosidade && <Selo cor="bg-atraso-50 text-atraso-700">Periculosidade</Selo>}
                   {Number(f.adicional_insalubridade_pct) > 0 && <Selo cor="bg-atencao-50 text-atencao-700">Insalubridade {f.adicional_insalubridade_pct}%</Selo>}
+                  {Number(f.adicional_noturno_pct) > 0 && <Selo cor="bg-info-50 text-info-700">Noturno +{Number(f.adicional_noturno_pct)}%</Selo>}
                   <Selo cor="bg-concreto-100 text-concreto-700">{contagem.get(f.id) ?? 0} ativo(s)</Selo>
                 </span>
               </summary>

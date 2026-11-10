@@ -14,7 +14,7 @@ const SITUACAO: Record<string, { rotulo: string; cor: string }> = {
   desistiu:   { rotulo: 'Desistiu', cor: 'bg-concreto-200 text-concreto-600' },
   nao_apto:   { rotulo: 'Não apto', cor: 'bg-atraso-50 text-atraso-700' },
 };
-const FUNCOES = ['Pedreiro', 'Servente / Ajudante', 'Carpinteiro', 'Armador', 'Eletricista', 'Encanador', 'Pintor', 'Vigia', 'Almoxarife', 'Encarregado', 'Motorista', 'Operador de máquina', 'Assistente administrativo'];
+const FUNCOES = ['Pedreiro', 'Servente / Ajudante', 'Carpinteiro', 'Armador', 'Eletricista', 'Encanador', 'Pintor', 'Vigia diurno', 'Vigia noturno', 'Almoxarife', 'Encarregado', 'Motorista', 'Operador de máquina', 'Assistente administrativo'];
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function CamposCandidato({ c }: { c?: any }) {
