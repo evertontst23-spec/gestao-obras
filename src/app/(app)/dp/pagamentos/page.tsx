@@ -1,5 +1,4 @@
 import { exigirPapel } from '@/lib/sessao';
-import { AbasDP } from '@/components/AbasDP';
 import { hojeISO } from '@/lib/formato';
 import { TelaPagamentos, type PagLinha } from './Tela';
 
@@ -36,7 +35,6 @@ export default async function Pagamentos({ searchParams }: { searchParams: Promi
   const pagosMes = (lista ?? []).filter((p) => p.status === 'pago' && p.data_pagamento.slice(0, 7) === hojeISO().slice(0, 7));
   return (
     <TelaPagamentos
-      abas={<AbasDP atual="pag" v2 />}
       lista={(lista ?? []) as PagLinha[]}
       obras={obras ?? []}
       obraPag={Object.fromEntries(obraPag)}
