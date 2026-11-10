@@ -9,13 +9,17 @@ const rev = () => { revalidatePath('/suprimentos', 'layout'); revalidatePath('/m
 export async function lancarEstoque(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
   const tipo = txt(f, 'tipo')!;
   const supabase = await criarClienteServidor();
-  const { error } = await supabase.rpc('estoque_lancar', {
-    p_obra: txt(f, 'obra_id'), p_insumo: txt(f, 'insumo_id'), p_tipo: tipo === 'transferencia' ? 'saida' : tipo,
+  const transf = tipo === 'transferencia';
+  const vu = transf ? dinheiro(f, 'valor_unitario') : null;
+  if (transf && txt(f, 'valor_unitario') && vu === null) return { erro: 'Valor unitário inválido.' };
+  const { data: valor, error } = await supabase.rpc('estoque_lancar', {
+    p_obra: txt(f, 'obra_id'), p_insumo: txt(f, 'insumo_id'), p_tipo: transf ? 'saida' : tipo,
     p_quantidade: numero(f, 'quantidade'), p_observacao: txt(f, 'observacao'),
-    p_destino: txt(f, 'destino_id'), p_transferir: tipo === 'transferencia',
+    p_destino: txt(f, 'destino_id'), p_transferir: transf, p_valor_unitario: vu,
   });
   if (error) return { erro: mensagemErro(error) };
   rev();
+  if (transf) return { ok: `Transferência registrada. Valor do material transferido: ${valor == null ? 'sem valor' : Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}.` };
   return { ok: 'Lançamento registrado no estoque.' };
 }
 

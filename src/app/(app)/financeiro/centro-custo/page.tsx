@@ -19,11 +19,21 @@ export default async function CentroCusto({ searchParams }: { searchParams: Prom
   const { supabase } = await exigirPapel('admin', 'financeiro');
   const hoje = hojeISO();
   const de = ok(sp.de) ?? `${hoje.slice(0, 4)}-01`, ate = ok(sp.ate) ?? hoje.slice(0, 7);
-  const [{ data: lancs }, { data: obras }] = await Promise.all([
+  const [{ data: lancs }, { data: obras }, { data: transfs }] = await Promise.all([
     supabase.from('lancamentos').select('obra_id, tipo, categoria, valor, valor_liquidado, status, competencia, origem')
       .neq('status', 'cancelado').gte('competencia', `${de}-01`).lte('competencia', fimDoMes(ate)).limit(20000),
     supabase.from('obras').select('id, codigo, nome, situacao, orcamento_custo').order('codigo'),
+    supabase.from('v_transferencias').select('origem_id, origem_nome, destino_id, destino_nome, valor_total')
+      .gte('criado_em', `${de}-01`).lte('criado_em', `${fimDoMes(ate)}T23:59:59`),
   ]);
+  // material transferido entre obras: quem enviou "perde" esse custo de material, quem recebeu "ganha"
+  const mov = new Map<string, { nome: string; recebeu: number; enviou: number }>();
+  for (const t of transfs ?? []) {
+    const v = Number(t.valor_total ?? 0);
+    const o = mov.get(t.origem_id ?? 'dep') ?? { nome: t.origem_nome, recebeu: 0, enviou: 0 }; o.enviou += v; mov.set(t.origem_id ?? 'dep', o);
+    const d = mov.get(t.destino_id ?? 'dep') ?? { nome: t.destino_nome, recebeu: 0, enviou: 0 }; d.recebeu += v; mov.set(t.destino_id ?? 'dep', d);
+  }
+  const movLista = [...mov.entries()].filter(([k]) => !sp.obra || k === sp.obra);
   const l = (lancs ?? []) as L[];
   const cats = Object.keys(CATEGORIAS_DESPESA).filter((c) => l.some((x) => x.tipo === 'despesa' && x.categoria === c));
   const info = new Map((obras ?? []).map((o) => [o.id, o]));
@@ -82,6 +92,18 @@ export default async function CentroCusto({ searchParams }: { searchParams: Prom
                   <td className="text-right font-mono">{reais(tot((x) => x.despesa))}</td><td className="text-right font-mono">{reais(tot((x) => x.receita))}</td><td className="text-right font-mono">{reais(tot((x) => x.receita - x.despesa))}</td></tr>)}
             </tbody>
           </table></div>
+          {movLista.length > 0 && (
+            <Cartao titulo="Material transferido entre obras" acoes={<Link className="link text-sm" href="/suprimentos/estoque#transferencias">ver transferências →</Link>}>
+              <div className="overflow-x-auto"><table className="tabela whitespace-nowrap">
+                <thead><tr><th>Obra / local</th><th className="text-right">Recebeu de outras obras</th><th className="text-right">Enviou para outras obras</th><th className="text-right">Ajuste no custo de material</th></tr></thead>
+                <tbody>{movLista.map(([k, m]) => (
+                  <tr key={k}><td className="font-semibold">{m.nome}</td>
+                    <td className="text-right font-mono text-ok-700">{m.recebeu ? `+ ${reais(m.recebeu)}` : '—'}</td>
+                    <td className="text-right font-mono text-atraso-700">{m.enviou ? `− ${reais(m.enviou)}` : '—'}</td>
+                    <td className={`text-right font-mono font-bold ${m.recebeu - m.enviou < 0 ? 'text-atraso-700' : 'text-ok-700'}`}>{reais(m.recebeu - m.enviou)}</td></tr>))}
+                </tbody></table></div>
+              <p className="mt-2 text-xs text-concreto-500">Informativo: a compra continua na obra que comprou (tabela acima). Aqui aparece quanto de material saiu de uma obra e foi usado em outra, pelo custo médio de compra.</p>
+            </Cartao>)}
           <Cartao titulo="Como cada custo chega à obra">
             <ul className="list-disc space-y-1 pl-5 text-sm text-concreto-600">
               <li><b>Mão de obra e benefícios:</b> ao fechar um pagamento da equipe (dia 20 ou 05), cada linha vai para a obra do funcionário. A taxa das empresas também é dividida por obra.</li>

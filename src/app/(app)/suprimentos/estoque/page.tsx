@@ -3,7 +3,8 @@ import { Cabecalho, Cartao, Campo, Indicador, Selo, Vazio } from '@/components/u
 import { FormAcao, Botao } from '@/components/formulario';
 import { AbasSuprimentos } from '@/components/AbasSuprimentos';
 import { lancarEstoque } from '../acoes';
-import { num, dataHora } from '@/lib/formato';
+import { num, data, dataHora } from '@/lib/formato';
+import { reais } from '@/lib/dominio';
 
 export const metadata = { title: 'Estoque' };
 
@@ -13,7 +14,7 @@ const ORIGEM: Record<string, string> = {
   retirada: 'Retirada pelo funcionário', devolucao: 'Devolução de sobra', cautela: 'Ferramenta emprestada', devolucao_cautela: 'Ferramenta devolvida',
 };
 
-export default async function Estoque({ searchParams }: { searchParams: Promise<{ local?: string; q?: string; minimo?: string }> }) {
+export default async function Estoque({ searchParams }: { searchParams: Promise<{ local?: string; q?: string; minimo?: string; transf?: string }> }) {
   const sp = await searchParams;
   const { supabase, perfil } = await exigirPapel('admin', 'engenheiro', 'compras', 'almoxarifado');
   const pode = perfil.papel === 'almoxarifado' || perfil.papel === 'admin';
@@ -21,20 +22,33 @@ export default async function Estoque({ searchParams }: { searchParams: Promise<
   if (sp.local) q = sp.local === 'central' ? q.is('obra_id', null) : q.eq('obra_id', sp.local);
   if (sp.minimo) q = q.eq('abaixo_minimo', true);
   if (sp.q) { const t = sp.q.replace(/[%,()]/g, ''); q = q.or(`codigo.ilike.%${t}%,descricao.ilike.%${t}%`); }
-  const [{ data: saldos }, { data: obras }, { data: insumos }, { data: movs }] = await Promise.all([
+  let qT = supabase.from('v_transferencias').select('*').order('criado_em', { ascending: false }).limit(60);
+  if (sp.local) qT = sp.local === 'central' ? qT.or('origem_id.is.null,destino_id.is.null') : qT.or(`origem_id.eq.${sp.local},destino_id.eq.${sp.local}`);
+  const [{ data: saldos }, { data: obras }, { data: insumos }, { data: movs }, { data: transfs }] = await Promise.all([
     q, supabase.from('obras').select('id, codigo, nome').order('nome'),
     supabase.from('insumos').select('id, codigo, descricao, unidade').eq('ativo', true).order('codigo'),
     supabase.from('estoque_movimentos').select('*, insumos(codigo, descricao, unidade), obras(codigo), perfis(nome)').order('criado_em', { ascending: false }).limit(40),
+    qT,
   ]);
+  const tl = transfs ?? [];
+  const totalTransf = tl.reduce((t, x) => t + Number(x.valor_total ?? 0), 0);
+  // saldo por obra: valor recebido (+) e enviado (−) em transferências
+  const porLocal = new Map<string, { nome: string; enviado: number; recebido: number }>();
+  for (const x of tl) {
+    const o = porLocal.get(x.origem_nome) ?? { nome: x.origem_nome, enviado: 0, recebido: 0 }; o.enviado += Number(x.valor_total ?? 0); porLocal.set(x.origem_nome, o);
+    const d = porLocal.get(x.destino_nome) ?? { nome: x.destino_nome, enviado: 0, recebido: 0 }; d.recebido += Number(x.valor_total ?? 0); porLocal.set(x.destino_nome, d);
+  }
+  const FONTE: Record<string, string> = { oc_obra: 'custo médio das compras da obra de origem', oc_geral: 'custo médio das compras (todas as obras)', cotacao: 'última cotação', informado: 'valor informado na transferência' };
   const lista = (saldos ?? []).filter((s) => Number(s.saldo) !== 0 || sp.minimo);
   return (
     <>
       <Cabecalho titulo="Estoque" sub="Saldo por local (depósito central e cada obra), calculado pelas entradas e saídas registradas." />
       <AbasSuprimentos atual="estoque" />
-      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3">
+      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Indicador rotulo="Itens com saldo" valor={lista.length} />
         <Indicador rotulo="Abaixo do mínimo" valor={(saldos ?? []).filter((s) => s.abaixo_minimo).length} tom={(saldos ?? []).some((s) => s.abaixo_minimo) ? 'atraso' : 'ok'} href="/suprimentos/estoque?minimo=1" />
         <Indicador rotulo="Locais" valor={new Set((saldos ?? []).map((s) => s.obra_id ?? 'c')).size} />
+        <Indicador rotulo="Material transferido entre obras" valor={reais(totalTransf)} detalhe={`${tl.length} transferência(s)${sp.local ? ' neste local' : ''}`} tom={tl.length ? 'sinal' : 'neutro'} href="#transferencias" />
       </div>
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
@@ -59,6 +73,30 @@ export default async function Estoque({ searchParams }: { searchParams: Promise<
               </table>
             </div>
           )}
+          <Cartao titulo="Transferências entre obras (centros de custo)" className="scroll-mt-4" acoes={<span className="text-sm font-semibold">{reais(totalTransf)}</span>}>
+            <div id="transferencias" />
+            {!tl.length ? <p className="text-sm text-concreto-500">Nenhuma transferência{sp.local ? ' neste local' : ''}.</p> : (<>
+              <div className="mb-4 grid gap-2 sm:grid-cols-2">{[...porLocal.values()].map((l) => (
+                <div key={l.nome} className="rounded-md border border-concreto-200 px-3 py-2 text-sm">
+                  <b>{l.nome}</b>
+                  <div className="mt-1 flex justify-between text-xs"><span className="text-atraso-700">enviou {reais(l.enviado)}</span><span className="text-ok-700">recebeu {reais(l.recebido)}</span></div>
+                </div>))}</div>
+              <div className="overflow-x-auto"><table className="tabela">
+                <thead><tr><th>Data</th><th>Material</th><th>De → Para</th><th className="text-right">Qtd.</th><th className="text-right">Valor unit.</th><th className="text-right">Valor</th></tr></thead>
+                <tbody>{tl.map((x) => (
+                  <tr key={x.id}>
+                    <td className="whitespace-nowrap text-xs">{data(x.criado_em)}</td>
+                    <td><b>{x.descricao}</b><span className="block text-xs text-concreto-500">{x.codigo}{x.observacao ? ` • ${x.observacao}` : ''}</span></td>
+                    <td className="text-xs">{x.origem_nome} → <b>{x.destino_nome}</b></td>
+                    <td className="whitespace-nowrap text-right font-mono">{num(x.quantidade, 3)} {x.unidade}</td>
+                    <td className="whitespace-nowrap text-right font-mono" title={x.custo_fonte ? FONTE[x.custo_fonte] : undefined}>{x.valor_unitario == null ? '—' : reais(x.valor_unitario)}</td>
+                    <td className="whitespace-nowrap text-right font-mono font-bold">{x.valor_total == null ? <span className="text-atencao-700">sem preço</span> : reais(x.valor_total)}
+                      {x.valor_estimado && x.valor_total != null && <span className="block text-[11px] font-normal text-concreto-500">estimado (custo atual)</span>}</td>
+                  </tr>))}</tbody>
+              </table></div>
+              <p className="mt-3 text-xs text-concreto-500">Valor = quantidade × custo médio das compras (OC) do material na obra de origem; sem compra lá, usa a média de todas as obras, depois a última cotação. Passe o mouse no valor unitário para ver de onde veio.</p>
+            </>)}
+          </Cartao>
           <Cartao titulo="Últimas movimentações">
             {!movs?.length ? <p className="text-sm text-concreto-500">Nenhuma movimentação.</p> : (
               <ul className="divide-y divide-concreto-100 text-sm">{movs.map((m) => {
@@ -85,6 +123,7 @@ export default async function Estoque({ searchParams }: { searchParams: Promise<
                 {obras?.map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}</select></Campo>
               <Campo rotulo="Destino (só transferência)"><select name="destino_id" className="entrada"><option value="">Depósito central</option>
                 {obras?.map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}</select></Campo>
+              <Campo rotulo="Valor unitário (só transferência)" dica="Opcional: em branco, o sistema calcula pelo custo médio das compras do material."><input name="valor_unitario" inputMode="decimal" placeholder="R$ 0,00" className="entrada" /></Campo>
               <Campo rotulo="Quantidade" dica="No ajuste, use negativo para reduzir"><input name="quantidade" required inputMode="decimal" className="entrada" /></Campo>
               <Campo rotulo="Motivo / documento *"><input name="observacao" required className="entrada" placeholder="Inventário 10/2026, consumo na laje…" /></Campo>
               <Botao grande>Registrar</Botao>
