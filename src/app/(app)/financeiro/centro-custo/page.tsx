@@ -35,7 +35,7 @@ export default async function CentroCusto({ searchParams }: { searchParams: Prom
   }
   const movLista = [...mov.entries()].filter(([k]) => !sp.obra || k === sp.obra);
   const l = (lancs ?? []) as L[];
-  const cats = Object.keys(CATEGORIAS_DESPESA).filter((c) => l.some((x) => x.tipo === 'despesa' && x.categoria === c));
+  let cats = Object.keys(CATEGORIAS_DESPESA).filter((c) => l.some((x) => x.tipo === 'despesa' && x.categoria === c));
   const info = new Map((obras ?? []).map((o) => [o.id, o]));
   type Linha = { id: string; codigo: string; nome: string; desp: Record<string, number>; despesa: number; pago: number; receita: number; orcamento: number | null };
   const linhas = new Map<string, Linha>();
@@ -50,6 +50,21 @@ export default async function CentroCusto({ searchParams }: { searchParams: Prom
     } else r.receita += v;
     linhas.set(k, r);
   }
+  // transferência de material entre obras: o custo sai da obra de origem e vai para a de destino (o total da empresa não muda)
+  type LinhaT = Linha & { transf: number };
+  const linhaDe = (k: string) => {
+    const o = k !== 'adm' ? info.get(k) : null;
+    const r = (linhas.get(k) ?? { id: k, codigo: o?.codigo ?? 'ADM', nome: o?.nome ?? 'Administração central (sem obra)', desp: {}, despesa: 0, pago: 0, receita: 0, orcamento: o?.orcamento_custo ?? null }) as LinhaT;
+    r.transf ??= 0; linhas.set(k, r); return r;
+  };
+  for (const t of transfs ?? []) {
+    const v = Number(t.valor_total ?? 0);
+    if (!v) continue;
+    const de = linhaDe(t.origem_id ?? 'adm'), para = linhaDe(t.destino_id ?? 'adm');
+    de.desp.material = (de.desp.material ?? 0) - v; de.despesa -= v; de.transf -= v;
+    para.desp.material = (para.desp.material ?? 0) + v; para.despesa += v; para.transf += v;
+  }
+  if ((transfs ?? []).length && !cats.includes('material')) cats.unshift('material');
   let lista = [...linhas.values()].sort((a, b) => (a.id === 'adm' ? 1 : b.id === 'adm' ? -1 : a.codigo.localeCompare(b.codigo)));
   if (sp.obra) lista = lista.filter((x) => x.id === sp.obra);
   const tot = (f: (x: Linha) => number) => lista.reduce((s, x) => s + f(x), 0);
@@ -82,7 +97,8 @@ export default async function CentroCusto({ searchParams }: { searchParams: Prom
               {lista.map((x) => (
                 <tr key={x.id}>
                   <td><Link className="link font-semibold" href={x.id === 'adm' ? '/financeiro/lancamentos?obra=adm&situacao=todos' : `/obras/${x.id}/financeiro`}>{x.codigo}</Link><div className="text-xs text-concreto-500">{x.nome}</div></td>
-                  {cats.map((c) => <td key={c} className="text-right font-mono">{x.desp[c] ? reais(x.desp[c]) : '—'}</td>)}
+                  {cats.map((c) => <td key={c} className="text-right font-mono">{x.desp[c] ? reais(x.desp[c]) : '—'}
+                    {c === 'material' && (x as LinhaT).transf ? <div className={`text-xs font-normal ${(x as LinhaT).transf < 0 ? 'text-atraso-700' : 'text-ok-700'}`}>{(x as LinhaT).transf > 0 ? '+' : '−'} {reais(Math.abs((x as LinhaT).transf))} transf.</div> : null}</td>)}
                   <td className="text-right font-mono font-bold">{reais(x.despesa)}{x.orcamento ? <div className="text-xs font-normal text-concreto-500">orçado {reais(x.orcamento)}</div> : null}</td>
                   <td className="text-right font-mono">{x.receita ? reais(x.receita) : '—'}</td>
                   <td className={`text-right font-mono font-semibold ${x.receita - x.despesa < 0 ? 'text-atraso-700' : 'text-ok-700'}`}>{reais(x.receita - x.despesa)}</td>
@@ -102,13 +118,13 @@ export default async function CentroCusto({ searchParams }: { searchParams: Prom
                     <td className="text-right font-mono text-atraso-700">{m.enviou ? `− ${reais(m.enviou)}` : '—'}</td>
                     <td className={`text-right font-mono font-bold ${m.recebeu - m.enviou < 0 ? 'text-atraso-700' : 'text-ok-700'}`}>{reais(m.recebeu - m.enviou)}</td></tr>))}
                 </tbody></table></div>
-              <p className="mt-2 text-xs text-concreto-500">Informativo: a compra continua na obra que comprou (tabela acima). Aqui aparece quanto de material saiu de uma obra e foi usado em outra, pelo custo médio de compra.</p>
+              <p className="mt-2 text-xs text-concreto-500">Já está somado na coluna Material da tabela acima: sai do custo da obra que enviou e entra no da obra que recebeu, pelo custo médio de compra. Não é conta a pagar — o total da empresa e o caixa não mudam.</p>
             </Cartao>)}
           <Cartao titulo="Como cada custo chega à obra">
             <ul className="list-disc space-y-1 pl-5 text-sm text-concreto-600">
               <li><b>Mão de obra e benefícios:</b> ao fechar um pagamento da equipe (dia 20 ou 05), cada linha vai para a obra do funcionário. A taxa das empresas também é dividida por obra.</li>
               <li><b>Folha fechada por obra:</b> salários, INSS, FGTS e benefícios entram no centro de custo daquela obra.</li>
-              <li><b>Material:</b> cada ordem de compra entra na obra que pediu. Quem está no escritório ou sem obra fica em “Administração central”.</li>
+              <li><b>Material:</b> cada ordem de compra entra na obra que pediu. Quem está no escritório ou sem obra fica em “Administração central”. Material transferido de uma obra para outra muda de centro de custo junto (pelo custo médio de compra).</li>
             </ul>
           </Cartao>
         </div>)}
