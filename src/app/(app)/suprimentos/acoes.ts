@@ -95,14 +95,20 @@ export async function cancelarCotacao(_: EstadoAcao, f: FormData): Promise<Estad
 
 export async function anexarDocumentoOC(c: Record<string, string | null>): Promise<EstadoAcao> {
   const supabase = await criarClienteServidor();
-  const { error } = await supabase.rpc('oc_anexar_documento', {
+  const { data: docId, error } = await supabase.rpc('oc_anexar_documento', {
     p_oc: c.oc_id, p_tipo: c.tipo ?? 'outro', p_numero: c.numero ?? null, p_valor: c.valor ? Number(c.valor.replace(/\./g, '').replace(',', '.')) : null,
     // campo some quando não é boleto: precisa ir como null, senão a função não é encontrada
     p_vencimento: c.vencimento ?? null, p_caminho: c.caminho ?? null, p_mime: c.tipo_mime ?? null,
   });
   if (error) return { erro: mensagemErro(error) };
+  // demais arquivos do mesmo envio (ex.: NF + boleto em PDFs separados, várias páginas)
+  const extras = (c.arquivos ? JSON.parse(c.arquivos) as { caminho: string; tipo_mime: string }[] : []).slice(1);
+  for (const a of extras) {
+    const r = await supabase.rpc('oc_documento_arquivo_extra', { p_doc: docId, p_caminho: a.caminho, p_mime: a.tipo_mime ?? null });
+    if (r.error) { rev(); return { erro: `O 1º arquivo foi anexado, mas houve erro nos demais: ${mensagemErro(r.error)}` }; }
+  }
   rev();
-  return { ok: 'Documento anexado à OC.' };
+  return { ok: extras.length ? `${extras.length + 1} arquivos anexados à OC.` : 'Documento anexado à OC.' };
 }
 
 export async function liberarColeta(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {

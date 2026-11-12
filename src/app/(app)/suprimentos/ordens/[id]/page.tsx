@@ -230,7 +230,7 @@ export default async function DetalheOC({ params }: { params: Promise<{ id: stri
 
           {podeDoc && (
             <Cartao titulo={forma && forma !== 'boleto' ? 'Anexar NF / comprovante' : 'Anexar NF / boleto / comprovante'}>
-              <UploadArquivo pasta={`sup/oc/${id}`} acao={anexarDocumentoOC} rotuloBotao="Anexar à OC">
+              <UploadArquivo pasta={`sup/oc/${id}`} acao={anexarDocumentoOC} rotuloBotao="Anexar à OC" multiplo>
                 <input type="hidden" name="oc_id" value={id} />
                 <CamposDocumentoOC forma={forma} />
               </UploadArquivo>
