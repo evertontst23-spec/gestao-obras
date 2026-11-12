@@ -115,7 +115,7 @@ export default async function Estoque({ searchParams }: { searchParams: Promise<
           <Cartao titulo="Lançar no estoque">
             <FormAcao acao={lancarEstoque} limparAoConcluir className="space-y-3">
               <Campo rotulo="Tipo"><select name="tipo" className="entrada">
-                <option value="entrada">Entrada (inventário inicial, devolução)</option><option value="saida">Saída / baixa por consumo</option>
+                <option value="entrada">Entrada (compra feita fora do sistema, inventário, devolução)</option><option value="saida">Saída / baixa por consumo</option>
                 <option value="ajuste">Ajuste de inventário (+/−)</option><option value="transferencia">Transferência entre locais</option></select></Campo>
               <Campo rotulo="Insumo"><select name="insumo_id" required className="entrada"><option value="">Selecionar…</option>
                 {insumos?.map((i) => <option key={i.id} value={i.id}>{i.codigo} — {i.descricao} ({i.unidade})</option>)}</select></Campo>
