@@ -66,6 +66,11 @@ export default async function NovaSolicitacao({ searchParams }: { searchParams: 
           </div>
           <ItensMaterial insumos={insumos ?? []} />
           <Campo rotulo="Justificativa"><input name="justificativa" className="entrada" placeholder="Para que será usado" /></Campo>
+          {['admin', 'almoxarifado'].includes(perfil.papel) && (
+            <label className="flex items-start gap-2 rounded-md border-2 border-sinal-300 bg-sinal-50 p-3 text-sm">
+              <input type="checkbox" name="comprar_novo" className="mt-0.5 accent-sinal-500" />
+              <span><b>Comprar novo</b> — não usar o estoque da obra. O pedido vai direto para a cotação, mesmo que já tenha esse material no estoque.</span>
+            </label>)}
           {tarefa && <Campo rotulo="Observações"><textarea name="observacoes" rows={2} className="entrada" /></Campo>}
           <p className="text-xs text-concreto-500">
             {obra.exige_aprovacao_material && perfil.papel === 'encarregado' ? 'O pedido vai para aprovação do engenheiro.' : 'O pedido segue direto para o almoxarifado.'} Fotos podem ser anexadas na próxima tela.

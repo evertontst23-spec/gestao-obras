@@ -32,6 +32,14 @@ export async function criarSolicitacao(_: EstadoAcao, f: FormData): Promise<Esta
     p_itens: itens,
   });
   if (error) return { erro: mensagemErro(error) };
+  if (f.get('comprar_novo') === 'on') {
+    // "Comprar novo": pula o estoque e manda cada item aprovado direto para a cotação
+    const { data: its } = await supabase.from('solicitacao_itens').select('id').eq('solicitacao_id', data).eq('status', 'aprovado');
+    for (const it of its ?? []) {
+      await supabase.rpc('item_verificar_estoque', { p_item: it.id, p_disponivel: 0, p_observacao: 'Comprar novo — não usar o estoque existente' });
+    }
+    revalidatePath('/suprimentos');
+  }
   revalidatePath('/materiais'); revalidatePath('/campo');
   redirect(`/materiais/${data}?criado=1`);
 }
