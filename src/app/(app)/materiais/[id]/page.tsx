@@ -167,11 +167,18 @@ export default async function DetalheSolicitacao({ params, searchParams }: { par
                             <p className="text-xs text-concreto-600">{i.insumo_id
                               ? <>Saldo no sistema — <b>esta obra: {num(saldoObra.get(i.insumo_id) ?? 0, 3)}</b> • <b>depósito central: {num(saldoCentral.get(i.insumo_id) ?? 0, 3)}</b> {i.unidade}.</>
                               : 'Item sem estoque controlado no sistema.'}</p>
-                            {saldo <= 0 && (
+                            {saldo <= 0 ? (
                               <FormAcao acao={verificarEstoque} className="flex flex-wrap items-center gap-2 rounded border-2 border-atraso-500 bg-superficie p-2">
                                 <input type="hidden" name="solicitacao" value={id} /><input type="hidden" name="item" value={i.id} /><input type="hidden" name="disponivel" value="0" />
                                 <span className="flex-1 text-sm font-semibold text-atraso-700">Não há {i.material} em estoque.</span>
                                 <Botao variante="escuro">Sem estoque → enviar para cotação</Botao>
+                              </FormAcao>
+                            ) : (
+                              <FormAcao acao={verificarEstoque} className="flex flex-wrap items-center gap-2 rounded border border-concreto-300 bg-superficie p-2">
+                                <input type="hidden" name="solicitacao" value={id} /><input type="hidden" name="item" value={i.id} /><input type="hidden" name="disponivel" value="0" />
+                                <input type="hidden" name="observacao" value="Comprar novo — não usar o estoque existente" />
+                                <span className="flex-1 text-sm">Quer <b>comprar novo</b> e deixar o estoque como está?</span>
+                                <Botao variante="secundario">Comprar novo → enviar para cotação</Botao>
                               </FormAcao>)}
                             <FormAcao acao={verificarEstoque} className="flex flex-wrap items-end gap-2">
                               <input type="hidden" name="solicitacao" value={id} /><input type="hidden" name="item" value={i.id} />

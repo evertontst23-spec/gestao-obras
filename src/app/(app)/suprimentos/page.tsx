@@ -100,6 +100,11 @@ export default async function Suprimentos({ searchParams }: { searchParams: Prom
                       <div className="space-y-1">
                         <div className="text-xs text-teal-800">Estoque: <b>{num(saldo)} {i.unidade}</b></div>
                         <Link href={`/materiais/${i.solicitacao_id}`} className="inline-block rounded bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white">Separar do estoque →</Link>
+                        <FormAcao acao={verificarEstoque}>
+                          <input type="hidden" name="solicitacao" value={i.solicitacao_id} /><input type="hidden" name="item" value={i.id} />
+                          <input type="hidden" name="disponivel" value="0" /><input type="hidden" name="observacao" value="Comprar novo — não usar o estoque existente" />
+                          <button className="text-[11px] font-semibold text-sinal-700 underline">comprar novo → cotação</button>
+                        </FormAcao>
                       </div>
                     ) : (
                       <FormAcao acao={verificarEstoque} className="space-y-1">
