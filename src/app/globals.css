@@ -212,22 +212,26 @@
   [data-tema] { @apply bg-concreto-50 text-concreto-900; font-family: var(--fonte), ui-sans-serif, system-ui, sans-serif; }
 }
 
-/* Escuro: botões escuros continuam escuros com texto branco; etiquetas coloridas ficam translúcidas */
-[data-tema='escuro'] :is(.bg-concreto-700, .bg-concreto-800, .bg-concreto-900) { background-color: #2A3343; }
-[data-tema='escuro'] :is(.hover\:bg-concreto-900:hover, .hover\:bg-concreto-700:hover) { background-color: #35405360; }
-[data-tema='escuro'] .border-concreto-800 { border-color: #3A4456; }
-[data-tema='escuro'] .bg-ok-700, [data-tema='escuro'] .hover\:bg-ok-700:hover { background-color: #15803D; }
-[data-tema='escuro'] .bg-atraso-700, [data-tema='escuro'] .hover\:bg-atraso-700:hover { background-color: #B91C1C; }
-[data-tema='escuro'] .bg-sinal-700 { background-color: #C2410C; }
-[data-tema='escuro'] :is(.bg-sky-50, .bg-sky-100, .bg-blue-100, .bg-indigo-50, .bg-indigo-100) { background-color: rgba(56,189,248,.14); }
-[data-tema='escuro'] :is(.bg-violet-50, .bg-violet-100) { background-color: rgba(167,139,250,.16); }
-[data-tema='escuro'] :is(.bg-teal-50, .bg-teal-100) { background-color: rgba(45,212,191,.14); }
-[data-tema='escuro'] :is(.bg-amber-50, .bg-amber-100) { background-color: rgba(251,191,36,.14); }
-[data-tema='escuro'] :is(.text-sky-700, .text-sky-800, .text-blue-800, .text-indigo-800) { color: #7DD3FC; }
-[data-tema='escuro'] :is(.text-violet-800, .text-violet-900) { color: #C4B5FD; }
-[data-tema='escuro'] :is(.text-teal-800, .text-teal-900) { color: #5EEAD4; }
-[data-tema='escuro'] .text-amber-800 { color: #FCD34D; }
-[data-tema='escuro'] :is(.ring-sky-200, .ring-amber-200, .border-sky-200, .border-amber-200, .border-violet-300) { --tw-ring-color: rgba(255,255,255,.12); border-color: rgba(255,255,255,.12); }
+/* Escuro e CAD: botões escuros continuam escuros com texto branco; etiquetas coloridas ficam translúcidas */
+:is([data-tema='escuro'],[data-tema='cad']) :is(.bg-concreto-700, .bg-concreto-800, .bg-concreto-900) { background-color: #2A3343; }
+:is([data-tema='escuro'],[data-tema='cad']) :is(.hover\:bg-concreto-900:hover, .hover\:bg-concreto-700:hover) { background-color: #35405360; }
+:is([data-tema='escuro'],[data-tema='cad']) .border-concreto-800 { border-color: #3A4456; }
+:is([data-tema='escuro'],[data-tema='cad']) .bg-ok-700, :is([data-tema='escuro'],[data-tema='cad']) .hover\:bg-ok-700:hover { background-color: #15803D; }
+:is([data-tema='escuro'],[data-tema='cad']) .bg-atraso-700, :is([data-tema='escuro'],[data-tema='cad']) .hover\:bg-atraso-700:hover { background-color: #B91C1C; }
+:is([data-tema='escuro'],[data-tema='cad']) .bg-sinal-700 { background-color: #C2410C; }
+:is([data-tema='escuro'],[data-tema='cad']) :is(.bg-sky-50, .bg-sky-100, .bg-blue-100, .bg-indigo-50, .bg-indigo-100) { background-color: rgba(56,189,248,.14); }
+:is([data-tema='escuro'],[data-tema='cad']) :is(.bg-violet-50, .bg-violet-100) { background-color: rgba(167,139,250,.16); }
+:is([data-tema='escuro'],[data-tema='cad']) :is(.bg-teal-50, .bg-teal-100) { background-color: rgba(45,212,191,.14); }
+:is([data-tema='escuro'],[data-tema='cad']) :is(.bg-amber-50, .bg-amber-100) { background-color: rgba(251,191,36,.14); }
+:is([data-tema='escuro'],[data-tema='cad']) :is(.text-sky-700, .text-sky-800, .text-blue-800, .text-indigo-800) { color: #7DD3FC; }
+:is([data-tema='escuro'],[data-tema='cad']) :is(.text-violet-800, .text-violet-900) { color: #C4B5FD; }
+:is([data-tema='escuro'],[data-tema='cad']) :is(.text-teal-800, .text-teal-900) { color: #5EEAD4; }
+:is([data-tema='escuro'],[data-tema='cad']) .text-amber-800 { color: #FCD34D; }
+:is([data-tema='escuro'],[data-tema='cad']) :is(.ring-sky-200, .ring-amber-200, .border-sky-200, .border-amber-200, .border-violet-300) { --tw-ring-color: rgba(255,255,255,.12); border-color: rgba(255,255,255,.12); }
+
+/* CAD (preto): botão/chip ativo escuro em cinza grafite, sempre legível com texto branco */
+[data-tema='cad'] :is(.bg-concreto-700, .bg-concreto-800, .bg-concreto-900) { background-color: #2E2E2E; }
+[data-tema='cad'] .bg-teal-700 { background-color: #0F766E; }
 
 @layer components {
   .entrada {
