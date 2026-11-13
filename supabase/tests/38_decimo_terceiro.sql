@@ -46,6 +46,6 @@ select pg_temp.confere((select valor = 90 from pagamento_itens where pagamento_i
   'Beto: (1800 + 20%) ÷ 12 × 1 ÷ 2 = R$ 90,00 (outubro com menos de 15 dias não conta)');
 select pg_temp.confere((select valor = 150 and destino = 'empresa' from pagamento_itens where pagamento_id = :'pg' and funcionario_id = :'c' and categoria = 'decimo_terceiro'),
   'Caio (terceirizado): 1800 ÷ 12 × 2 ÷ 2 = R$ 150,00 para a empresa');
-select pg_temp.confere((select valor = 30 from pagamento_itens where pagamento_id = :'pg' and categoria = 'taxa' and empregador_id = :'e14'), 'taxa de 20% sobre o 13º da fornecedora');
+select pg_temp.confere(not exists (select 1 from pagamento_itens where pagamento_id = :'pg' and categoria = 'taxa'), 'sem taxa da fornecedora no 13º (a taxa é no fechamento da folha)');
 select pg_temp.confere(not exists (select 1 from pagamento_itens where pagamento_id = :'pg' and funcionario_id = :'d'), 'desligado não recebe a 1ª parcela');
 select pg_temp.confere(not exists (select 1 from pagamento_itens where pagamento_id = :'pg' and categoria in ('adiantamento','passagem','alimentacao')), 'só 13º, sem salário nem benefícios');

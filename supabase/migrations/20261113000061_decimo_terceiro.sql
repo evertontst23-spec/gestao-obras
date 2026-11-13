@@ -1,6 +1,6 @@
 -- 13º salário no módulo de Pagamentos: tipo 'decimo_terceiro' gera a 1ª parcela de cada funcionário ativo
 -- (salário com adicionais ÷ 12 × meses do ano com 15+ dias trabalhados até o fim do período ÷ 2).
--- A taxa percentual das fornecedoras de mão de obra (IDERES) incide também sobre o 13º; a taxa fixa por funcionário (Fênix) não.
+-- A taxa das fornecedoras de mão de obra (IDERES 20%, Fênix fixa) não incide sobre o 13º: é cobrada no fechamento da folha.
 
 alter table pagamentos drop constraint if exists pagamentos_tipo_check;
 alter table pagamentos add constraint pagamentos_tipo_check check (tipo in ('adiantamento','saldo','rescisao','decimo_terceiro','outro'));
@@ -111,7 +111,7 @@ begin
   end loop;
   -- 3) taxa das empresas fornecedoras de mão de obra
   for e in select em.id, em.nome, em.taxa_tipo, em.taxa_valor, i.obra_id,
-                  sum(i.valor) filter (where i.categoria in ('adiantamento','saldo','rescisao','salario','hora_extra','desconto','decimo_terceiro')) as folha,
+                  sum(i.valor) filter (where i.categoria in ('adiantamento','saldo','rescisao','salario','hora_extra','desconto')) as folha,
                   count(distinct i.funcionario_id) filter (where i.categoria in ('adiantamento','saldo','rescisao','salario')) as pessoas
              from pagamento_itens i join empregadores em on em.id = i.empregador_id
             where i.pagamento_id = p_pagamento and not i.removido and i.destino = 'empresa' and em.taxa_tipo <> 'nenhuma'
