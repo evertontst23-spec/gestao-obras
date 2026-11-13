@@ -30,3 +30,8 @@ create temp table ev as select * from _espelho_ponto(:'v', '2026-11-04', '2026-1
 select pg_temp.confere((select he_util_min = 0 and previsto_min = 720 from ev where data = '2026-11-04'), 'vigia 12h no plantão: sem hora extra');
 select pg_temp.confere((select not falta and previsto_min = 0 from ev where data = '2026-11-06'), 'folga do vigia não é falta');
 update dp_parametros set ponto_inicio = '2000-01-01', compensa_sabado = false, falta_so_dia_lancado = false;
+-- folha proporcional: admitida em 01/11 (mês cheio) x admitido em 05/11 (26 dias)
+insert into funcionarios (nome, funcao_id, obra_id, data_admissao) values ('TESTE J Novo', :'f8', :'ob', '2026-11-05') returning id as nv \gset
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+create temp table fp as select * from folha_previa('2026-11-01', :'ob');
+select pg_temp.confere((select bruto + desconto_faltas + desconto_atrasos - he_util_valor - he_100_valor - dsr_he = 1560.00 from fp where funcionario_id = :'nv'), 'admitido em 05/11: 26 dias × 1800 ÷ 30 = R$ 1.560,00');
