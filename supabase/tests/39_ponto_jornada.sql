@@ -24,7 +24,7 @@ select pg_temp.bate(:'v','2026-11-04','07:00','entrada'), pg_temp.bate(:'v','202
 create temp table e as select * from _espelho_ponto(:'a', '2026-11-03', '2026-11-06');
 select pg_temp.confere((select he_util_min = 0 and atraso_min = 0 and previsto_min = 540 from e where data = '2026-11-03'), 'terça com 9h: sem hora extra');
 select pg_temp.confere((select falta from e where data = '2026-11-04'), 'quarta sem marcação, com a obra lançada no dia (vigia bateu): falta');
-select pg_temp.confere((select not falta from e where data = '2026-11-05'), 'quinta sem ninguém da obra lançado: não vira falta');
+select pg_temp.confere((select not falta and atraso_min = 0 from e where data = '2026-11-05'), 'quinta sem ninguém da obra lançado: nem falta nem atraso');
 select pg_temp.confere((select he_util_min = 60 and previsto_min = 480 from e where data = '2026-11-06'), 'sexta com 9h: 1h extra');
 create temp table ev as select * from _espelho_ponto(:'v', '2026-11-04', '2026-11-06');
 select pg_temp.confere((select he_util_min = 0 and previsto_min = 720 from ev where data = '2026-11-04'), 'vigia 12h no plantão: sem hora extra');

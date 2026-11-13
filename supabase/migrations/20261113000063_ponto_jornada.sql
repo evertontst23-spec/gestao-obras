@@ -56,10 +56,11 @@ begin
         v_dif := v_trab - v_prev;
         if v_dif > par.tolerancia_minutos then he_util_min := v_dif; end if;
         -- falta só quando o ponto daquele dia já foi lançado na obra (dia ainda não digitado não vira falta)
-        if v_prev > 0 and v_trab = 0 and v_validas = 0 and v_ab is null
-           and (not par.falta_so_dia_lancado
-                or exists (select 1 from registros_ponto r2 left join funcionarios f2 on f2.id = r2.funcionario_id
-                            where r2.data = d and coalesce(r2.obra_id, f2.obra_id) is not distinct from f.obra_id)) then
+        if v_validas = 0 and par.falta_so_dia_lancado
+           and not exists (select 1 from registros_ponto r2 left join funcionarios f2 on f2.id = r2.funcionario_id
+                            where r2.data = d and coalesce(r2.obra_id, f2.obra_id) is not distinct from f.obra_id) then
+          he_util_min := 0;   -- dia ainda não lançado na obra: nem falta nem atraso
+        elsif v_prev > 0 and v_trab = 0 and v_validas = 0 and v_ab is null then
           falta := true;
         elsif v_dif < -par.tolerancia_minutos and v_prev > 0 then
           atraso_min := greatest(0, -v_dif - coalesce(round(v_horas_ab * 60), 0)::int);
