@@ -25,8 +25,8 @@ const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julh
 const nomeMes = (m: string) => { const n = MESES[Number(m.slice(5, 7)) - 1]; return `${n.charAt(0).toUpperCase()}${n.slice(1)} de ${m.slice(0, 4)}`; };
 const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 const DESCRICAO = 'Dia 20 (adiantamento) e dia 05 (saldo com faltas e horas extras), separando o que vai para cada empresa (folha + taxa) e o que vai direto ao funcionário (passagens e alimentação).';
-const ICONE_TIPO: Record<string, typeof Wallet> = { adiantamento: CalendarClock, saldo: Wallet, rescisao: UserMinus, outro: MoreHorizontal };
-const DICA_TIPO: Record<string, string> = { adiantamento: '50% empresas · 40% CAD', saldo: 'faltas e horas extras', rescisao: 'acerto de quem saiu', outro: 'lançamento avulso' };
+const ICONE_TIPO: Record<string, typeof Wallet> = { adiantamento: CalendarClock, saldo: Wallet, rescisao: UserMinus, decimo_terceiro: Wallet, outro: MoreHorizontal };
+const DICA_TIPO: Record<string, string> = { adiantamento: '50% empresas · 40% CAD', saldo: 'faltas e horas extras', rescisao: 'acerto de quem saiu', decimo_terceiro: '1ª parcela até 30/11', outro: 'lançamento avulso' };
 
 const campo = 'block h-11 w-full rounded-xl border border-concreto-200 bg-concreto-50 px-3.5 text-sm text-concreto-900 placeholder:text-concreto-400 transition-colors hover:border-concreto-300 focus:border-sinal-500 focus:outline-none focus:ring-4 focus:ring-sinal-500/15';
 
