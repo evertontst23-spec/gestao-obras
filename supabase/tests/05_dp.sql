@@ -24,6 +24,8 @@ end $$;
 create or replace function pg_temp.bate(d date, h text, t text) returns void language sql as
 $$ select 1 from _ponto_inserir('f1000000-0000-0000-0000-000000000001', null, (d + h::time) at time zone 'America/Recife', t, 'facial', 0.2, null, null, null, null) $$;
 
+-- regras antigas de jornada (8h todo dia útil) e ponto contando desde sempre, para os cenários abaixo
+update dp_parametros set ponto_inicio = '2000-01-01', compensa_sabado = false, falta_so_dia_lancado = false;
 -- Setembro/2026 do José (pedreiro, 8h/dia, R$ 2.640)
 update funcionarios set data_admissao = '2026-08-01' where id = 'f1000000-0000-0000-0000-000000000001';
 select pg_temp.bate('2026-09-14','07:00','entrada'), pg_temp.bate('2026-09-14','11:00','saida'), pg_temp.bate('2026-09-14','12:00','entrada'), pg_temp.bate('2026-09-14','18:00','saida');
