@@ -49,3 +49,10 @@ select pg_temp.confere((select valor = 150 and destino = 'empresa' from pagament
 select pg_temp.confere(not exists (select 1 from pagamento_itens where pagamento_id = :'pg' and categoria = 'taxa'), 'sem taxa da fornecedora no 13º (a taxa é no fechamento da folha)');
 select pg_temp.confere(not exists (select 1 from pagamento_itens where pagamento_id = :'pg' and funcionario_id = :'d'), 'desligado não recebe a 1ª parcela');
 select pg_temp.confere(not exists (select 1 from pagamento_itens where pagamento_id = :'pg' and categoria in ('adiantamento','passagem','alimentacao')), 'só 13º, sem salário nem benefícios');
+-- desligado no mesmo dia da admissão (não chegou a trabalhar): nenhuma linha
+insert into funcionarios (nome, funcao_id, empregador_id, data_admissao, ativo, data_demissao, motivo_demissao)
+  values ('TESTE 13 Ezio', :'f13', :'e13', '2026-11-05', false, '2026-11-05', 'não compareceu') returning id as z \gset
+select pagamento_criar('2026-11-20', 'TESTE adiant', 'adiantamento', '2026-11-03', '2026-11-20') as pa \gset
+select pagamento_gerar(:'pa', false);
+select pg_temp.confere(not exists (select 1 from pagamento_itens where pagamento_id = :'pa' and funcionario_id = :'z'), 'quem não chegou a trabalhar não recebe saldo');
+select pg_temp.confere(exists (select 1 from pagamento_itens where pagamento_id = :'pa' and funcionario_id = :'d' and categoria = 'rescisao'), 'desligado que trabalhou continua com o saldo');
