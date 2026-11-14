@@ -63,12 +63,13 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
     const v = o.ver ?? ver; if (v !== 'obra') q.set('ver', v);
     const gg = o.ver && o.ver !== ver ? null : o.g === undefined ? gSel : o.g; if (gg) q.set('g', gg);
     const p = o.pg === undefined ? pg : o.pg; if (p) q.set('pg', p);
-    return `${base}?${q.toString()}`;
+    return `${base}?${q.toString()}${umPagamento ? '#conferencia' : ''}`;
   };
   const chip = (ativo: boolean) => `rounded-full px-3.5 py-1.5 text-sm font-semibold transition ${ativo ? 'bg-concreto-900 text-white shadow-sm' : 'text-concreto-600 hover:bg-concreto-100 hover:text-concreto-900'}`;
   const rv = (v: number) => (Math.abs(v) < 0.005 ? <span className="text-concreto-300">—</span> : reais(v));
   const rotPag = (p: PagResumo) => `${p.tipo === 'saldo' ? 'Saldo' : p.tipo === 'adiantamento' ? 'Adiantamento' : 'Pagamento'} de ${data(p.data_pagamento).slice(0, 5)}`;
 
+  const colsPag = umPagamento ? [] : pg ? doMes.filter((p) => p.id === pg) : doMes;
   if (!doMes.length) return <Vazio>Nenhum fechamento de salários em {nomeMes(mes)}. Crie em <Link className="link" href="/dp/pagamentos">Pagamentos</Link>.</Vazio>;
 
   return (
@@ -93,7 +94,7 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
         <ExportarC6Pagamento key={p.id} supabase={supabase} pagamentoId={p.id} compacto />))}
 
       {/* filtros */}
-      <div className="nao-imprimir mb-6 space-y-3">
+      <div id="conferencia" className="nao-imprimir mb-4 scroll-mt-20 space-y-2 rounded-lg border border-concreto-200/80 bg-superficie px-4 py-3">
         <div className="flex flex-wrap items-center gap-1">
           <span className="w-full shrink-0 sm:w-28 text-xs font-bold uppercase tracking-wider text-concreto-400">Separar por:</span>
           {(Object.keys(VER) as Ver[]).map((v) => <Link key={v} href={url({ ver: v, g: null })} className={chip(ver === v)}>{VER[v]}</Link>)}
@@ -115,23 +116,23 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
         <Cartao titulo={`Resumo por ${VER[ver].toLowerCase()}`}>
           <div className="overflow-x-auto"><table className="tabela whitespace-nowrap">
             <thead><tr><th>{VER[ver]}</th><th className="text-right">Func.</th>
-              {(pg ? doMes.filter((p) => p.id === pg) : doMes).map((p) => <th key={p.id} className="text-right">{rotPag(p)}</th>)}
+              {colsPag.map((p) => <th key={p.id} className="text-right">{rotPag(p)}</th>)}
               <th className="text-right">Empresas</th><th className="text-right">Funcionários</th><th className="text-right">Total</th></tr></thead>
             <tbody>
               {ordem.map(([k, gr]) => (
                 <tr key={k}>
-                  <td><Link className="link font-semibold" href={url({ g: k })}>{gr.nome}</Link></td>
+                  <td><Link className="link font-semibold" href={url({ g: k })}>{gr.nome} <span aria-hidden className="font-normal">›</span></Link></td>
                   <td className="text-right">{pessoas(gr.itens)}</td>
-                  {(pg ? doMes.filter((p) => p.id === pg) : doMes).map((p) => <td key={p.id} className="text-right font-mono">{rv(soma(gr.itens, (i) => i.pagamento_id === p.id))}</td>)}
+                  {colsPag.map((p) => <td key={p.id} className="text-right font-mono">{rv(soma(gr.itens, (i) => i.pagamento_id === p.id))}</td>)}
                   <td className="text-right font-mono">{rv(soma(gr.itens, (i) => i.destino === 'empresa'))}</td>
                   <td className="text-right font-mono">{rv(soma(gr.itens, (i) => i.destino !== 'empresa'))}</td>
                   <td className="text-right font-mono font-bold">{reais(soma(gr.itens))}</td>
                 </tr>))}
               <tr className="bg-concreto-50 font-semibold"><td>Total</td><td className="text-right">{pessoas(visiveis)}</td>
-                {(pg ? doMes.filter((p) => p.id === pg) : doMes).map((p) => <td key={p.id} className="text-right font-mono">{rv(soma(visiveis, (i) => i.pagamento_id === p.id))}</td>)}
+                {colsPag.map((p) => <td key={p.id} className="text-right font-mono">{rv(soma(visiveis, (i) => i.pagamento_id === p.id))}</td>)}
                 <td className="text-right font-mono">{rv(soma(visiveis, (i) => i.destino === 'empresa'))}</td>
                 <td className="text-right font-mono">{rv(soma(visiveis, (i) => i.destino !== 'empresa'))}</td>
-                <td className="text-right font-mono">{rv(soma(visiveis))}</td></tr>
+                <td className="text-right font-mono font-bold">{rv(soma(visiveis))}</td></tr>
             </tbody>
           </table></div>
           <p className="mt-2 text-xs text-concreto-500">Clique numa linha para ver e editar os valores de cada funcionário.</p>
@@ -139,7 +140,7 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
             <p className="mt-1 text-xs text-concreto-500">Não aparecem aqui {new Set(desligados.map((i) => i.funcionario_id)).size} funcionário(s) que já saíram ({[...new Set(desligados.map((i) => i.funcionarios?.nome?.split(' ')[0]))].join(', ')}): {reais(soma(desligados))} já acertados — ficam registrados em <Link className="link" href="/dp/pagamentos">Pagamentos</Link>.</p>)}
         </Cartao>
       ) : (
-        <Cartao titulo={grupos.get(gSel)!.nome}>
+        <Cartao titulo={grupos.get(gSel)!.nome} acoes={<Link href={url({ g: null })} className="nao-imprimir text-sm font-semibold text-sinal-700 hover:underline">← voltar ao resumo</Link>}>
           <div className="space-y-6">{(pg ? doMes.filter((p) => p.id === pg) : doMes).map((p) => {
             const lp = sel.filter((i) => i.pagamento_id === p.id)
               .sort((a, b) => (a.funcionarios?.nome ?? 'zz').localeCompare(b.funcionarios?.nome ?? 'zz') || a.id - b.id);
