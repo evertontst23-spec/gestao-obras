@@ -63,6 +63,7 @@ export const MENU: SecaoMenu[] = [
     { href: '/cadastros/funcionarios', rotulo: 'Funcionários', curto: 'Equipe', icone: 'funcionarios', papeis: ['admin', 'engenheiro', 'rh', 'seguranca', 'financeiro'] },
     { href: '/cadastros/espera', rotulo: 'Banco de espera', curto: 'Espera', icone: 'espera', papeis: ['admin', 'rh', 'engenheiro', 'seguranca'] },
     { href: '/cadastros/dossies', rotulo: 'Dossiês (pastas)', curto: 'Dossiês', icone: 'dossies', papeis: ['admin', 'engenheiro', 'rh', 'seguranca', 'financeiro'] },
+    { href: '/cadastros/admissao', rotulo: 'Link de admissão', curto: 'Admissão', icone: 'admissoes', papeis: ['admin', 'rh'] },
     { href: '/cadastros/empregadores', rotulo: 'Empresas contratantes', curto: 'Empresas', icone: 'empresas', papeis: ['admin', 'rh', 'financeiro'] },
     { href: '/cadastros/funcoes', rotulo: 'Funções e salários', curto: 'Funções', icone: 'funcoes', papeis: ['admin', 'rh', 'financeiro'] },
     { href: '/cadastros/insumos', rotulo: 'Insumos', icone: 'insumos', papeis: ['admin', 'compras', 'almoxarifado', 'engenheiro'] },

@@ -242,3 +242,25 @@ export async function contratarEspera(_: EstadoAcao, f: FormData): Promise<Estad
   revalidatePath('/cadastros/espera'); revalidatePath('/cadastros/funcionarios');
   redirect(`/cadastros/funcionarios/${data}`);
 }
+
+// ---------------- Link de admissão para a contabilidade
+export async function gerarLinkAdmissao(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const ids = f.getAll('funcionarios').map(String).filter(Boolean);
+  if (!ids.length) return { erro: 'Marque pelo menos um funcionário.' };
+  const dias = numero(f, 'dias') ?? 30;
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('admissao_link_criar', {
+    p_funcionarios: ids, p_dias: dias, p_titulo: txt(f, 'titulo'), p_observacao: txt(f, 'observacao'),
+  });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/cadastros/admissao');
+  return { ok: `Link criado com ${ids.length} funcionário(s). Copie e envie para a contabilidade.` };
+}
+
+export async function revogarLinkAdmissao(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('admissao_link_revogar', { p_token: txt(f, 'token'), p_motivo: txt(f, 'motivo') });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/cadastros/admissao');
+  return { ok: 'Link desativado. Quem tiver o endereço não consegue mais abrir.' };
+}
