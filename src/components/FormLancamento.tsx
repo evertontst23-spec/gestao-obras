@@ -6,13 +6,14 @@ import { CATEGORIAS_DESPESA, CATEGORIAS_RECEITA } from '@/lib/dominio';
 import { anexarComprovante, criarLancamento, liquidarLancamento } from '@/app/(app)/financeiro/acoes';
 
 type Op = { id: string; codigo?: string; nome: string };
-export function FormLancamento({ obras, fornecedores, hoje, obraFixa }: { obras: Op[]; fornecedores: Op[]; hoje: string; obraFixa?: string }) {
+export function FormLancamento({ obras, fornecedores, hoje, obraFixa, restrito = false }: { obras: Op[]; fornecedores: Op[]; hoje: string; obraFixa?: string; restrito?: boolean }) {
   const [tipo, setTipo] = useState<'despesa' | 'receita'>('despesa');
   const [pago, setPago] = useState(false);
   const cats = tipo === 'despesa' ? CATEGORIAS_DESPESA : CATEGORIAS_RECEITA;
   return (
     <UploadArquivo pasta="fin/docs" acao={criarLancamento} rotuloBotao="Registrar lançamento" exigirArquivo={false}>
       <input type="hidden" name="tipo" value={tipo} />
+      {restrito && <input type="hidden" name="restrito" value="on" />}
       <div className="grid grid-cols-2 gap-1 rounded-md bg-concreto-100 p-1 text-sm font-semibold">
         {(['despesa', 'receita'] as const).map((t) => (
           <button key={t} type="button" onClick={() => setTipo(t)} className={`min-h-[40px] rounded ${tipo === t ? (t === 'despesa' ? 'bg-atraso-500 text-white' : 'bg-ok-500 text-white') : 'text-concreto-700'}`}>

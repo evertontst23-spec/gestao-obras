@@ -9,7 +9,7 @@ const brl = (v: string | null) => (v ? v.replace(/\./g, '').replace(',', '.') : 
 /** Novo lançamento (com comprovante opcional enviado antes para o Storage) */
 export async function criarLancamento(c: Record<string, string | null>): Promise<EstadoAcao> {
   const supabase = await criarClienteServidor();
-  const { error } = await supabase.rpc('lancamento_criar', { p: { ...c, valor: brl(c.valor), liquidado: c.liquidado === 'on' } });
+  const { error } = await supabase.rpc('lancamento_criar', { p: { ...c, valor: brl(c.valor), liquidado: c.liquidado === 'on', restrito: c.restrito === 'on' } });
   if (error) return { erro: mensagemErro(error) };
   revalidatePath('/financeiro', 'layout');
   return { ok: 'Lançamento registrado.' };

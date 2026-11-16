@@ -8,14 +8,17 @@ import { CATEGORIAS_FIN, ORIGEM_LANC, codLanc, reais, situacaoLanc } from '@/lib
 import { data, hojeISO } from '@/lib/formato';
 
 export const metadata = { title: 'Contas a pagar e receber' };
-type F = { tipo?: string; situacao?: string; obra?: string; mes?: string };
+type F = { tipo?: string; situacao?: string; obra?: string; mes?: string; restrito?: string };
 
 export default async function Lancamentos({ searchParams }: { searchParams: Promise<F> }) {
   const sp = await searchParams;
   const { supabase } = await exigirPapel('admin', 'financeiro');
   const hoje = hojeISO();
-  const situacao = sp.situacao ?? 'abertos';
-  let q = supabase.from('lancamentos').select('*, obras(codigo), fornecedores(nome)').order('vencimento').limit(1000);
+  // aba à parte (pró-labore dos sócios): só aparece para quem tem o acesso restrito — a trava é no banco
+  const { data: ve } = await supabase.rpc('ve_restrito');
+  const restrito = !!ve && sp.restrito === '1';
+  const situacao = sp.situacao ?? (restrito ? 'todos' : 'abertos');
+  let q = supabase.from('lancamentos').select('*, obras(codigo), fornecedores(nome)').eq('restrito', restrito).order('vencimento').limit(1000);
   if (sp.tipo) q = q.eq('tipo', sp.tipo);
   if (sp.obra === 'adm') q = q.is('obra_id', null); else if (sp.obra) q = q.eq('obra_id', sp.obra);
   if (situacao === 'abertos') q = q.eq('status', 'aberto');
@@ -35,11 +38,13 @@ export default async function Lancamentos({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <Cabecalho titulo="Contas a pagar e receber"
+      <Cabecalho titulo={restrito ? 'Pró-labore dos sócios' : 'Contas a pagar e receber'}
+        sub={restrito ? '🔒 Lançamentos restritos: só os usuários autorizados enxergam. Não aparecem na lista geral nem para os outros usuários.' : undefined}
         acoes={<BaixarCSV nome={`lancamentos-${hoje}`} cabecalho={['Nº', 'Tipo', 'Categoria', 'Descrição', 'Obra', 'Fornecedor/Pagador', 'Competência', 'Vencimento', 'Valor', 'Situação', 'Baixa em', 'Valor baixado', 'Origem']}
           linhas={ls.map((l) => [codLanc(l.numero), l.tipo, CATEGORIAS_FIN[l.categoria], l.descricao, nomeObra(l), (l.fornecedores as unknown as { nome: string } | null)?.nome ?? l.favorecido, data(l.competencia), data(l.vencimento), Number(l.valor), situacaoLanc(l, hoje).rotulo, l.liquidado_em ? data(l.liquidado_em) : '', l.valor_liquidado ? Number(l.valor_liquidado) : null, ORIGEM_LANC[l.origem]])} />} />
-      <AbasFinanceiro atual="lanc" />
+      <AbasFinanceiro atual={restrito ? 'restrito' : 'lanc'} />
       <form className="mb-4 flex flex-wrap gap-2">
+        {restrito && <input type="hidden" name="restrito" value="1" />}
         <select name="tipo" defaultValue={sp.tipo ?? ''} className="entrada w-auto"><option value="">Pagar e receber</option><option value="despesa">A pagar</option><option value="receita">A receber</option></select>
         <select name="situacao" defaultValue={situacao} className="entrada w-auto"><option value="abertos">Em aberto</option><option value="vencidos">Vencidos</option><option value="liquidados">Pagos/recebidos</option><option value="cancelados">Cancelados</option><option value="todos">Todos</option></select>
         <select name="obra" defaultValue={sp.obra ?? ''} className="entrada w-auto"><option value="">Todas as obras</option><option value="adm">Administração central</option>{obras?.map((o) => <option key={o.id} value={o.id}>{o.codigo}</option>)}</select>
@@ -70,9 +75,9 @@ export default async function Lancamentos({ searchParams }: { searchParams: Prom
               </tbody>
             </table></div>)}
         </div>
-        <Cartao titulo="Novo lançamento">
-          <FormLancamento obras={obras ?? []} fornecedores={forn ?? []} hoje={hoje} />
-          <p className="mt-3 text-xs text-concreto-500">Compras (OC), folha e medições entram automaticamente — lance aqui o restante (aluguéis, terceirizados, contas da administração).</p>
+        <Cartao titulo={restrito ? 'Novo lançamento restrito' : 'Novo lançamento'}>
+          <FormLancamento obras={obras ?? []} fornecedores={forn ?? []} hoje={hoje} restrito={restrito} />
+          <p className="mt-3 text-xs text-concreto-500">{restrito ? 'Tudo o que for lançado nesta aba fica restrito (ex.: pró-labore). Informe o sócio na descrição. ' : ''}Compras (OC), folha e medições entram automaticamente — lance aqui o restante (aluguéis, terceirizados, contas da administração).</p>
         </Cartao>
       </div>
     </>

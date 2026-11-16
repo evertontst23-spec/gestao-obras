@@ -57,6 +57,8 @@ select pg_temp.confere((select he_100_min = 120 and feriado = 'Independência' f
 select pg_temp.confere((select incompleto from e where data = '2026-09-22'), 'marcação sem saída fica como incompleta');
 select pg_temp.confere((select count(*) = 0 from e where data < '2026-08-01'), 'espelho respeita a data de admissão');
 
+-- os cenários abaixo conferem o INSS: funcionários fichados (o padrão novo é sem desconto até o registro)
+update funcionarios set desconta_inss = true;
 create temp table fp as select * from folha_previa('2026-09-01');
 select pg_temp.confere((select valor_hora = 12 from fp where funcionario_id = 'f1000000-0000-0000-0000-000000000001'), 'valor-hora = 2.640 / 220 = R$ 12,00');
 select pg_temp.confere((select he_util_h = 6 and he_util_valor = 122.40 from fp where funcionario_id = 'f1000000-0000-0000-0000-000000000001'), 'HE 70%: 6h × 12 × 1,7 = R$ 122,40');
