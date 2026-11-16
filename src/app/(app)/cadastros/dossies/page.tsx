@@ -18,7 +18,7 @@ export default async function Dossies({ searchParams }: { searchParams: Promise<
   if (sp.empresa) q = q.eq('empregador_id', sp.empresa);
   if (sp.q) { const t = sp.q.replace(/[%,()]/g, ''); q = q.or(`nome.ilike.%${t}%,matricula.ilike.%${t}%`); }
   const [{ data: fs }, { data: docs }, { data: fotos }, { data: epis }, { data: oss }, { data: obras }, { data: empresas }] = await Promise.all([
-    q, supabase.from('funcionario_documentos').select('id, funcionario_id, tipo, descricao, emissao, validade, caminho, tipo_mime, substituido, criado_em').eq('substituido', false),
+    q, supabase.from('funcionario_documentos').select('id, funcionario_id, tipo, descricao, emissao, validade, caminho, tipo_mime, substituido, criado_em').eq('substituido', false).eq('removido', false),
     supabase.from('funcionarios').select('id, foto_caminho').not('foto_caminho', 'is', null),
     supabase.from('epi_entregas').select('funcionario_id'),
     supabase.from('ordens_servico').select('funcionario_id').eq('substituida', false),

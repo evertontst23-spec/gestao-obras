@@ -92,12 +92,36 @@ export async function registrarDocumento(c: Record<string, string | null>): Prom
   const supabase = await criarClienteServidor();
   // documento novo do mesmo tipo substitui o anterior (histórico preservado); certificados, atestados e outros acumulam
   if (!TIPOS_VARIOS.has(d.tipo))
-    await supabase.from('funcionario_documentos').update({ substituido: true }).eq('funcionario_id', d.funcionario_id).eq('tipo', d.tipo).eq('substituido', false);
+    await supabase.from('funcionario_documentos').update({ substituido: true }).eq('funcionario_id', d.funcionario_id).eq('tipo', d.tipo).eq('substituido', false).eq('removido', false);
   const { error } = await supabase.from('funcionario_documentos').insert(d);
   if (error) return { erro: mensagemErro(error) };
   revalidatePath(`/cadastros/funcionarios/${d.funcionario_id}`); revalidatePath(`/cadastros/funcionarios/${d.funcionario_id}/dossie`);
   revalidatePath('/cadastros/dossies');
   return { ok: `${d.tipo} guardado na pasta.` };
+}
+
+/** Remove (logicamente) um documento enviado por engano — some do dossiê, fica guardado com motivo e pode ser restaurado. */
+export async function removerDocumento(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const id = txt(f, 'id'), fid = txt(f, 'funcionario_id');
+  if (!id) return { erro: 'Documento inválido.' };
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('documento_remover', { p_id: id, p_motivo: txt(f, 'motivo') });
+  if (error) return { erro: mensagemErro(error) };
+  if (fid) { revalidatePath(`/cadastros/funcionarios/${fid}`); revalidatePath(`/cadastros/funcionarios/${fid}/dossie`); }
+  revalidatePath('/cadastros/dossies');
+  return { ok: 'Documento removido. Fica guardado no histórico e pode ser restaurado.' };
+}
+
+/** Desfaz a remoção de um documento. */
+export async function restaurarDocumento(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const id = txt(f, 'id'), fid = txt(f, 'funcionario_id');
+  if (!id) return { erro: 'Documento inválido.' };
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('documento_restaurar', { p_id: id });
+  if (error) return { erro: mensagemErro(error) };
+  if (fid) { revalidatePath(`/cadastros/funcionarios/${fid}`); revalidatePath(`/cadastros/funcionarios/${fid}/dossie`); }
+  revalidatePath('/cadastros/dossies');
+  return { ok: 'Documento restaurado.' };
 }
 
 /** Foto do rosto (tirada no cadastro da biometria ou enviada pelo RH) */

@@ -18,7 +18,7 @@ export default async function LinkAdmissao() {
       .select('id, nome, data_admissao, funcoes(nome), obras(nome), empregadores(nome, tipo)')
       .eq('ativo', true).is('data_demissao', null).order('nome'),
     supabase.from('links_admissao').select('*, perfis:criado_por(nome)').order('criado_em', { ascending: false }).limit(20),
-    supabase.from('funcionario_documentos').select('funcionario_id').not('caminho', 'is', null),
+    supabase.from('funcionario_documentos').select('funcionario_id').not('caminho', 'is', null).eq('removido', false),
   ]);
   const quantos = new Map<string, number>();
   (docs ?? []).forEach((d: any) => quantos.set(d.funcionario_id, (quantos.get(d.funcionario_id) ?? 0) + 1));

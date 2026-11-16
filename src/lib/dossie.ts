@@ -59,7 +59,8 @@ export const TIPOS_VARIOS = new Set(PASTAS.flatMap((p) => p.slots).filter((s) =>
 export const TIPOS_DOSSIE = PASTAS.flatMap((p) => p.slots).filter((s) => !s.sistema || s.sistema === 'epi').map((s) => s.tipo);
 
 export type Doc = { id: string; tipo: string; descricao: string | null; emissao: string | null; validade: string | null;
-  caminho: string | null; tipo_mime: string | null; substituido: boolean; criado_em: string };
+  caminho: string | null; tipo_mime: string | null; substituido: boolean; criado_em: string;
+  removido?: boolean; removido_em?: string | null; motivo_remocao?: string | null };
 export type Extra = { foto: boolean; epi: number; os: boolean; biometria: boolean };
 
 /** Documentos que ocupam um lugar da pasta (os atuais primeiro) */

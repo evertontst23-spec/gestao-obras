@@ -35,7 +35,7 @@ export async function conteudoDoLink(token: string): Promise<Conteudo | null> {
     sb.from('funcionarios')
       .select('id, nome, matricula, cpf, rg, data_nascimento, telefone, endereco, data_admissao, salario, adicional_pct, funcoes(nome, salario_base), obras(nome)')
       .in('id', ids),
-    sb.from('funcionario_documentos').select('funcionario_id, tipo, caminho, criado_em').in('funcionario_id', ids).in('tipo', TIPOS).not('caminho', 'is', null),
+    sb.from('funcionario_documentos').select('funcionario_id, tipo, caminho, criado_em').in('funcionario_id', ids).in('tipo', TIPOS).not('caminho', 'is', null).eq('removido', false),
   ]);
 
   const caminhos = (docs ?? []).map((d: any) => d.caminho as string);

@@ -22,7 +22,7 @@ export default async function DossieFuncionario({ params }: { params: Promise<{ 
   const podeDoc = pode || perfil.papel === 'seguranca';
   const [{ data: empregadores }, { data: docs }, { data: funcoes }, { data: obras }, { data: epis }, { data: oss }, { data: foto }] = await Promise.all([
     supabase.from('empregadores').select('id, nome').order('nome'),
-    supabase.from('funcionario_documentos').select('*').eq('funcionario_id', id).order('substituido').order('criado_em', { ascending: false }),
+    supabase.from('funcionario_documentos').select('*').eq('funcionario_id', id).eq('removido', false).order('substituido').order('criado_em', { ascending: false }),
     supabase.from('funcoes').select('*').order('nome'),
     supabase.from('obras').select('id, codigo, nome').order('nome'),
     supabase.from('epi_entregas').select('id, data').eq('funcionario_id', id).order('data', { ascending: false }),

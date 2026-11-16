@@ -7,7 +7,8 @@ import { reais } from '@/lib/dominio';
 import { data, dataHora, hojeISO } from '@/lib/formato';
 import { CAT_PAG } from '@/app/(app)/dp/pagamentos/comum';
 import { UploadArquivo } from '@/components/UploadArquivo';
-import { registrarDocumento, salvarFotoFuncionario } from '../../../acoes';
+import { FormAcao, Botao } from '@/components/formulario';
+import { registrarDocumento, salvarFotoFuncionario, removerDocumento, restaurarDocumento } from '../../../acoes';
 import { PASTAS, docsDoSlot, resumoDossie, slotPreenchido, type Doc } from '@/lib/dossie';
 
 export const metadata = { title: 'Dossiê do funcionário' };
@@ -44,7 +45,9 @@ export default async function Dossie({ params }: { params: Promise<{ id: string 
   const url = new Map((urls ?? []).map((u) => [u.path, u.signedUrl ?? undefined]));
   const foto = extra?.foto_caminho ? url.get(extra.foto_caminho) : undefined;
   const hoje = hojeISO();
-  const lista = (docs ?? []) as Doc[];
+  const todos = (docs ?? []) as Doc[];
+  const lista = todos.filter((d) => !d.removido);
+  const removidos = todos.filter((d) => d.removido);
   const osAtual = (oss ?? []).filter((o) => !o.substituida).slice(-1)[0];
   const x = { foto: !!extra?.foto_caminho, epi: (epis ?? []).length, os: !!osAtual, biometria: !!f.biometria_cadastrada };
   const resumo = resumoDossie(lista, x, !f.ativo, hoje);
@@ -124,6 +127,19 @@ export default async function Dossie({ params }: { params: Promise<{ id: string 
                                   </UploadArquivo>)}
                               </div>
                             </details>)}
+                          {podeDoc && ds.length > 0 && (
+                            <details className="nao-imprimir">
+                              <summary className="cursor-pointer text-[11px] font-semibold text-atraso-700">remover errado</summary>
+                              <div className="mt-1 space-y-2">
+                                {ds.map((d, k) => (
+                                  <FormAcao key={d.id} acao={removerDocumento} className="rounded border border-atraso-200 bg-atraso-50/40 p-1.5">
+                                    <input type="hidden" name="id" value={d.id} /><input type="hidden" name="funcionario_id" value={id} />
+                                    <div className="text-[10px] text-concreto-600">{ds.length > 1 ? `arquivo ${k + 1}` : s.rotulo} · {data(d.criado_em.slice(0, 10))}</div>
+                                    <input name="motivo" className="entrada mt-1 !text-[11px]" placeholder="Motivo (ex.: enviado por engano)" />
+                                    <Botao variante="perigo" className="mt-1 w-full !px-2 !py-1 !text-xs">Remover este arquivo</Botao>
+                                  </FormAcao>))}
+                              </div>
+                            </details>)}
                         </div>
                       </div>);
                   })}
@@ -133,6 +149,20 @@ export default async function Dossie({ params }: { params: Promise<{ id: string 
           {lista.some((d) => d.substituido) && (
             <details className="nao-imprimir mt-4 text-xs"><summary className="cursor-pointer text-concreto-600">Versões substituídas ({lista.filter((d) => d.substituido).length}) — guardadas como histórico</summary>
               <ul className="mt-2 space-y-1">{lista.filter((d) => d.substituido).map((d) => <li key={d.id}>{d.tipo} — anexado {dataHora(d.criado_em)} {d.caminho && url.get(d.caminho) && <a className="link" href={url.get(d.caminho)} target="_blank" rel="noreferrer">abrir</a>}</li>)}</ul>
+            </details>)}
+          {removidos.length > 0 && (
+            <details className="nao-imprimir mt-3 text-xs">
+              <summary className="cursor-pointer font-semibold text-atraso-700">Removidos — enviados errados ({removidos.length})</summary>
+              <ul className="mt-2 space-y-2">{removidos.map((d) => (
+                <li key={d.id} className="flex flex-wrap items-center gap-2 rounded border border-concreto-200 bg-concreto-50 px-2 py-1">
+                  <span className="text-concreto-700">{d.tipo}{d.descricao ? ` — ${d.descricao}` : ''} · removido {d.removido_em ? dataHora(d.removido_em) : ''}{d.motivo_remocao ? ` · ${d.motivo_remocao}` : ''}</span>
+                  {d.caminho && url.get(d.caminho) && <a className="link" href={url.get(d.caminho)} target="_blank" rel="noreferrer">abrir</a>}
+                  {podeDoc && (
+                    <FormAcao acao={restaurarDocumento} className="inline-flex">
+                      <input type="hidden" name="id" value={d.id} /><input type="hidden" name="funcionario_id" value={id} />
+                      <Botao variante="secundario" className="!px-2 !py-0.5 !text-[11px]">Restaurar</Botao>
+                    </FormAcao>)}
+                </li>))}</ul>
             </details>)}
         </Secao>
 

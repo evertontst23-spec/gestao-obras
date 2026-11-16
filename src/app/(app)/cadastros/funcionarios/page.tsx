@@ -21,7 +21,7 @@ export default async function Funcionarios({ searchParams }: { searchParams: Pro
     q, supabase.from('obras').select('id, codigo, nome').order('nome'), supabase.from('funcoes').select('id, nome').order('nome'),
     supabase.from('empregadores').select('id, nome').order('nome'),
     supabase.from('funcionarios').select('id, foto_caminho').not('foto_caminho', 'is', null),
-    supabase.from('funcionario_documentos').select('funcionario_id').eq('substituido', false),
+    supabase.from('funcionario_documentos').select('funcionario_id').eq('substituido', false).eq('removido', false),
   ]);
   const caminhoFoto = new Map((fotos ?? []).map((x) => [x.id, x.foto_caminho as string]));
   const { data: urlsFoto } = caminhoFoto.size ? await supabase.storage.from('anexos').createSignedUrls([...caminhoFoto.values()], 3600) : { data: [] };
