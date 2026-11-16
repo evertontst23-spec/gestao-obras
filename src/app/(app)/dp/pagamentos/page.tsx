@@ -65,6 +65,8 @@ export default async function Pagamentos({ searchParams }: { searchParams: Promi
         <select name="obra" defaultValue={sp.obra ?? ''} className="entrada w-auto"><option value="">Todas as obras</option>
           {obras?.map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}</select>
         <button className="rounded-md bg-concreto-800 px-3 py-2 font-semibold text-white">Filtrar</button>
+        <a href={`/dp/pagamentos/exportar${sp.obra ? `?obra=${sp.obra}` : ''}${sp.cancelados ? `${sp.obra ? '&' : '?'}cancelados=1` : ''}`}
+          className="ml-auto rounded-md border border-concreto-300 bg-superficie px-3 py-2 font-semibold text-concreto-800 hover:bg-concreto-50">⬇ Exportar Excel</a>
       </form>
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3">
         <Indicador rotulo="Próximo pagamento" valor={proximo ? reais(proximo.total) : '—'} detalhe={proximo ? `${data(proximo.data_pagamento)} • ${STATUS_PAG[proximo.status].rotulo}` : 'nenhum em aberto'} tom={proximo ? 'atencao' : 'neutro'} href={proximo ? `/dp/pagamentos/${proximo.id}` : undefined} />

@@ -6,7 +6,7 @@
  */
 import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
-import { ArrowRight, ArrowUpRight, Building2, CalendarClock, CalendarDays, CheckCircle2, ChevronDown, ClipboardList, Filter,
+import { ArrowRight, ArrowUpRight, Building2, CalendarClock, CalendarDays, CheckCircle2, ChevronDown, ClipboardList, Download, Filter,
   MoreHorizontal, Plus, Receipt, UserMinus, Wallet, X } from 'lucide-react';
 import { Badge, CardIndicador, VazioCad } from '@/components/cad';
 import { Botao, FormAcao } from '@/components/formulario';
@@ -104,11 +104,18 @@ export function TelaPagamentos({ abas, lista, obras, obraPag, obraFiltro, verCan
             <span className="inline-flex items-center gap-1.5"><Building2 aria-hidden className="h-4 w-4 text-concreto-400" />{obraFiltro ? (obras.find((o) => o.id === obraFiltro)?.nome ?? 'Obra') : 'Todas as obras'}</span>
           </p>
         </div>
-        {pode && (
-          <button type="button" onClick={() => setGaveta({ modo: 'novo' })}
-            className="nao-imprimir inline-flex h-10 items-center gap-2 rounded-lg bg-sinal-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-sinal-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sinal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-concreto-50">
-            <Plus aria-hidden className="h-[18px] w-[18px]" strokeWidth={2.2} />Novo pagamento
-          </button>)}
+        <div className="nao-imprimir flex items-center gap-2">
+          <a href={`/dp/pagamentos/exportar${obraFiltro ? `?obra=${obraFiltro}` : ''}${verCancelados ? `${obraFiltro ? '&' : '?'}cancelados=1` : ''}`}
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-concreto-200 bg-superficie px-4 text-sm font-semibold text-concreto-800 transition-colors hover:border-concreto-300 hover:bg-concreto-50"
+            title="Baixar todos os pagamentos em uma planilha do Excel formatada">
+            <Download aria-hidden className="h-[18px] w-[18px]" strokeWidth={2} />Exportar Excel
+          </a>
+          {pode && (
+            <button type="button" onClick={() => setGaveta({ modo: 'novo' })}
+              className="inline-flex h-10 items-center gap-2 rounded-lg bg-sinal-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-sinal-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sinal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-concreto-50">
+              <Plus aria-hidden className="h-[18px] w-[18px]" strokeWidth={2.2} />Novo pagamento
+            </button>)}
+        </div>
       </header>
 
       {abas}
