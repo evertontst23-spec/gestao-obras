@@ -70,6 +70,9 @@ export default async function Pagamento({ params, searchParams }: { params: Prom
   }
   const lista = [...grupos.values()].sort((a, b) => (ordem[a.tipo] ?? 9) - (ordem[b.tipo] ?? 9) || a.nome.localeCompare(b.nome));
   const zerados = itens.filter((i) => i.categoria === 'quinzena' && n(i.valor) === 0);
+  // retroativos: valores de períodos anteriores somados a este pagamento
+  const retros = itens.filter((i) => /retroativ/i.test(i.descricao)).sort((a, b) => (a.funcionarios?.nome ?? '').localeCompare(b.funcionarios?.nome ?? ''));
+  const totalRetro = retros.reduce((t, i) => t + n(i.valor), 0);
 
   const csv = itens.map((i) => [i.empregadores?.nome ?? '', i.funcionarios?.nome ?? '', CAT_PAG[i.categoria], i.destino === 'empresa' ? 'Empresa' : 'Funcionário', i.obras?.codigo ?? '', i.descricao, n(i.valor)]);
   const st = p.status as string;
@@ -121,6 +124,25 @@ export default async function Pagamento({ params, searchParams }: { params: Prom
         <p className="mb-4 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">⚠ O ponto de {(empExt ?? []).filter((e) => itens.some((i) => i.empregador_id === e.id)).map((e) => e.nome).join(' e ')} é marcado fora do sistema: o saldo foi calculado sem faltas e sem horas extras. Confira no {(empExt ?? []).find((e) => e.ponto_externo_url) ? <a className="link" href={(empExt ?? []).find((e) => e.ponto_externo_url)!.ponto_externo_url!} target="_blank" rel="noreferrer">Ponto Diário</a> : 'Ponto Diário'} e inclua cada falta como <b>Desconto</b> (salário ÷ 30) e as horas extras como <b>Hora extra</b>.</p>)}
       {zerados.length > 0 && editavel && (
         <p className="mb-4 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">⚠ Falta informar o valor da quinzena de {zerados.map((i) => i.funcionarios?.nome).join(', ')} (fechamento feito pela empresa). Inclua a linha com o valor e retire a linha zerada.</p>)}
+
+      {retros.length > 0 && (
+        <Cartao titulo={`Retroativos — ${retros.length} lançamento(s) · ${reais(totalRetro)}`} className="mb-4 border-atencao-200"
+          acoes={<BaixarCSV nome={`retroativos-pag-${p.id}`} cabecalho={['Funcionário', 'Referente a', 'Obra', 'Valor']} linhas={retros.map((i) => [i.funcionarios?.nome ?? '', i.descricao, i.obras?.codigo ?? '', n(i.valor)])} />}>
+          <p className="mb-3 text-sm text-concreto-600">Valores de períodos anteriores que não foram pagos na época e estão sendo somados a este pagamento. Ficam separados aqui para conferência.</p>
+          <div className="overflow-x-auto"><table className="tabela">
+            <thead><tr><th>Funcionário</th><th>Referente a</th><th>Obra</th><th className="text-right">Valor</th></tr></thead>
+            <tbody>
+              {retros.map((i) => (
+                <tr key={i.id}>
+                  <td className="whitespace-nowrap font-medium">{i.funcionarios?.nome ?? '—'}</td>
+                  <td className="text-sm text-concreto-600">{i.descricao}</td>
+                  <td className="whitespace-nowrap text-xs">{i.obras?.codigo ?? '—'}</td>
+                  <td className="whitespace-nowrap text-right font-mono font-semibold">{reais(i.valor)}</td>
+                </tr>))}
+              <tr className="bg-atencao-50 font-semibold"><td colSpan={3}>Total de retroativos</td><td className="text-right font-mono">{reais(totalRetro)}</td></tr>
+            </tbody>
+          </table></div>
+        </Cartao>)}
 
       {!itens.length ? (
         <Cartao titulo="Sem linhas ainda">
