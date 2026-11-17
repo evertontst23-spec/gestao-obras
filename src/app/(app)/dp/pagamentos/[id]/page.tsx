@@ -73,6 +73,12 @@ export default async function Pagamento({ params, searchParams }: { params: Prom
   // retroativos: valores de períodos anteriores somados a este pagamento
   const retros = itens.filter((i) => /retroativ/i.test(i.descricao)).sort((a, b) => (a.funcionarios?.nome ?? '').localeCompare(b.funcionarios?.nome ?? ''));
   const totalRetro = retros.reduce((t, i) => t + n(i.valor), 0);
+  // resumo de benefícios: separa alimentação da semana, passagem e retroativo
+  const ehRetro = (i: Item) => /retroativ/i.test(i.descricao);
+  const ehPassagem = (i: Item) => /passag|combust|transporte/i.test(i.descricao);
+  const totSemanaAlim = itens.filter((i) => !ehRetro(i) && !ehPassagem(i) && i.categoria === 'alimentacao').reduce((t, i) => t + n(i.valor), 0);
+  const totPassagem = itens.filter((i) => !ehRetro(i) && ehPassagem(i)).reduce((t, i) => t + n(i.valor), 0);
+  const temBeneficios = totSemanaAlim + totPassagem + totalRetro > 0;
 
   const csv = itens.map((i) => [i.empregadores?.nome ?? '', i.funcionarios?.nome ?? '', CAT_PAG[i.categoria], i.destino === 'empresa' ? 'Empresa' : 'Funcionário', i.obras?.codigo ?? '', i.descricao, n(i.valor)]);
   const st = p.status as string;
@@ -119,6 +125,25 @@ export default async function Pagamento({ params, searchParams }: { params: Prom
           {st === 'cancelado' && <p className="text-sm"><b className="font-semibold text-concreto-700">Pagamento cancelado.</b> <span className="text-concreto-500">{p.motivo_cancelamento}</span></p>}
         </div>
       </section>
+
+      {temBeneficios && (
+        <Cartao titulo="Resumo — separado por tipo" className="mb-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-lg border border-concreto-200 bg-elevada p-3">
+              <div className="text-xs font-medium text-concreto-500">🍽️ Alimentação da semana</div>
+              <div className="mt-1 font-mono text-xl font-bold text-concreto-900">{reais(totSemanaAlim)}</div>
+            </div>
+            <div className="rounded-lg border border-concreto-200 bg-elevada p-3">
+              <div className="text-xs font-medium text-concreto-500">🚌 Passagem / transporte</div>
+              <div className="mt-1 font-mono text-xl font-bold text-concreto-900">{reais(totPassagem)}</div>
+            </div>
+            <div className="rounded-lg border border-atencao-200 bg-atencao-50 p-3">
+              <div className="text-xs font-medium text-atencao-800">⏮️ Retroativo (atrasado)</div>
+              <div className="mt-1 font-mono text-xl font-bold text-atencao-800">{reais(totalRetro)}</div>
+            </div>
+          </div>
+          <p className="mt-3 text-sm text-concreto-600">A <b>alimentação da semana</b> e a <b>passagem</b> são desta semana; o <b>retroativo</b> é o atrasado de quem entrou antes e não recebeu (detalhado no quadro abaixo). O total do pagamento é a soma dos três: <b className="font-mono">{reais(totSemanaAlim + totPassagem + totalRetro)}</b>.</p>
+        </Cartao>)}
 
       {editavel && p.tipo === 'saldo' && (empExt ?? []).some((e) => itens.some((i) => i.empregador_id === e.id)) && (
         <p className="mb-4 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">⚠ O ponto de {(empExt ?? []).filter((e) => itens.some((i) => i.empregador_id === e.id)).map((e) => e.nome).join(' e ')} é marcado fora do sistema: o saldo foi calculado sem faltas e sem horas extras. Confira no {(empExt ?? []).find((e) => e.ponto_externo_url) ? <a className="link" href={(empExt ?? []).find((e) => e.ponto_externo_url)!.ponto_externo_url!} target="_blank" rel="noreferrer">Ponto Diário</a> : 'Ponto Diário'} e inclua cada falta como <b>Desconto</b> (salário ÷ 30) e as horas extras como <b>Hora extra</b>.</p>)}
