@@ -105,3 +105,23 @@ export async function anexarComprovante(c: Record<string, string | null>): Promi
   revalidatePath('/financeiro', 'layout');
   return { ok: 'Comprovante anexado.' };
 }
+
+/** Novo reembolso (o comprovante, se houver, já foi enviado ao Storage pelo formulário). */
+export async function registrarReembolso(c: Record<string, string | null>): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('reembolso_criar', { p: { ...c, valor: brl(c.valor), liquidado: c.liquidado === 'on' } });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/financeiro', 'layout');
+  return { ok: 'Reembolso registrado em contas a pagar.' };
+}
+
+/** Baixa rápida de um reembolso (marca como pago na data informada). */
+export async function darBaixaReembolso(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('lancamento_liquidar', {
+    p_id: txt(f, 'id'), p_data: txt(f, 'data'), p_valor: null, p_forma: txt(f, 'forma') || 'PIX', p_caminho: null,
+  });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/financeiro', 'layout');
+  return { ok: 'Reembolso marcado como pago.' };
+}
