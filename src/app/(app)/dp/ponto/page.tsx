@@ -21,7 +21,7 @@ export default async function Ponto({ searchParams }: { searchParams: Promise<{ 
     supabase.rpc('funcionarios_ponto_externo'),
     supabase.from('empregadores').select('nome, ponto_externo_url').eq('ponto_externo', true).order('nome'),
     supabase.from('atestados').select('funcionario_id, tipo, data_inicio, dias').lte('data_inicio', dia).gte('data_inicio', somarDias(dia, -366)),
-    supabase.from('funcionarios').select('id, obra_id').eq('ativo', true),
+    supabase.from('funcionarios').select('id, obra_id, funcoes(carga_diaria_horas)').eq('ativo', true),
   ]);
   // falta / abono do dia: falta = dia útil já lançado na obra e a pessoa sem marcação nem atestado
   const abono = new Map<string, string>();
@@ -29,6 +29,8 @@ export default async function Ponto({ searchParams }: { searchParams: Promise<{ 
     if (a.tipo !== 'declaracao_horas' && dia <= somarDias(a.data_inicio, Math.max(a.dias - 1, 0))) abono.set(a.funcionario_id, a.tipo === 'falta_justificada' ? 'Falta justificada' : 'Atestado');
   });
   const obraDoFunc = new Map((obraDe ?? []).map((f) => [f.id, f.obra_id as string | null]));
+  // vigias (escala 12x36): dia sem marcação é folga da escala, não falta
+  const vigias = new Set((obraDe ?? []).filter((f) => Number((f.funcoes as unknown as { carga_diaria_horas: number } | null)?.carga_diaria_horas ?? 8) >= 12).map((f) => f.id));
   const obrasLancadas = new Set((regs ?? []).map((r) => r.obra_id as string | null));
   const diaSemana = new Date(`${dia}T12:00:00Z`).getUTCDay();
   const diaUtil = diaSemana >= 1 && diaSemana <= 5;
@@ -70,6 +72,7 @@ export default async function Ponto({ searchParams }: { searchParams: Promise<{ 
                       <td><b>{e.nome}</b><div className="text-xs text-concreto-500">{e.funcao} • {e.matricula}{!e.biometria && ' • sem biometria'}</div></td>
                       <td className="font-mono text-sm">{rs.map((r) => <span key={r.id} className={`mr-2 inline-block ${r.metodo === 'manual' ? 'text-atencao-700' : ''}`} title={r.metodo === 'manual' ? `Manual: ${r.justificativa}` : `Facial • ${r.latitude ? 'com GPS' : 'sem GPS'}`}>{r.tipo === 'entrada' ? '▶' : '■'}{hm(r.momento)}{r.metodo === 'manual' ? '*' : ''}</span>)}</td>
                       <td>{!rs.length ? (abono.has(e.id) ? <Selo cor={abono.get(e.id) === 'Atestado' ? 'bg-sky-100 text-sky-800' : 'bg-atencao-100 text-atencao-800'}>{abono.get(e.id)}</Selo>
+                        : vigias.has(e.id) ? <Selo cor="bg-concreto-100 text-concreto-700">Folga da escala (vigia)</Selo>
                         : diaUtil && obrasLancadas.has(obraDoFunc.get(e.id) ?? null) ? <Selo cor="bg-atraso-50 text-atraso-700">Falta</Selo>
                         : <Selo cor="bg-concreto-100 text-concreto-600">Sem registro</Selo>) : rs[rs.length - 1].tipo === 'entrada' ? <Selo cor="bg-ok-50 text-ok-700">Na obra</Selo> : <Selo cor="bg-sky-100 text-sky-800">Saiu</Selo>}</td>
                     </tr>);

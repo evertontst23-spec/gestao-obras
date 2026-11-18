@@ -44,10 +44,14 @@ export default async function PontoEmLote({ searchParams }: { searchParams: Prom
   const equipe = ((equipeToda ?? []) as { id: string; nome: string; funcao: string }[]).filter((e) => !fora.has(e.id));
   const ids = equipe.map((e) => e.id);
   const regIds = (regs ?? []).map((r) => r.id);
-  const [{ data: info }, { data: desc }] = await Promise.all([
+  const [{ data: info }, { data: desc }, { data: antes }] = await Promise.all([
     ids.length ? supabase.from('funcionarios').select('id, data_admissao, funcoes(carga_diaria_horas), obras(codigo)').in('id', ids) : Promise.resolve({ data: [] }),
     regIds.length ? supabase.from('ponto_desconsideracoes').select('registro_id').in('registro_id', regIds) : Promise.resolve({ data: [] }),
+    // escala dos vigias (dia sim, dia não): olha ontem e anteontem para sugerir plantão ou folga
+    ids.length ? supabase.from('registros_ponto').select('funcionario_id, data').in('funcionario_id', ids).in('data', [somarDias(dia, -1), somarDias(dia, -2)]) : Promise.resolve({ data: [] }),
   ]);
+  const trabalhou = new Set((antes ?? []).map((r: { funcionario_id: string; data: string }) => `${r.funcionario_id}|${r.data}`));
+  const plantaoSugerido = (id: string) => !trabalhou.has(`${id}|${somarDias(dia, -1)}`) && trabalhou.has(`${id}|${somarDias(dia, -2)}`);
   const desconsiderados = new Set((desc ?? []).map((d: { registro_id: number }) => d.registro_id));
   const marc = new Map<string, string[]>();
   (regs ?? []).filter((r) => !desconsiderados.has(r.id)).forEach((r) => marc.set(r.funcionario_id, [...(marc.get(r.funcionario_id) ?? []), hm(r.momento)]));
@@ -66,6 +70,7 @@ export default async function PontoEmLote({ searchParams }: { searchParams: Prom
       return {
         id: e.id, nome: e.nome, funcao: e.funcao ?? '—', obra: i?.obras?.codigo ?? 'Sem obra',
         vigia: Number(i?.funcoes?.carga_diaria_horas ?? 8) >= 12,
+        plantao: plantaoSugerido(e.id),
         ja: m ? { tipo: 'marcacao', texto: m.join(' · ') } : abono.has(e.id) ? { tipo: 'abono', texto: abono.get(e.id)! } : null,
       };
     })

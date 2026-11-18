@@ -4,17 +4,22 @@ import { useRouter } from 'next/navigation';
 import { lancarPontoLote, type HorariosLote, type ResultadoLote, type SituacaoLote } from '@/app/(app)/dp/ponto/acoes';
 
 export type LinhaLote = {
-  id: string; nome: string; funcao: string; obra: string; vigia: boolean;
+  id: string; nome: string; funcao: string; obra: string;
+  vigia: boolean;      // escala 12x36 (dia sim, dia não)
+  plantao?: boolean;   // vigia: pela escala, hoje é dia dele (folgou ontem e trabalhou anteontem)
   ja: { tipo: 'marcacao' | 'abono'; texto: string } | null;
 };
+/** 'folga' só existe na tela: folga da escala do vigia não grava nada e não conta falta */
+type Sit = SituacaoLote | 'folga';
 
-const OPCOES: { v: SituacaoLote; rotulo: string; ativo: string }[] = [
-  { v: 'ok', rotulo: 'OK', ativo: 'border-ok-500 bg-ok-500 text-white' },
+const OK = { v: 'ok' as Sit, rotulo: 'OK', ativo: 'border-ok-500 bg-ok-500 text-white' };
+const COMUNS: { v: Sit; rotulo: string; ativo: string }[] = [
   { v: 'falta', rotulo: 'Falta', ativo: 'border-atraso-500 bg-atraso-500 text-white' },
   { v: 'falta_justificada', rotulo: 'Falta justificada', ativo: 'border-atencao-500 bg-atencao-500 text-white' },
   { v: 'atestado', rotulo: 'Atestado', ativo: 'border-sky-600 bg-sky-600 text-white' },
-  { v: 'nada', rotulo: 'Em branco', ativo: 'border-concreto-500 bg-concreto-500 text-white' },
 ];
+const OPCOES = [OK, ...COMUNS, { v: 'nada' as Sit, rotulo: 'Em branco', ativo: 'border-concreto-500 bg-concreto-500 text-white' }];
+const OPCOES_VIGIA = [{ ...OK, rotulo: 'Plantão' }, { v: 'folga' as Sit, rotulo: 'Folga da escala', ativo: 'border-concreto-600 bg-concreto-600 text-white' }, ...COMUNS];
 const CAMPOS_HORA: [keyof HorariosLote, string][] = [
   ['entrada', 'Entrada no expediente'], ['saida_almoco', 'Saída para o almoço'], ['volta_almoco', 'Volta do almoço'], ['largada', 'Largada'],
 ];
@@ -24,8 +29,8 @@ export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao }:
   const router = useRouter();
   const [enviando, iniciar] = useTransition();
   const [horarios, setHorarios] = useState<HorariosLote>(horariosPadrao);
-  const [sit, setSit] = useState<Record<string, SituacaoLote>>(() =>
-    Object.fromEntries(linhas.map((l) => [l.id, l.ja || l.vigia ? 'nada' : 'ok'])));
+  const [sit, setSit] = useState<Record<string, Sit>>(() =>
+    Object.fromEntries(linhas.map((l) => [l.id, l.ja ? 'nada' : l.vigia ? (l.plantao ? 'ok' : 'folga') : 'ok'])));
   const [obs, setObs] = useState<Record<string, string>>({});
   const [dias, setDias] = useState<Record<string, string>>({});
   const [confirmar, setConfirmar] = useState(false);
@@ -33,26 +38,28 @@ export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao }:
 
   const editaveis = linhas.filter((l) => !l.ja);
   const cont = useMemo(() => {
-    const c: Record<SituacaoLote, number> = { ok: 0, falta: 0, falta_justificada: 0, atestado: 0, nada: 0 };
+    const c: Record<Sit, number> = { ok: 0, falta: 0, falta_justificada: 0, atestado: 0, nada: 0, folga: 0 };
     editaveis.forEach((l) => { c[sit[l.id]] += 1; });
     return c;
   }, [sit, editaveis]);
   const semMotivo = editaveis.filter((l) => sit[l.id] === 'falta_justificada' && (obs[l.id] ?? '').trim().length < 3);
-  const resumo = [cont.ok && `${cont.ok} OK`, cont.falta && `${cont.falta} falta(s)`, cont.falta_justificada && `${cont.falta_justificada} falta(s) justificada(s)`,
-    cont.atestado && `${cont.atestado} atestado(s)`].filter(Boolean).join(' · ');
+  const gravaveis = cont.ok + cont.falta + cont.falta_justificada + cont.atestado;
+  const resumo = [cont.ok && `${cont.ok} OK/plantão`, cont.falta && `${cont.falta} falta(s)`, cont.falta_justificada && `${cont.falta_justificada} falta(s) justificada(s)`,
+    cont.atestado && `${cont.atestado} atestado(s)`, cont.folga && `${cont.folga} vigia(s) de folga`].filter(Boolean).join(' · ');
   const grupos = useMemo(() => {
     const m = new Map<string, LinhaLote[]>();
     linhas.forEach((l) => m.set(l.obra, [...(m.get(l.obra) ?? []), l]));
     return [...m.entries()];
   }, [linhas]);
 
-  const todos = (v: SituacaoLote) => { setSit((s) => ({ ...s, ...Object.fromEntries(editaveis.map((l) => [l.id, v])) })); setConfirmar(false); };
-  const muda = (id: string, v: SituacaoLote) => { setSit((s) => ({ ...s, [id]: v })); setConfirmar(false); setRes(null); };
+  // "Todos OK" / "Limpar" valem só para a equipe de jornada normal; vigias seguem a escala
+  const todos = (v: Sit) => { setSit((s) => ({ ...s, ...Object.fromEntries(editaveis.filter((l) => !l.vigia).map((l) => [l.id, v])) })); setConfirmar(false); };
+  const muda = (id: string, v: Sit) => { setSit((s) => ({ ...s, [id]: v })); setConfirmar(false); setRes(null); };
 
   function gravar() {
     setRes(null);
     iniciar(async () => {
-      const itens = editaveis.map((l) => ({ funcionario_id: l.id, situacao: sit[l.id], obs: obs[l.id]?.trim() || undefined,
+      const itens = editaveis.map((l) => ({ funcionario_id: l.id, situacao: (sit[l.id] === 'folga' ? 'nada' : sit[l.id]) as SituacaoLote, obs: obs[l.id]?.trim() || undefined,
         dias: sit[l.id] === 'atestado' ? Number(dias[l.id] || 1) : undefined }));
       const r = await lancarPontoLote(dia, itens, horarios);
       setRes(r); setConfirmar(false);
@@ -91,15 +98,17 @@ export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao }:
                     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                       <div className="min-w-0">
                         <div className="font-semibold text-concreto-900">{l.nome}</div>
-                        <div className="text-xs text-concreto-500">{l.funcao}{l.vigia && ' • escala 12h — lance só no dia de plantão'}</div>
+                        <div className="text-xs text-concreto-500">{l.funcao}{l.vigia && ' • escala 12x36 (dia sim, dia não)'}</div>
                       </div>
                       {l.ja ? <span className="text-sm text-concreto-600">Já lançado: <b>{l.ja.texto}</b></span> : (
                         <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={`Situação de ${l.nome}`}>
-                          {OPCOES.map((o) => (
+                          {(l.vigia ? OPCOES_VIGIA : OPCOES).map((o) => (
                             <button key={o.v} type="button" role="radio" aria-checked={s === o.v} onClick={() => muda(l.id, o.v)}
                               className={`rounded-md border px-2.5 py-1.5 text-xs font-semibold transition ${s === o.v ? o.ativo : 'border-concreto-300 bg-superficie text-concreto-600 hover:bg-concreto-50'}`}>{o.rotulo}</button>))}
                         </div>)}
                     </div>
+                    {!l.ja && s === 'folga' && (
+                      <p className="mt-1.5 text-xs text-concreto-500">Não é o dia dele — folga da escala de vigia (não conta falta, não grava marcação).</p>)}
                     {!l.ja && (s === 'falta_justificada' || s === 'atestado') && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         <input value={obs[l.id] ?? ''} onChange={(e) => setObs((o) => ({ ...o, [l.id]: e.target.value }))}
@@ -126,7 +135,7 @@ export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao }:
         <div className="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-concreto-200 bg-superficie px-4 py-3 shadow-cartao">
           <p className="text-sm text-concreto-700">{resumo || 'Ninguém marcado.'}{semMotivo.length > 0 && <span className="ml-2 text-atencao-700">— falta o motivo de {semMotivo.length} falta(s) justificada(s)</span>}</p>
           {!confirmar ? (
-            <button type="button" disabled={!resumo || semMotivo.length > 0 || enviando} onClick={() => setConfirmar(true)}
+            <button type="button" disabled={!gravaveis || semMotivo.length > 0 || enviando} onClick={() => setConfirmar(true)}
               className="rounded-md bg-sinal-500 px-4 py-2 text-sm font-semibold text-white hover:bg-sinal-600 disabled:opacity-50">Gravar o dia {diaFormatado}</button>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
