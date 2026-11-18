@@ -26,7 +26,7 @@ insert into funcionarios (nome, funcao_id, obra_id, data_admissao) values ('TEST
 insert into funcionarios (nome, funcao_id, obra_id, data_admissao) values ('TESTE V Ser', :'fs', :'ob', '2026-11-01') returning id as s \gset
 \set H '{"entrada":"07:00","saida_almoco":"12:00","volta_almoco":"13:00","largada":"17:00","noturno_entrada":"18:00","noturno_saida":"06:00"}'
 
-select pg_temp.confere(_vigia_noturno(:'v') and not _vigia_noturno(:'s'), 'identifica o vigia noturno pela função');
+select pg_temp.confere(_vigia_noturno(:'v', '2026-11-09') and not _vigia_noturno(:'s', '2026-11-09'), 'identifica o vigia noturno pela função');
 -- segunda 09/11: plantão do vigia + servente OK
 select ponto_lancar_lote('2026-11-09', jsonb_build_array(
   jsonb_build_object('funcionario_id', :'v', 'situacao', 'ok'),

@@ -22,18 +22,27 @@ export default async function Ponto({ searchParams }: { searchParams: Promise<{ 
     supabase.rpc('funcionarios_ponto_externo'),
     supabase.from('empregadores').select('nome, ponto_externo_url').eq('ponto_externo', true).order('nome'),
     supabase.from('atestados').select('funcionario_id, tipo, data_inicio, dias').lte('data_inicio', dia).gte('data_inicio', somarDias(dia, -366)),
-    supabase.from('funcionarios').select('id, obra_id, funcoes(carga_diaria_horas)').eq('ativo', true),
+    supabase.from('funcionarios').select('id, obra_id, obras(vigia_todo_dia)').eq('ativo', true),
   ]);
+  // função que valia no dia e na véspera (quem trocou de função é visto pela data)
+  const idsAtivos = (obraDe ?? []).map((f) => f.id);
+  const [{ data: fDia }, { data: fVespera }] = idsAtivos.length ? await Promise.all([
+    supabase.rpc('funcoes_na_data', { p_ids: idsAtivos, p_data: dia }),
+    supabase.rpc('funcoes_na_data', { p_ids: idsAtivos, p_data: somarDias(dia, -1) }),
+  ]) : [{ data: [] }, { data: [] }];
+  const vigiaEm = (lista: unknown) => new Set(((lista ?? []) as { funcionario_id: string; carga: number }[]).filter((x) => Number(x.carga) >= 12).map((x) => x.funcionario_id));
   // falta / abono do dia: falta = dia útil já lançado na obra e a pessoa sem marcação nem atestado
   const abono = new Map<string, string>();
   (atests ?? []).forEach((a) => {
     if (a.tipo !== 'declaracao_horas' && dia <= somarDias(a.data_inicio, Math.max(a.dias - 1, 0))) abono.set(a.funcionario_id, a.tipo === 'falta_justificada' ? 'Falta justificada' : 'Atestado');
   });
   const obraDoFunc = new Map((obraDe ?? []).map((f) => [f.id, f.obra_id as string | null]));
-  // vigias (escala 12x36): dia sem marcação é folga da escala, não falta
-  const vigias = new Set((obraDe ?? []).filter((f) => Number((f.funcoes as unknown as { carga_diaria_horas: number } | null)?.carga_diaria_horas ?? 8) >= 12).map((f) => f.id));
+  // vigias (escala 12x36): dia sem marcação é folga da escala, não falta; vigia fixo da obra trabalha todo dia
+  const vigias = vigiaEm(fDia);
+  const vigiasVespera = vigiaEm(fVespera);
+  const vigiaFixo = new Set((obraDe ?? []).filter((f) => (f.obras as unknown as { vigia_todo_dia: boolean } | null)?.vigia_todo_dia && vigias.has(f.id)).map((f) => f.id));
   // saída da manhã do vigia = fim do plantão da noite anterior (não "abre" o dia da obra)
-  const fimDaNoite = (r: { funcionario_id: string; tipo: string; momento: string }) => vigias.has(r.funcionario_id) && r.tipo === 'saida' && hm(r.momento) < '12:00';
+  const fimDaNoite = (r: { funcionario_id: string; tipo: string; momento: string }) => vigiasVespera.has(r.funcionario_id) && r.tipo === 'saida' && hm(r.momento) < '12:00';
   const obrasLancadas = new Set((regs ?? []).filter((r) => !fimDaNoite(r)).map((r) => r.obra_id as string | null));
   const diaSemana = new Date(`${dia}T12:00:00Z`).getUTCDay();
   const diaUtil = diaSemana >= 1 && diaSemana <= 5;
@@ -74,6 +83,7 @@ export default async function Ponto({ searchParams }: { searchParams: Promise<{ 
                       <td><b>{e.nome}</b><div className="text-xs text-concreto-500">{e.funcao} • {e.matricula}{!e.biometria && ' • sem biometria'}</div></td>
                       <td className="font-mono text-sm">{rs.map((r) => <span key={r.id} className={`mr-2 inline-block ${r.metodo === 'manual' ? 'text-atencao-700' : ''}`} title={r.metodo === 'manual' ? `Manual: ${r.justificativa}` : `Facial • ${r.latitude ? 'com GPS' : 'sem GPS'}`}>{r.tipo === 'entrada' ? '▶' : '■'}{hm(r.momento)}{r.metodo === 'manual' ? '*' : ''}</span>)}</td>
                       <td>{!rs.length ? (abono.has(e.id) ? <Selo cor={abono.get(e.id) === 'Atestado' ? 'bg-sky-100 text-sky-800' : 'bg-atencao-100 text-atencao-800'}>{abono.get(e.id)}</Selo>
+                        : vigiaFixo.has(e.id) ? <Selo cor="bg-atencao-100 text-atencao-800">Sem plantão lançado (vigia fixo)</Selo>
                         : vigias.has(e.id) ? <Selo cor="bg-concreto-100 text-concreto-700">Folga da escala (vigia)</Selo>
                         : diaUtil && obrasLancadas.has(obraDoFunc.get(e.id) ?? null) ? <Selo cor="bg-atraso-50 text-atraso-700">Falta</Selo>
                         : <Selo cor="bg-concreto-100 text-concreto-600">Sem registro</Selo>)

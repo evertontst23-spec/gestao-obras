@@ -7,6 +7,7 @@ export type LinhaLote = {
   id: string; nome: string; funcao: string; obra: string;
   vigia: boolean;      // escala 12x36 (dia sim, dia não)
   noturno?: boolean;   // vigia noturno: plantão entra num dia e sai na manhã seguinte
+  fixo?: boolean;      // vigia fixo da obra: trabalha todo dia (não é escala)
   plantao?: boolean;   // vigia: pela escala, hoje é dia dele (folgou ontem e trabalhou anteontem)
   ja: { tipo: 'marcacao' | 'abono'; texto: string } | null;
 };
@@ -20,6 +21,7 @@ const COMUNS: { v: Sit; rotulo: string; ativo: string }[] = [
   { v: 'atestado', rotulo: 'Atestado', ativo: 'border-sky-600 bg-sky-600 text-white' },
 ];
 const OPCOES = [OK, ...COMUNS, { v: 'nada' as Sit, rotulo: 'Em branco', ativo: 'border-concreto-500 bg-concreto-500 text-white' }];
+const OPCOES_FIXO = [{ ...OK, rotulo: 'Plantão' }, ...COMUNS, { v: 'folga' as Sit, rotulo: 'Folga', ativo: 'border-concreto-600 bg-concreto-600 text-white' }];
 const OPCOES_VIGIA = [{ ...OK, rotulo: 'Plantão' }, { v: 'folga' as Sit, rotulo: 'Folga da escala', ativo: 'border-concreto-600 bg-concreto-600 text-white' }, ...COMUNS];
 const CAMPOS_HORA: [keyof HorariosLote, string][] = [
   ['entrada', 'Entrada no expediente'], ['saida_almoco', 'Saída para o almoço'], ['volta_almoco', 'Volta do almoço'], ['largada', 'Largada'],
@@ -109,17 +111,17 @@ export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao }:
                     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                       <div className="min-w-0">
                         <div className="font-semibold text-concreto-900">{l.nome}</div>
-                        <div className="text-xs text-concreto-500">{l.funcao}{l.vigia && ` • escala 12x36 (dia sim, dia não)${l.noturno ? ` — plantão ${horarios.noturno_entrada} às ${horarios.noturno_saida}` : ''}`}</div>
+                        <div className="text-xs text-concreto-500">{l.funcao}{l.vigia && ` • ${l.fixo ? 'vigia fixo da obra (todo dia)' : 'escala 12x36 (dia sim, dia não)'}${l.noturno ? ` — plantão ${horarios.noturno_entrada} às ${horarios.noturno_saida}` : ''}`}</div>
                       </div>
                       {l.ja ? <span className="text-sm text-concreto-600">Já lançado: <b>{l.ja.texto}</b></span> : (
                         <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={`Situação de ${l.nome}`}>
-                          {(l.vigia ? OPCOES_VIGIA : OPCOES).map((o) => (
+                          {(l.vigia ? (l.fixo ? OPCOES_FIXO : OPCOES_VIGIA) : OPCOES).map((o) => (
                             <button key={o.v} type="button" role="radio" aria-checked={s === o.v} onClick={() => muda(l.id, o.v)}
                               className={`rounded-md border px-2.5 py-1.5 text-xs font-semibold transition ${s === o.v ? o.ativo : 'border-concreto-300 bg-superficie text-concreto-600 hover:bg-concreto-50'}`}>{o.rotulo}</button>))}
                         </div>)}
                     </div>
                     {!l.ja && s === 'folga' && (
-                      <p className="mt-1.5 text-xs text-concreto-500">Não é o dia dele — folga da escala de vigia (não conta falta, não grava marcação).</p>)}
+                      <p className="mt-1.5 text-xs text-concreto-500">{l.fixo ? 'Folga do vigia neste dia (não grava marcação).' : 'Não é o dia dele — folga da escala de vigia (não conta falta, não grava marcação).'}</p>)}
                     {!l.ja && (s === 'falta_justificada' || s === 'atestado') && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         <input value={obs[l.id] ?? ''} onChange={(e) => setObs((o) => ({ ...o, [l.id]: e.target.value }))}

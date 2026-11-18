@@ -44,21 +44,29 @@ export default async function PontoEmLote({ searchParams }: { searchParams: Prom
   const equipe = ((equipeToda ?? []) as { id: string; nome: string; funcao: string }[]).filter((e) => !fora.has(e.id));
   const ids = equipe.map((e) => e.id);
   const regIds = (regs ?? []).map((r) => r.id);
-  const [{ data: info }, { data: desc }, { data: antes }] = await Promise.all([
-    ids.length ? supabase.from('funcionarios').select('id, data_admissao, funcoes(carga_diaria_horas), obras(codigo)').in('id', ids) : Promise.resolve({ data: [] }),
+  const vazio = Promise.resolve({ data: [] });
+  const [{ data: info }, { data: desc }, { data: antes }, { data: fHoje }, { data: fOntem }] = await Promise.all([
+    ids.length ? supabase.from('funcionarios').select('id, data_admissao, obras(codigo, vigia_todo_dia)').in('id', ids) : vazio,
     regIds.length ? supabase.from('ponto_desconsideracoes').select('registro_id').in('registro_id', regIds) : Promise.resolve({ data: [] }),
     // escala dos vigias (dia sim, dia não): olha ontem e anteontem para sugerir plantão ou folga
     //   (só entradas: a saída da manhã do vigia noturno é do plantão da noite anterior)
     ids.length ? supabase.from('registros_ponto').select('funcionario_id, data').in('funcionario_id', ids).eq('tipo', 'entrada')
       .in('data', [somarDias(dia, -1), somarDias(dia, -2)]) : Promise.resolve({ data: [] }),
+    // função que valia no dia (e na véspera): quem trocou de função é calculado pela data
+    ids.length ? supabase.rpc('funcoes_na_data', { p_ids: ids, p_data: dia }) : vazio,
+    ids.length ? supabase.rpc('funcoes_na_data', { p_ids: ids, p_data: somarDias(dia, -1) }) : vazio,
   ]);
+  type FuncaoDia = { funcionario_id: string; funcao: string | null; carga: number; noturno: boolean };
+  const funcaoDia = new Map(((fHoje ?? []) as FuncaoDia[]).map((x) => [x.funcionario_id, x]));
+  const vigiaOntem = new Set(((fOntem ?? []) as FuncaoDia[]).filter((x) => Number(x.carga) >= 12).map((x) => x.funcionario_id));
   const trabalhou = new Set((antes ?? []).map((r: { funcionario_id: string; data: string }) => `${r.funcionario_id}|${r.data}`));
   const plantaoSugerido = (id: string) => !trabalhou.has(`${id}|${somarDias(dia, -1)}`) && trabalhou.has(`${id}|${somarDias(dia, -2)}`);
   const desconsiderados = new Set((desc ?? []).map((d: { registro_id: number }) => d.registro_id));
-  type Info = { id: string; data_admissao: string; funcoes: { carga_diaria_horas: number } | null; obras: { codigo: string } | null };
+  type Info = { id: string; data_admissao: string; obras: { codigo: string; vigia_todo_dia: boolean } | null };
   const porId = new Map(((info ?? []) as unknown as Info[]).map((i) => [i.id, i]));
-  const ehVigia = (id: string) => Number(porId.get(id)?.funcoes?.carga_diaria_horas ?? 8) >= 12;
-  const fimDaNoite = (r: { funcionario_id: string; momento: string; tipo: string }) => ehVigia(r.funcionario_id) && r.tipo === 'saida' && hm(r.momento) < '12:00';
+  const ehVigia = (id: string) => Number(funcaoDia.get(id)?.carga ?? 8) >= 12;
+  // saída da manhã de quem era vigia na véspera = fim do plantão da noite anterior
+  const fimDaNoite = (r: { funcionario_id: string; momento: string; tipo: string }) => vigiaOntem.has(r.funcionario_id) && r.tipo === 'saida' && hm(r.momento) < '12:00';
   const marc = new Map<string, string[]>();
   (regs ?? []).filter((r) => !desconsiderados.has(r.id) && !fimDaNoite(r))
     .forEach((r) => marc.set(r.funcionario_id, [...(marc.get(r.funcionario_id) ?? []), hm(r.momento)]));
@@ -72,10 +80,11 @@ export default async function PontoEmLote({ searchParams }: { searchParams: Prom
       const i = porId.get(e.id);
       const m = marc.get(e.id);
       return {
-        id: e.id, nome: e.nome, funcao: e.funcao ?? '—', obra: i?.obras?.codigo ?? 'Sem obra',
+        id: e.id, nome: e.nome, funcao: funcaoDia.get(e.id)?.funcao ?? e.funcao ?? '—', obra: i?.obras?.codigo ?? 'Sem obra',
         vigia: ehVigia(e.id),
-        noturno: ehVigia(e.id) && /noturn/i.test(e.funcao ?? ''),
-        plantao: plantaoSugerido(e.id),
+        noturno: !!funcaoDia.get(e.id)?.noturno,
+        fixo: ehVigia(e.id) && !!i?.obras?.vigia_todo_dia,
+        plantao: ehVigia(e.id) && (!!i?.obras?.vigia_todo_dia || plantaoSugerido(e.id)),
         ja: m ? { tipo: 'marcacao', texto: m.join(' · ') } : abono.has(e.id) ? { tipo: 'abono', texto: abono.get(e.id)! } : null,
       };
     })
