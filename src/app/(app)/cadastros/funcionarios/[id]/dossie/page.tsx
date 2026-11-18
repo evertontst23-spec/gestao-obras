@@ -13,7 +13,7 @@ import { PASTAS, docsDoSlot, resumoDossie, slotPreenchido, type Doc } from '@/li
 
 export const metadata = { title: 'Dossiê do funcionário' };
 const VINCULO: Record<string, string> = { clt: 'CLT (próprio)', terceirizado: 'Terceirizado', clt_parceira: 'CLT de empresa parceira', autonomo: 'Autônomo / diarista' };
-const ATEST: Record<string, string> = { medico: 'Atestado médico', declaracao_horas: 'Declaração de horas', odontologico: 'Atestado odontológico', acompanhante: 'Acompanhante' };
+const ATEST: Record<string, string> = { medico: 'Atestado médico', declaracao_horas: 'Declaração de horas', odontologico: 'Atestado odontológico', acompanhante: 'Acompanhante', falta_justificada: 'Falta justificada' };
 
 function Item({ r, children, largo }: { r: string; children: React.ReactNode; largo?: boolean }) {
   return <div className={largo ? 'col-span-2' : ''}><dt className="text-[10px] uppercase tracking-wide text-concreto-500">{r}</dt><dd className="font-medium">{children || '—'}</dd></div>;

@@ -10,7 +10,7 @@ export function FormAtestado({ funcionarios }: { funcionarios: { id: string; nom
       <div className="grid grid-cols-2 gap-3">
         <Campo rotulo="Tipo"><select name="tipo" className="entrada">
           <option value="medico">Atestado médico</option><option value="odontologico">Odontológico</option><option value="acompanhamento">Acompanhamento</option>
-          <option value="declaracao_horas">Declaração de horas</option><option value="acidente_trabalho">Acidente de trabalho</option></select></Campo>
+          <option value="declaracao_horas">Declaração de horas</option><option value="acidente_trabalho">Acidente de trabalho</option><option value="falta_justificada">Falta justificada (sem atestado)</option></select></Campo>
         <Campo rotulo="Início"><input type="date" name="data_inicio" required className="entrada" /></Campo>
         <Campo rotulo="Dias" dica="0 para declaração de horas"><input type="number" name="dias" min={0} defaultValue={1} className="entrada" /></Campo>
         <Campo rotulo="Horas (declaração)"><input name="horas" inputMode="decimal" placeholder="ex.: 3,5" className="entrada" /></Campo>

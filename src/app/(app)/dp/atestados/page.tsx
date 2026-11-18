@@ -5,7 +5,7 @@ import { FormAtestado } from '@/components/FormAtestado';
 import { data } from '@/lib/formato';
 
 export const metadata = { title: 'Atestados' };
-const TIPO: Record<string, string> = { medico: 'Médico', odontologico: 'Odontológico', acompanhamento: 'Acompanhamento', declaracao_horas: 'Declaração de horas', acidente_trabalho: 'Acidente de trabalho' };
+const TIPO: Record<string, string> = { medico: 'Médico', odontologico: 'Odontológico', acompanhamento: 'Acompanhamento', declaracao_horas: 'Declaração de horas', acidente_trabalho: 'Acidente de trabalho', falta_justificada: 'Falta justificada' };
 
 export default async function Atestados() {
   const { supabase } = await exigirPapel('admin', 'rh');
