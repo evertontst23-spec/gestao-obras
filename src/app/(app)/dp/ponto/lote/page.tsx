@@ -33,12 +33,13 @@ export default async function PontoEmLote({ searchParams }: { searchParams: Prom
   const dia = sp.data && /^\d{4}-\d{2}-\d{2}$/.test(sp.data) && sp.data <= hoje ? sp.data : diaSugerido();
   const obra = sp.obra || null;
 
-  const [{ data: obras }, { data: equipeToda }, { data: externos }, { data: regs }, { data: atests }] = await Promise.all([
+  const [{ data: obras }, { data: equipeToda }, { data: externos }, { data: regs }, { data: atests }, { data: feriado }] = await Promise.all([
     supabase.from('obras').select('id, codigo, nome').in('situacao', ['planejamento', 'em_andamento', 'paralisada']).order('codigo'),
     supabase.rpc('equipe_da_obra', { p_obra: obra }),
     supabase.rpc('funcionarios_ponto_externo'),
     supabase.from('registros_ponto').select('id, funcionario_id, momento, tipo').eq('data', dia).order('momento'),
     supabase.from('atestados').select('funcionario_id, tipo, data_inicio, dias').lte('data_inicio', dia).gte('data_inicio', somarDias(dia, -366)),
+    supabase.from('feriados').select('descricao').eq('data', dia).neq('ambito', 'facultativo').maybeSingle(),
   ]);
   const fora = new Set(((externos ?? []) as unknown as string[]).map(String));
   const equipe = ((equipeToda ?? []) as { id: string; nome: string; funcao: string }[]).filter((e) => !fora.has(e.id));
@@ -93,6 +94,8 @@ export default async function PontoEmLote({ searchParams }: { searchParams: Prom
   const horarios: HorariosLote = { entrada: '07:00', saida_almoco: '12:00', volta_almoco: '13:00', largada: dow(dia) === 5 ? '16:00' : '17:00',
     noturno_entrada: '18:00', noturno_saida: '06:00' };
   const fimDeSemana = dow(dia) === 0 || dow(dia) === 6;
+  // sábado, domingo e feriado: o vigia cobre o dia e a noite (24h) — o 2º turno é hora extra
+  const turnoDuplo = fimDeSemana || !!feriado;
 
   return (
     <>
@@ -110,12 +113,12 @@ export default async function PontoEmLote({ searchParams }: { searchParams: Prom
         <button className="h-[42px] rounded-md bg-concreto-800 px-4 text-sm font-semibold text-white">Abrir</button>
       </form>
 
-      {fimDeSemana && <p className="mb-4 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">⚠ {dataBR(dia)} é fim de semana. Confira se é isso mesmo antes de gravar.</p>}
+      {turnoDuplo && <p className="mb-4 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">{dataBR(dia)} é {feriado ? `feriado (${feriado.descricao})` : 'fim de semana'}: o vigia de plantão cobre o dia e a noite (24h) — as 12h do 2º turno entram como hora extra ({dow(dia) === 6 && !feriado ? '70%' : '100%'}). Confira a equipe de dia antes de gravar.</p>}
       {dia === hoje && <p className="mb-4 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">Hoje: falta, falta justificada e atestado já podem ser lançados; o <b>OK</b> só depois da largada.</p>}
       {fora.size > 0 && <p className="mb-4 text-xs text-concreto-500">Quem tem o ponto marcado fora do sistema (empresa com ponto próprio) não aparece aqui.</p>}
 
       {!linhas.length ? <Vazio>Nenhum funcionário ativo nesta obra em {dataBR(dia)}.</Vazio>
-        : <PontoLote key={`${dia}-${obra ?? 'todas'}`} dia={dia} diaFormatado={dataBR(dia)} linhas={linhas} horariosPadrao={horarios} />}
+        : <PontoLote key={`${dia}-${obra ?? 'todas'}`} dia={dia} diaFormatado={dataBR(dia)} linhas={linhas} horariosPadrao={horarios} turnoDuplo={turnoDuplo} />}
     </>
   );
 }

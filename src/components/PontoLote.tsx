@@ -21,6 +21,7 @@ const COMUNS: { v: Sit; rotulo: string; ativo: string }[] = [
   { v: 'atestado', rotulo: 'Atestado', ativo: 'border-sky-600 bg-sky-600 text-white' },
 ];
 const OPCOES = [OK, ...COMUNS, { v: 'nada' as Sit, rotulo: 'Em branco', ativo: 'border-concreto-500 bg-concreto-500 text-white' }];
+const H24 = { v: 'ok24' as Sit, rotulo: 'Dia + noite (24h)', ativo: 'border-ok-700 bg-ok-700 text-white' };
 const OPCOES_FIXO = [{ ...OK, rotulo: 'Plantão' }, ...COMUNS, { v: 'folga' as Sit, rotulo: 'Folga', ativo: 'border-concreto-600 bg-concreto-600 text-white' }];
 const OPCOES_VIGIA = [{ ...OK, rotulo: 'Plantão' }, { v: 'folga' as Sit, rotulo: 'Folga da escala', ativo: 'border-concreto-600 bg-concreto-600 text-white' }, ...COMUNS];
 const CAMPOS_HORA: [keyof HorariosLote, string][] = [
@@ -28,13 +29,13 @@ const CAMPOS_HORA: [keyof HorariosLote, string][] = [
 ];
 const CAMPOS_NOITE: [keyof HorariosLote, string][] = [['noturno_entrada', 'Entrada no plantão'], ['noturno_saida', 'Saída (manhã seguinte)']];
 
-export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao }:
-  { dia: string; diaFormatado: string; linhas: LinhaLote[]; horariosPadrao: HorariosLote }) {
+export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao, turnoDuplo = false }:
+  { dia: string; diaFormatado: string; linhas: LinhaLote[]; horariosPadrao: HorariosLote; turnoDuplo?: boolean }) {
   const router = useRouter();
   const [enviando, iniciar] = useTransition();
   const [horarios, setHorarios] = useState<HorariosLote>(horariosPadrao);
   const [sit, setSit] = useState<Record<string, Sit>>(() =>
-    Object.fromEntries(linhas.map((l) => [l.id, l.ja ? 'nada' : l.vigia ? (l.plantao ? 'ok' : 'folga') : 'ok'])));
+    Object.fromEntries(linhas.map((l) => [l.id, l.ja ? 'nada' : l.vigia ? (l.plantao ? (turnoDuplo ? 'ok24' : 'ok') : 'folga') : 'ok'])));
   const [obs, setObs] = useState<Record<string, string>>({});
   const [dias, setDias] = useState<Record<string, string>>({});
   const [confirmar, setConfirmar] = useState(false);
@@ -42,13 +43,13 @@ export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao }:
 
   const editaveis = linhas.filter((l) => !l.ja);
   const cont = useMemo(() => {
-    const c: Record<Sit, number> = { ok: 0, falta: 0, falta_justificada: 0, atestado: 0, nada: 0, folga: 0 };
+    const c: Record<Sit, number> = { ok: 0, ok24: 0, falta: 0, falta_justificada: 0, atestado: 0, nada: 0, folga: 0 };
     editaveis.forEach((l) => { c[sit[l.id]] += 1; });
     return c;
   }, [sit, editaveis]);
   const semMotivo = editaveis.filter((l) => sit[l.id] === 'falta_justificada' && (obs[l.id] ?? '').trim().length < 3);
-  const gravaveis = cont.ok + cont.falta + cont.falta_justificada + cont.atestado;
-  const resumo = [cont.ok && `${cont.ok} OK/plantão`, cont.falta && `${cont.falta} falta(s)`, cont.falta_justificada && `${cont.falta_justificada} falta(s) justificada(s)`,
+  const gravaveis = cont.ok + cont.ok24 + cont.falta + cont.falta_justificada + cont.atestado;
+  const resumo = [cont.ok && `${cont.ok} OK/plantão`, cont.ok24 && `${cont.ok24} plantão(ões) de 24h`, cont.falta && `${cont.falta} falta(s)`, cont.falta_justificada && `${cont.falta_justificada} falta(s) justificada(s)`,
     cont.atestado && `${cont.atestado} atestado(s)`, cont.folga && `${cont.folga} vigia(s) de folga`].filter(Boolean).join(' · ');
   const grupos = useMemo(() => {
     const m = new Map<string, LinhaLote[]>();
@@ -81,9 +82,11 @@ export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao }:
             <label key={k} className="block text-sm"><span className="mb-1 block font-medium text-concreto-700">{r}</span>
               <input type="time" value={horarios[k]} onChange={(e) => { setHorarios((h) => ({ ...h, [k]: e.target.value })); setConfirmar(false); }} className="entrada" /></label>))}
         </div>
-        {linhas.some((l) => l.noturno) && (<>
-          <h3 className="mb-1 mt-4 text-sm font-bold text-concreto-900">Plantão do vigia noturno</h3>
-          <p className="mb-2 text-sm text-concreto-500">Vigia noturno de plantão recebe a entrada em {diaFormatado} e a saída na manhã do dia seguinte (conta tudo no dia {diaFormatado}).</p>
+        {linhas.some((l) => l.noturno || (turnoDuplo && l.vigia)) && (<>
+          <h3 className="mb-1 mt-4 text-sm font-bold text-concreto-900">Horário do vigia</h3>
+          <p className="mb-2 text-sm text-concreto-500">{turnoDuplo
+            ? <>No <b>Dia + noite (24h)</b> o vigia recebe o turno do dia (das {horarios.noturno_saida} às {horarios.noturno_entrada}) e o da noite (das {horarios.noturno_entrada} às {horarios.noturno_saida} do dia seguinte). As primeiras 12h são o plantão normal; as outras 12h entram como hora extra.</>
+            : <>Vigia noturno de plantão recebe a entrada em {diaFormatado} e a saída na manhã do dia seguinte (conta tudo no dia {diaFormatado}).</>}</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {CAMPOS_NOITE.map(([k, r]) => (
               <label key={k} className="block text-sm"><span className="mb-1 block font-medium text-concreto-700">{r}</span>
@@ -115,7 +118,7 @@ export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao }:
                       </div>
                       {l.ja ? <span className="text-sm text-concreto-600">Já lançado: <b>{l.ja.texto}</b></span> : (
                         <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={`Situação de ${l.nome}`}>
-                          {(l.vigia ? (l.fixo ? OPCOES_FIXO : OPCOES_VIGIA) : OPCOES).map((o) => (
+                          {(l.vigia ? [...(turnoDuplo ? [H24] : []), ...(l.fixo ? OPCOES_FIXO : OPCOES_VIGIA)] : OPCOES).map((o) => (
                             <button key={o.v} type="button" role="radio" aria-checked={s === o.v} onClick={() => muda(l.id, o.v)}
                               className={`rounded-md border px-2.5 py-1.5 text-xs font-semibold transition ${s === o.v ? o.ativo : 'border-concreto-300 bg-superficie text-concreto-600 hover:bg-concreto-50'}`}>{o.rotulo}</button>))}
                         </div>)}
@@ -140,7 +143,7 @@ export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao }:
       {res?.erro && <p role="alert" className="rounded-md bg-atraso-50 px-3 py-2 text-sm text-atraso-700">{res.erro}</p>}
       {res && !res.erro && (
         <div role="status" className="rounded-md bg-ok-50 px-3 py-2 text-sm text-ok-800">
-          <b>Dia {diaFormatado} lançado:</b> {res.ok ?? 0} OK, {res.falta ?? 0} falta(s), {res.falta_justificada ?? 0} falta(s) justificada(s), {res.atestado ?? 0} atestado(s).
+          <b>Dia {diaFormatado} lançado:</b> {res.ok ?? 0} OK{res.plantao_24h ? ` (${res.plantao_24h} de 24h)` : ''}, {res.falta ?? 0} falta(s), {res.falta_justificada ?? 0} falta(s) justificada(s), {res.atestado ?? 0} atestado(s).
           {!!res.pulados?.length && <ul className="mt-1 list-disc pl-5 text-atencao-800">{res.pulados.map((p, i) => <li key={i}>{p.nome}: {p.motivo}</li>)}</ul>}
         </div>)}
 
