@@ -6,6 +6,7 @@ import { lancarPontoLote, type HorariosLote, type ResultadoLote, type SituacaoLo
 export type LinhaLote = {
   id: string; nome: string; funcao: string; obra: string;
   vigia: boolean;      // escala 12x36 (dia sim, dia não)
+  noturno?: boolean;   // vigia noturno: plantão entra num dia e sai na manhã seguinte
   plantao?: boolean;   // vigia: pela escala, hoje é dia dele (folgou ontem e trabalhou anteontem)
   ja: { tipo: 'marcacao' | 'abono'; texto: string } | null;
 };
@@ -23,6 +24,7 @@ const OPCOES_VIGIA = [{ ...OK, rotulo: 'Plantão' }, { v: 'folga' as Sit, rotulo
 const CAMPOS_HORA: [keyof HorariosLote, string][] = [
   ['entrada', 'Entrada no expediente'], ['saida_almoco', 'Saída para o almoço'], ['volta_almoco', 'Volta do almoço'], ['largada', 'Largada'],
 ];
+const CAMPOS_NOITE: [keyof HorariosLote, string][] = [['noturno_entrada', 'Entrada no plantão'], ['noturno_saida', 'Saída (manhã seguinte)']];
 
 export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao }:
   { dia: string; diaFormatado: string; linhas: LinhaLote[]; horariosPadrao: HorariosLote }) {
@@ -77,6 +79,15 @@ export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao }:
             <label key={k} className="block text-sm"><span className="mb-1 block font-medium text-concreto-700">{r}</span>
               <input type="time" value={horarios[k]} onChange={(e) => { setHorarios((h) => ({ ...h, [k]: e.target.value })); setConfirmar(false); }} className="entrada" /></label>))}
         </div>
+        {linhas.some((l) => l.noturno) && (<>
+          <h3 className="mb-1 mt-4 text-sm font-bold text-concreto-900">Plantão do vigia noturno</h3>
+          <p className="mb-2 text-sm text-concreto-500">Vigia noturno de plantão recebe a entrada em {diaFormatado} e a saída na manhã do dia seguinte (conta tudo no dia {diaFormatado}).</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {CAMPOS_NOITE.map(([k, r]) => (
+              <label key={k} className="block text-sm"><span className="mb-1 block font-medium text-concreto-700">{r}</span>
+                <input type="time" value={horarios[k]} onChange={(e) => { setHorarios((h) => ({ ...h, [k]: e.target.value })); setConfirmar(false); }} className="entrada" /></label>))}
+          </div>
+        </>)}
       </section>
 
       <section className="rounded-lg border border-concreto-200 bg-superficie">
@@ -98,7 +109,7 @@ export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao }:
                     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                       <div className="min-w-0">
                         <div className="font-semibold text-concreto-900">{l.nome}</div>
-                        <div className="text-xs text-concreto-500">{l.funcao}{l.vigia && ' • escala 12x36 (dia sim, dia não)'}</div>
+                        <div className="text-xs text-concreto-500">{l.funcao}{l.vigia && ` • escala 12x36 (dia sim, dia não)${l.noturno ? ` — plantão ${horarios.noturno_entrada} às ${horarios.noturno_saida}` : ''}`}</div>
                       </div>
                       {l.ja ? <span className="text-sm text-concreto-600">Já lançado: <b>{l.ja.texto}</b></span> : (
                         <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={`Situação de ${l.nome}`}>

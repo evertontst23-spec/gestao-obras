@@ -37,7 +37,7 @@ export default async function PontoEmLote({ searchParams }: { searchParams: Prom
     supabase.from('obras').select('id, codigo, nome').in('situacao', ['planejamento', 'em_andamento', 'paralisada']).order('codigo'),
     supabase.rpc('equipe_da_obra', { p_obra: obra }),
     supabase.rpc('funcionarios_ponto_externo'),
-    supabase.from('registros_ponto').select('id, funcionario_id, momento').eq('data', dia).order('momento'),
+    supabase.from('registros_ponto').select('id, funcionario_id, momento, tipo').eq('data', dia).order('momento'),
     supabase.from('atestados').select('funcionario_id, tipo, data_inicio, dias').lte('data_inicio', dia).gte('data_inicio', somarDias(dia, -366)),
   ]);
   const fora = new Set(((externos ?? []) as unknown as string[]).map(String));
@@ -48,20 +48,24 @@ export default async function PontoEmLote({ searchParams }: { searchParams: Prom
     ids.length ? supabase.from('funcionarios').select('id, data_admissao, funcoes(carga_diaria_horas), obras(codigo)').in('id', ids) : Promise.resolve({ data: [] }),
     regIds.length ? supabase.from('ponto_desconsideracoes').select('registro_id').in('registro_id', regIds) : Promise.resolve({ data: [] }),
     // escala dos vigias (dia sim, dia não): olha ontem e anteontem para sugerir plantão ou folga
-    ids.length ? supabase.from('registros_ponto').select('funcionario_id, data').in('funcionario_id', ids).in('data', [somarDias(dia, -1), somarDias(dia, -2)]) : Promise.resolve({ data: [] }),
+    //   (só entradas: a saída da manhã do vigia noturno é do plantão da noite anterior)
+    ids.length ? supabase.from('registros_ponto').select('funcionario_id, data').in('funcionario_id', ids).eq('tipo', 'entrada')
+      .in('data', [somarDias(dia, -1), somarDias(dia, -2)]) : Promise.resolve({ data: [] }),
   ]);
   const trabalhou = new Set((antes ?? []).map((r: { funcionario_id: string; data: string }) => `${r.funcionario_id}|${r.data}`));
   const plantaoSugerido = (id: string) => !trabalhou.has(`${id}|${somarDias(dia, -1)}`) && trabalhou.has(`${id}|${somarDias(dia, -2)}`);
   const desconsiderados = new Set((desc ?? []).map((d: { registro_id: number }) => d.registro_id));
+  type Info = { id: string; data_admissao: string; funcoes: { carga_diaria_horas: number } | null; obras: { codigo: string } | null };
+  const porId = new Map(((info ?? []) as unknown as Info[]).map((i) => [i.id, i]));
+  const ehVigia = (id: string) => Number(porId.get(id)?.funcoes?.carga_diaria_horas ?? 8) >= 12;
+  const fimDaNoite = (r: { funcionario_id: string; momento: string; tipo: string }) => ehVigia(r.funcionario_id) && r.tipo === 'saida' && hm(r.momento) < '12:00';
   const marc = new Map<string, string[]>();
-  (regs ?? []).filter((r) => !desconsiderados.has(r.id)).forEach((r) => marc.set(r.funcionario_id, [...(marc.get(r.funcionario_id) ?? []), hm(r.momento)]));
+  (regs ?? []).filter((r) => !desconsiderados.has(r.id) && !fimDaNoite(r))
+    .forEach((r) => marc.set(r.funcionario_id, [...(marc.get(r.funcionario_id) ?? []), hm(r.momento)]));
   const abono = new Map<string, string>();
   (atests ?? []).forEach((a) => {
     if (a.tipo !== 'declaracao_horas' && dia <= somarDias(a.data_inicio, Math.max(a.dias - 1, 0))) abono.set(a.funcionario_id, ATEST[a.tipo] ?? 'Atestado');
   });
-  type Info = { id: string; data_admissao: string; funcoes: { carga_diaria_horas: number } | null; obras: { codigo: string } | null };
-  const porId = new Map(((info ?? []) as unknown as Info[]).map((i) => [i.id, i]));
-
   const linhas: LinhaLote[] = equipe
     .filter((e) => (porId.get(e.id)?.data_admissao ?? '') <= dia)
     .map((e): LinhaLote => {
@@ -69,14 +73,16 @@ export default async function PontoEmLote({ searchParams }: { searchParams: Prom
       const m = marc.get(e.id);
       return {
         id: e.id, nome: e.nome, funcao: e.funcao ?? '—', obra: i?.obras?.codigo ?? 'Sem obra',
-        vigia: Number(i?.funcoes?.carga_diaria_horas ?? 8) >= 12,
+        vigia: ehVigia(e.id),
+        noturno: ehVigia(e.id) && /noturn/i.test(e.funcao ?? ''),
         plantao: plantaoSugerido(e.id),
         ja: m ? { tipo: 'marcacao', texto: m.join(' · ') } : abono.has(e.id) ? { tipo: 'abono', texto: abono.get(e.id)! } : null,
       };
     })
     .sort((a, b) => a.obra.localeCompare(b.obra) || a.nome.localeCompare(b.nome));
 
-  const horarios: HorariosLote = { entrada: '07:00', saida_almoco: '12:00', volta_almoco: '13:00', largada: dow(dia) === 5 ? '16:00' : '17:00' };
+  const horarios: HorariosLote = { entrada: '07:00', saida_almoco: '12:00', volta_almoco: '13:00', largada: dow(dia) === 5 ? '16:00' : '17:00',
+    noturno_entrada: '18:00', noturno_saida: '06:00' };
   const fimDeSemana = dow(dia) === 0 || dow(dia) === 6;
 
   return (

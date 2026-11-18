@@ -12,6 +12,7 @@ export default async function Ponto({ searchParams }: { searchParams: Promise<{ 
   const sp = await searchParams;
   const { supabase, perfil } = await exigirPapel('admin', 'seguranca', 'rh', 'engenheiro', 'encarregado', 'almoxarifado');
   const dia = sp.data ?? hojeISO();
+  const hm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Recife' });
   const { data: obras } = await supabase.from('obras').select('id, codigo, nome').in('situacao', ['planejamento', 'em_andamento', 'paralisada']).order('nome');
   let q = supabase.from('registros_ponto').select('*').eq('data', dia).order('momento');
   if (sp.obra) q = q.eq('obra_id', sp.obra);
@@ -31,7 +32,9 @@ export default async function Ponto({ searchParams }: { searchParams: Promise<{ 
   const obraDoFunc = new Map((obraDe ?? []).map((f) => [f.id, f.obra_id as string | null]));
   // vigias (escala 12x36): dia sem marcação é folga da escala, não falta
   const vigias = new Set((obraDe ?? []).filter((f) => Number((f.funcoes as unknown as { carga_diaria_horas: number } | null)?.carga_diaria_horas ?? 8) >= 12).map((f) => f.id));
-  const obrasLancadas = new Set((regs ?? []).map((r) => r.obra_id as string | null));
+  // saída da manhã do vigia = fim do plantão da noite anterior (não "abre" o dia da obra)
+  const fimDaNoite = (r: { funcionario_id: string; tipo: string; momento: string }) => vigias.has(r.funcionario_id) && r.tipo === 'saida' && hm(r.momento) < '12:00';
+  const obrasLancadas = new Set((regs ?? []).filter((r) => !fimDaNoite(r)).map((r) => r.obra_id as string | null));
   const diaSemana = new Date(`${dia}T12:00:00Z`).getUTCDay();
   const diaUtil = diaSemana >= 1 && diaSemana <= 5;
   const fora = new Set(((externos ?? []) as unknown as string[]).map(String));
@@ -42,7 +45,6 @@ export default async function Ponto({ searchParams }: { searchParams: Promise<{ 
   const nomes = new Map((equipe ?? []).map((e) => [e.id, e]));
   const presentes = [...porFunc.keys()].length;
   const podeManual = ['admin', 'rh', 'engenheiro', 'seguranca'].includes(perfil.papel);
-  const hm = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Recife' });
 
   return (
     <>
@@ -74,7 +76,9 @@ export default async function Ponto({ searchParams }: { searchParams: Promise<{ 
                       <td>{!rs.length ? (abono.has(e.id) ? <Selo cor={abono.get(e.id) === 'Atestado' ? 'bg-sky-100 text-sky-800' : 'bg-atencao-100 text-atencao-800'}>{abono.get(e.id)}</Selo>
                         : vigias.has(e.id) ? <Selo cor="bg-concreto-100 text-concreto-700">Folga da escala (vigia)</Selo>
                         : diaUtil && obrasLancadas.has(obraDoFunc.get(e.id) ?? null) ? <Selo cor="bg-atraso-50 text-atraso-700">Falta</Selo>
-                        : <Selo cor="bg-concreto-100 text-concreto-600">Sem registro</Selo>) : rs[rs.length - 1].tipo === 'entrada' ? <Selo cor="bg-ok-50 text-ok-700">Na obra</Selo> : <Selo cor="bg-sky-100 text-sky-800">Saiu</Selo>}</td>
+                        : <Selo cor="bg-concreto-100 text-concreto-600">Sem registro</Selo>)
+                        : rs.every(fimDaNoite) ? <Selo cor="bg-concreto-100 text-concreto-700">Folga (saiu do plantão da noite)</Selo>
+                        : rs[rs.length - 1].tipo === 'entrada' ? <Selo cor="bg-ok-50 text-ok-700">Na obra</Selo> : <Selo cor="bg-sky-100 text-sky-800">Saiu</Selo>}</td>
                     </tr>);
                 })}</tbody>
               </table></div>)}

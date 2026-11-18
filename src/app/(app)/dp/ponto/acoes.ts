@@ -5,7 +5,10 @@ import { mensagemErro } from '@/lib/acoes';
 
 export type SituacaoLote = 'ok' | 'falta' | 'falta_justificada' | 'atestado' | 'nada';
 export type ItemLote = { funcionario_id: string; situacao: SituacaoLote; obs?: string; dias?: number };
-export type HorariosLote = { entrada: string; saida_almoco: string; volta_almoco: string; largada: string };
+export type HorariosLote = {
+  entrada: string; saida_almoco: string; volta_almoco: string; largada: string;
+  noturno_entrada: string; noturno_saida: string;   // plantão do vigia noturno (a saída é no dia seguinte)
+};
 export type ResultadoLote = {
   erro?: string; ok?: number; falta?: number; falta_justificada?: number; atestado?: number;
   pulados?: { nome: string; motivo: string }[];
