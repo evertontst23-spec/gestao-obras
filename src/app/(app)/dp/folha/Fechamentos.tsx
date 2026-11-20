@@ -4,12 +4,12 @@ import { Botao, FormAcao } from '@/components/formulario';
 import { nomeMes } from '@/components/AbasDP';
 import { reais } from '@/lib/dominio';
 import { data } from '@/lib/formato';
-import { editarItem, removerItem } from '../pagamentos/acoes';
+import { devolverFuncionario, editarItem, removerItem, segurarFuncionario } from '../pagamentos/acoes';
 import { ExportarC6Pagamento } from '@/components/ExportarC6Pagamento';
 import { BENEFICIO, CAT_PAG, STATUS_PAG } from '../pagamentos/comum';
 
 type SB = { from: (t: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
-export type PagResumo = { id: string; titulo: string; tipo: string; status: string; data_pagamento: string; periodo_inicio: string | null };
+export type PagResumo = { id: string; titulo: string; tipo: string; status: string; data_pagamento: string; periodo_inicio: string | null; separado_de?: string | null };
 type Item = {
   id: number; pagamento_id: string; funcionario_id: string | null; categoria: string; destino: string; descricao: string; valor: number;
   obra_id: string | null; empregador_id: string | null;
@@ -146,6 +146,7 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
               .sort((a, b) => (a.funcionarios?.nome ?? 'zz').localeCompare(b.funcionarios?.nome ?? 'zz') || a.id - b.id);
             if (!lp.length) return null;
             const pode = rh && p.status === 'rascunho';
+            const ehSeg = !!p.separado_de;
             return (
               <section key={p.id}>
                 <div className="mb-2 flex items-center justify-between border-b-2 border-concreto-200 pb-1">
@@ -177,6 +178,16 @@ export async function Fechamentos({ supabase, mes, pags, ver: verP, g: gP, pg: p
                             <span className="hidden sm:block" />
                           </div>
                           {i0.funcionarios && <div className="text-[11px] text-concreto-500">{resumo}</div>}
+                          {umPagamento && pode && i0.funcionarios && i0.funcionario_id && (
+                            <div className="nao-imprimir mt-1">
+                              {ehSeg ? (
+                                <FormAcao acao={devolverFuncionario}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="funcionario_id" value={i0.funcionario_id} />
+                                  <button className="text-[11px] font-semibold text-sinal-700 hover:underline">← devolver ao pagamento principal</button></FormAcao>
+                              ) : (
+                                <FormAcao acao={segurarFuncionario}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="funcionario_id" value={i0.funcionario_id} />
+                                  <button className="text-[11px] font-semibold text-atencao-800 hover:underline">⏸ segurar p/ pagar depois</button></FormAcao>
+                              )}
+                            </div>)}
                           {pode && (
                             <details className="nao-imprimir mt-1">
                               <summary className="cursor-pointer text-[11px] font-semibold text-sinal-700">editar</summary>

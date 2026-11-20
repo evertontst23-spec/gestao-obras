@@ -37,6 +37,10 @@ export default async function Pagamento({ params, searchParams }: { params: Prom
     supabase.from('pagamentos').select('obra_id, obras(codigo, nome)').eq('id', id).maybeSingle(),
   ]);
   if (!p) notFound();
+  const [{ data: irmao }, { data: principal }] = await Promise.all([
+    supabase.from('v_pagamentos').select('id, titulo, total, status, funcionarios').eq('separado_de', id).neq('status', 'cancelado').maybeSingle(),
+    p.separado_de ? supabase.from('v_pagamentos').select('id, titulo, total, status').eq('id', p.separado_de).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
   const todosItens = (itensBrutos ?? []) as unknown as Item[];
   const obraDoPag = (pobra?.obras as unknown as { codigo: string; nome: string } | null) ?? null;
   const codObra = new Map((obras ?? []).map((o) => [o.id, o.codigo]));
@@ -144,6 +148,11 @@ export default async function Pagamento({ params, searchParams }: { params: Prom
           </div>
           <p className="mt-3 text-sm text-concreto-600">A <b>alimentação da semana</b> e a <b>passagem</b> são desta semana; o <b>retroativo</b> é o atrasado de quem entrou antes e não recebeu (detalhado no quadro abaixo). O total do pagamento é a soma dos três: <b className="font-mono">{reais(totSemanaAlim + totPassagem + totalRetro)}</b>.</p>
         </Cartao>)}
+
+      {principal && (
+        <p className="nao-imprimir mb-4 rounded-md bg-sinal-50 px-3 py-2 text-sm text-sinal-800">Estes são os funcionários <b>segurados</b> do pagamento <Link className="link" href={`/dp/pagamentos/${(principal as { id: string }).id}`}>{(principal as { titulo: string }).titulo}</Link>. Pague aqui quando puder — ou use <b>“devolver ao pagamento principal”</b> em cada um para voltar.</p>)}
+      {irmao && (
+        <p className="nao-imprimir mb-4 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">⏸ {n((irmao as { funcionarios: number }).funcionarios)} funcionário(s) segurado(s) para pagar depois — <b className="font-mono">{reais(n((irmao as { total: number }).total))}</b> em <Link className="link" href={`/dp/pagamentos/${(irmao as { id: string }).id}`}>abrir o pagamento dos segurados</Link> ({STATUS_PAG[(irmao as { status: string }).status].rotulo}).</p>)}
 
       {editavel && p.tipo === 'saldo' && (empExt ?? []).some((e) => itens.some((i) => i.empregador_id === e.id)) && (
         <p className="mb-4 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">⚠ O ponto de {(empExt ?? []).filter((e) => itens.some((i) => i.empregador_id === e.id)).map((e) => e.nome).join(' e ')} é marcado fora do sistema: o saldo foi calculado sem faltas e sem horas extras. Confira no {(empExt ?? []).find((e) => e.ponto_externo_url) ? <a className="link" href={(empExt ?? []).find((e) => e.ponto_externo_url)!.ponto_externo_url!} target="_blank" rel="noreferrer">Ponto Diário</a> : 'Ponto Diário'} e inclua cada falta como <b>Desconto</b> (salário ÷ 30) e as horas extras como <b>Hora extra</b>.</p>)}

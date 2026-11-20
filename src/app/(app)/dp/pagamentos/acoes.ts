@@ -63,6 +63,23 @@ export async function removerItem(_: EstadoAcao, f: FormData): Promise<EstadoAca
   return { ok: 'Linha retirada.' };
 }
 
+export async function segurarFuncionario(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('pagamento_segurar', { p_pagamento: txt(f, 'id'), p_funcionario: txt(f, 'funcionario_id') });
+  if (error) return { erro: mensagemErro(error) };
+  atualizar(txt(f, 'id'));
+  return { ok: 'Funcionário segurado para pagar depois.' };
+}
+
+export async function devolverFuncionario(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { data: alvo, error } = await supabase.rpc('pagamento_devolver', { p_pagamento: txt(f, 'id'), p_funcionario: txt(f, 'funcionario_id') });
+  if (error) return { erro: mensagemErro(error) };
+  atualizar(txt(f, 'id'));
+  if (alvo) revalidatePath(`/dp/pagamentos/${alvo}`);
+  return { ok: 'Funcionário devolvido ao pagamento principal.' };
+}
+
 export async function fecharPagamento(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
   const supabase = await criarClienteServidor();
   const id = txt(f, 'id');
