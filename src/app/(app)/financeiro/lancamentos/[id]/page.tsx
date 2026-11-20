@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { exigirPapel } from '@/lib/sessao';
 import { Cabecalho, Campo, Cartao, Info, Selo } from '@/components/ui';
 import { AbasFinanceiro } from '@/components/AbasFinanceiro';
-import { FormBaixa, FormComprovante } from '@/components/FormLancamento';
+import { FormBaixa, FormBoleto, FormComprovante } from '@/components/FormLancamento';
 import { Botao, FormAcao } from '@/components/formulario';
 import { CATEGORIAS_FIN, ORIGEM_LANC, codBM, codLanc, codOC, reais, situacaoLanc } from '@/lib/dominio';
 import { data, dataHora, hojeISO } from '@/lib/formato';
@@ -21,6 +21,7 @@ export default async function Lancamento({ params }: { params: Promise<{ id: str
   const obra = l.obras as unknown as { id: string; codigo: string; nome: string } | null;
   const url = l.caminho ? (await supabase.storage.from('anexos').createSignedUrl(l.caminho, 3600)).data?.signedUrl : null;
   const urlComp = l.comprovante_caminho ? (await supabase.storage.from('anexos').createSignedUrl(l.comprovante_caminho, 3600)).data?.signedUrl : null;
+  const urlBoleto = l.boleto_caminho ? (await supabase.storage.from('anexos').createSignedUrl(l.boleto_caminho, 3600)).data?.signedUrl : null;
   const oc = l.ordens_compra as unknown as { numero: number } | null, bm = l.boletins_medicao as unknown as { numero: number } | null, fol = l.folhas as unknown as { competencia: string } | null;
 
   return (
@@ -46,6 +47,8 @@ export default async function Lancamento({ params }: { params: Promise<{ id: str
             {l.status === 'cancelado' && <Info rotulo="Motivo do cancelamento">{l.motivo_cancelamento}</Info>}
             <Info rotulo="Lançado">{dataHora(l.criado_em)}{(l.criador as unknown as { nome: string } | null)?.nome ? ` por ${(l.criador as unknown as { nome: string }).nome}` : ' automaticamente'}</Info>
             {url && <Info rotulo="Documento / comprovante"><a className="link" href={url} target="_blank">Abrir arquivo</a></Info>}
+            {urlBoleto && <Info rotulo="Boleto"><a className="link" href={urlBoleto} target="_blank">Abrir boleto</a>
+              <div className="text-xs text-concreto-500">anexado em {dataHora(l.boleto_em)}</div></Info>}
             {urlComp && <Info rotulo="Comprovante de pagamento"><a className="link" href={urlComp} target="_blank">Abrir comprovante</a>
               <div className="text-xs text-concreto-500">anexado em {dataHora(l.comprovante_em)}</div></Info>}
           </div>
@@ -56,6 +59,9 @@ export default async function Lancamento({ params }: { params: Promise<{ id: str
           </Cartao>)}
         {l.status === 'aberto' && (
           <div className="space-y-5">
+            <Cartao titulo={l.boleto_caminho ? 'Trocar boleto' : 'Anexar boleto'} className={`h-fit ${l.boleto_caminho ? '' : l.tipo === 'despesa' ? 'border-2 border-atencao-400' : ''}`}>
+              <FormBoleto id={l.id} temBoleto={!!l.boleto_caminho} />
+            </Cartao>
             <Cartao titulo={l.tipo === 'receita' ? 'Registrar recebimento' : 'Registrar pagamento'}><FormBaixa id={l.id} tipo={l.tipo} valor={Number(l.valor)} hoje={hoje} /></Cartao>
             <Cartao titulo="Alterar vencimento">
               <FormAcao acao={reprogramarLancamento} className="space-y-3"><input type="hidden" name="id" value={l.id} />

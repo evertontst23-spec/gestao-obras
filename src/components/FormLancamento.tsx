@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { UploadArquivo } from './UploadArquivo';
 import { Campo } from './ui';
 import { CATEGORIAS_DESPESA, CATEGORIAS_RECEITA } from '@/lib/dominio';
-import { anexarComprovante, criarLancamento, liquidarLancamento } from '@/app/(app)/financeiro/acoes';
+import { anexarBoleto, anexarComprovante, criarLancamento, liquidarLancamento } from '@/app/(app)/financeiro/acoes';
 
 type Op = { id: string; codigo?: string; nome: string };
 export function FormLancamento({ obras, fornecedores, hoje, obraFixa, restrito = false }: { obras: Op[]; fornecedores: Op[]; hoje: string; obraFixa?: string; restrito?: boolean }) {
@@ -61,6 +61,16 @@ export function FormComprovante({ id, temComprovante }: { id: string; temComprov
     <UploadArquivo pasta="fin/comprovantes" acao={anexarComprovante} rotuloBotao={temComprovante ? 'Trocar comprovante' : 'Anexar comprovante'}>
       <input type="hidden" name="id" value={id} />
       <p className="text-xs text-concreto-500">Tire a foto ou escolha o PDF do comprovante. Fica guardado aqui no lançamento.</p>
+    </UploadArquivo>
+  );
+}
+
+/** Upload de boleto — disponível enquanto o lançamento está em aberto. */
+export function FormBoleto({ id, temBoleto }: { id: string; temBoleto: boolean }) {
+  return (
+    <UploadArquivo pasta="fin/boletos" acao={anexarBoleto} rotuloBotao={temBoleto ? 'Trocar boleto' : 'Anexar boleto'}>
+      <input type="hidden" name="id" value={id} />
+      <p className="text-xs text-concreto-500">{temBoleto ? 'Substituir o boleto já anexado.' : 'Tire a foto ou escolha o PDF do boleto para este lançamento.'}</p>
     </UploadArquivo>
   );
 }

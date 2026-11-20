@@ -125,3 +125,11 @@ export async function darBaixaReembolso(_: EstadoAcao, f: FormData): Promise<Est
   revalidatePath('/financeiro', 'layout');
   return { ok: 'Reembolso marcado como pago.' };
 }
+
+export async function anexarBoleto(c: Record<string, string | null>): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc('lancamento_anexar_boleto', { p_id: c.id, p_caminho: c.caminho });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/financeiro', 'layout');
+  return { ok: 'Boleto anexado.' };
+}

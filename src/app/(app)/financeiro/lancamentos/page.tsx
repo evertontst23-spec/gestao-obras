@@ -66,6 +66,9 @@ export default async function Lancamentos({ searchParams }: { searchParams: Prom
                     <td className="whitespace-nowrap text-xs">{nomeObra(l)}</td>
                     <td className={`whitespace-nowrap text-right font-mono font-semibold ${l.tipo === 'receita' ? 'text-ok-700' : 'text-atraso-700'}`}>{l.tipo === 'receita' ? '+' : '−'}{reais(l.valor)}</td>
                     <td className="whitespace-nowrap"><Selo cor={s.cor}>{s.rotulo}</Selo>
+                      {l.status === 'aberto' && l.tipo === 'despesa' && (l.boleto_caminho
+                        ? <span className="ml-1 text-xs text-ok-700" title="Boleto anexado">📄</span>
+                        : <Link href={`/financeiro/lancamentos/${l.id}`} className="ml-1 text-[11px] font-semibold text-atencao-800">sem boleto</Link>)}
                       {l.status === 'liquidado' && l.tipo === 'despesa' && (l.comprovante_caminho
                         ? <span className="ml-1 text-xs text-ok-700" title="Comprovante anexado">📎</span>
                         : <Link href={`/financeiro/lancamentos/${l.id}`} className="ml-1 text-[11px] font-semibold text-atencao-800">sem comprovante</Link>)}</td>
