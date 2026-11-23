@@ -11,7 +11,9 @@ import { data, dataHora, hojeISO } from '@/lib/formato';
 import { cancelarPagamento, fecharPagamento, gerarLinhas, quitarPagamento, reabrirPagamento, salvarItem } from '../acoes';
 import { BENEFICIO, CAT_PAG, STATUS_PAG, TIPO_PAG } from '../comum';
 import { Fechamentos, type PagResumo } from '../../folha/Fechamentos';
+import { FuncionariosPagamento } from '../FuncionariosPagamento';
 import { ExportarC6Pagamento } from '@/components/ExportarC6Pagamento';
+import { ComprovanteMassaPagamento } from '@/components/ComprovanteMassaPagamento';
 
 export const metadata = { title: 'Pagamento' };
 
@@ -30,7 +32,7 @@ export default async function Pagamento({ params, searchParams }: { params: Prom
     supabase.from('v_pagamentos').select('*').eq('id', id).maybeSingle(),
     supabase.from('pagamento_itens').select('id, categoria, destino, descricao, valor, funcionario_id, empregador_id, obra_id, funcionarios(nome, matricula, ativo, funcoes(nome)), empregadores(nome, tipo), obras(codigo)')
       .eq('pagamento_id', id).eq('removido', false).order('id'),
-    supabase.from('lancamentos').select('id, numero, descricao, valor, status, favorecido, obras(codigo)').eq('pagamento_id', id).order('numero'),
+    supabase.from('lancamentos').select('id, numero, descricao, valor, status, favorecido, comprovante_caminho, obras(codigo)').eq('pagamento_id', id).order('numero'),
     supabase.from('funcionarios').select('id, nome, ativo, empregadores(nome)').order('nome'),
     supabase.from('obras').select('id, codigo').order('codigo'),
     supabase.from('empregadores').select('id, nome, ponto_externo_url').eq('ponto_externo', true),
@@ -154,6 +156,9 @@ export default async function Pagamento({ params, searchParams }: { params: Prom
       {irmao && (
         <p className="nao-imprimir mb-4 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">⏸ {n((irmao as { funcionarios: number }).funcionarios)} funcionário(s) segurado(s) para pagar depois — <b className="font-mono">{reais(n((irmao as { total: number }).total))}</b> em <Link className="link" href={`/dp/pagamentos/${(irmao as { id: string }).id}`}>abrir o pagamento dos segurados</Link> ({STATUS_PAG[(irmao as { status: string }).status].rotulo}).</p>)}
 
+      {itens.length > 0 && (
+        <FuncionariosPagamento supabase={supabase} pagamentoId={p.id} separadoDe={p.separado_de ?? null} status={p.status} rh={rh} />)}
+
       {editavel && p.tipo === 'saldo' && (empExt ?? []).some((e) => itens.some((i) => i.empregador_id === e.id)) && (
         <p className="mb-4 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">⚠ O ponto de {(empExt ?? []).filter((e) => itens.some((i) => i.empregador_id === e.id)).map((e) => e.nome).join(' e ')} é marcado fora do sistema: o saldo foi calculado sem faltas e sem horas extras. Confira no {(empExt ?? []).find((e) => e.ponto_externo_url) ? <a className="link" href={(empExt ?? []).find((e) => e.ponto_externo_url)!.ponto_externo_url!} target="_blank" rel="noreferrer">Ponto Diário</a> : 'Ponto Diário'} e inclua cada falta como <b>Desconto</b> (salário ÷ 30) e as horas extras como <b>Hora extra</b>.</p>)}
       {zerados.length > 0 && editavel && (
@@ -214,6 +219,12 @@ export default async function Pagamento({ params, searchParams }: { params: Prom
             <summary className="cursor-pointer px-5 py-3.5 text-[15px] font-bold text-concreto-900">Planilha do C6 Bank (Pix em massa) <span className="ml-1 text-sm font-normal text-concreto-500">{st === 'rascunho' ? '— prévia; o normal é baixar depois de fechar' : '— baixar de novo'}</span></summary>
             <div className="border-t border-concreto-100 p-3 [&>section]:mb-0 [&>section]:border-0 [&>section]:shadow-none">{c6}</div>
           </details>)}
+
+      {(st === 'fechado' || st === 'pago') && rh && lancs && lancs.length > 0 && (
+        <Cartao titulo="Comprovante do pagamento (em massa)" className="nao-imprimir mt-5">
+          <ComprovanteMassaPagamento id={p.id} temComprovante={lancs.some((l) => (l as unknown as { comprovante_caminho: string | null }).comprovante_caminho)} />
+          <p className="mt-2 text-xs text-concreto-500">Anexa o mesmo comprovante em todas as {lancs.length} conta(s) a pagar que este pagamento gerou no financeiro. Para trocar o comprovante de uma conta específica, abra ela no financeiro.</p>
+        </Cartao>)}
 
       <div className="nao-imprimir mt-5 grid gap-5 lg:grid-cols-2">
         <Cartao titulo="Histórico">

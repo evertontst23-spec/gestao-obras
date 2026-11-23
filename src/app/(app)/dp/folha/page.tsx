@@ -11,13 +11,14 @@ import { fecharFolha, fecharFolhaObra } from '../acoes';
 import { soma, type LinhaFolha } from '../tipos';
 import Link from 'next/link';
 import { Fechamentos, competencia, type PagResumo } from './Fechamentos';
+import { FuncionariosPagamento } from '../pagamentos/FuncionariosPagamento';
 
 export const metadata = { title: 'Folha' };
 
 export default async function Folha({ searchParams }: { searchParams: Promise<{ mes?: string; obra?: string; ver?: string; g?: string; pg?: string }> }) {
   const sp = await searchParams;
   const { supabase, perfil } = await exigirPapel('admin', 'rh', 'financeiro');
-  const { data: pagsRaw } = await supabase.from('pagamentos').select('id, titulo, tipo, status, data_pagamento, periodo_inicio').neq('status', 'cancelado').order('data_pagamento');
+  const { data: pagsRaw } = await supabase.from('pagamentos').select('id, titulo, tipo, status, data_pagamento, periodo_inicio, separado_de').neq('status', 'cancelado').order('data_pagamento');
   const pags = (pagsRaw ?? []) as PagResumo[];
   const comps = [...new Set(pags.map(competencia))].sort().reverse();
   const mes = sp.mes && /^\d{4}-\d{2}$/.test(sp.mes) ? sp.mes : comps[0] ?? mesAtual();
@@ -72,6 +73,10 @@ export default async function Folha({ searchParams }: { searchParams: Promise<{ 
         <form className="flex items-center gap-1"><input type="month" name="mes" defaultValue={mes} className="entrada w-auto py-1.5" /><button className="rounded-md border border-concreto-300 bg-superficie px-2 py-1.5 font-semibold">ir</button></form>
       </div>
       <Fechamentos supabase={supabase} mes={mes} pags={pags} ver={sp.ver} g={sp.g} pg={sp.pg} rh={rh} />
+
+      {rh && pags.filter((p) => competencia(p) === mes && p.status === 'rascunho').map((p) => (
+        <FuncionariosPagamento key={p.id} supabase={supabase} pagamentoId={p.id} separadoDe={p.separado_de ?? null} status={p.status} rh={rh}
+          titulo={`Tirar/segurar funcionários — ${p.titulo}`} />))}
 
       <details className="nao-imprimir mt-8 rounded-lg border border-concreto-200 bg-superficie p-3" open={!!sp.obra}>
         <summary className="cursor-pointer text-sm font-bold text-concreto-700">Prévia pelo ponto (referência: salário cheio do mês, horas extras e faltas) — {nomeMes(mes)}</summary>

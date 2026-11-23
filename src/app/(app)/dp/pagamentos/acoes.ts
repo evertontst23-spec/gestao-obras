@@ -80,6 +80,15 @@ export async function devolverFuncionario(_: EstadoAcao, f: FormData): Promise<E
   return { ok: 'Funcionário devolvido ao pagamento principal.' };
 }
 
+/** Anexa o comprovante do lote (C6) a todas as contas a pagar do pagamento. */
+export async function anexarComprovantePagamento(c: Record<string, string | null>): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { data: qtd, error } = await supabase.rpc('pagamento_anexar_comprovante', { p_pagamento: c.id, p_caminho: c.caminho });
+  if (error) return { erro: mensagemErro(error) };
+  atualizar(c.id);
+  return { ok: `Comprovante anexado em ${qtd} conta(s) do financeiro.` };
+}
+
 export async function fecharPagamento(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
   const supabase = await criarClienteServidor();
   const id = txt(f, 'id');
