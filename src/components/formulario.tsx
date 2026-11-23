@@ -11,11 +11,12 @@ const Enviando = createContext<boolean | null>(null);
  * Envia por onSubmit (e não pelo action do form) para o React não "resetar" os campos depois de salvar:
  * o reset automático fazia selects voltarem ao valor antigo (ex.: a função do funcionário).
  */
-export function FormAcao({ acao, children, className = '', limparAoConcluir = false }:
-  { acao: Acao; children: ReactNode; className?: string; limparAoConcluir?: boolean }) {
+export function FormAcao({ acao, children, className = '', limparAoConcluir = false, aoConcluir }:
+  { acao: Acao; children: ReactNode; className?: string; limparAoConcluir?: boolean; aoConcluir?: () => void }) {
   const [estado, despachar, pendente] = useActionState(acao, null);
   const ref = useRef<HTMLFormElement>(null);
   useEffect(() => { if (estado?.ok && limparAoConcluir) ref.current?.reset(); }, [estado, limparAoConcluir]);
+  useEffect(() => { if (estado?.ok) aoConcluir?.(); }, [estado]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <form ref={ref} className={className} onSubmit={(e) => {
       e.preventDefault();

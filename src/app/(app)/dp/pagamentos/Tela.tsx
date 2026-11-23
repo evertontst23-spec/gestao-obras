@@ -7,12 +7,12 @@
 import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
 import { ArrowRight, ArrowUpRight, Building2, CalendarClock, CalendarDays, CheckCircle2, ChevronDown, ClipboardList, Download, Filter,
-  MoreHorizontal, Plus, Receipt, UserMinus, Wallet, X } from 'lucide-react';
+  MoreHorizontal, Plus, Receipt, Trash2, UserMinus, Wallet, X } from 'lucide-react';
 import { Badge, CardIndicador, VazioCad } from '@/components/cad';
 import { Botao, FormAcao } from '@/components/formulario';
 import { reais } from '@/lib/dominio';
 import { data } from '@/lib/formato';
-import { criarPagamento } from './acoes';
+import { cancelarPagamento, criarPagamento } from './acoes';
 import { STATUS_PAG, TIPO_PAG } from './comum';
 
 export type PagLinha = {
@@ -248,9 +248,20 @@ export function TelaPagamentos({ abas, lista, obras, obraPag, obraFiltro, verCan
                 </div>
               </div>)}
             {gaveta.modo === 'detalhe' && sel && (
-              <div className="border-t border-concreto-200 px-6 py-4">
+              <div className="space-y-3 border-t border-concreto-200 px-6 py-4">
                 <Link href={hrefAbrir(sel.id)} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-sinal-500 text-sm font-semibold text-concreto-50 hover:bg-sinal-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sinal-500/30">
                   Abrir pagamento completo<ArrowRight aria-hidden className="h-4 w-4" /></Link>
+                {pode && sel.status !== 'cancelado' && (
+                  <details className="rounded-xl border border-concreto-200 bg-superficie px-4 py-3">
+                    <summary className="flex cursor-pointer list-none items-center justify-center gap-2 text-sm font-semibold text-atraso-700"><Trash2 aria-hidden className="h-4 w-4" />Remover este pagamento</summary>
+                    <FormAcao acao={cancelarPagamento} aoConcluir={() => setGaveta(null)} className="mt-3 space-y-2">
+                      <input type="hidden" name="id" value={sel.id} />
+                      <label className="block text-sm"><span className="mb-1 block font-medium text-concreto-700">Motivo</span>
+                        <input name="motivo" required minLength={5} defaultValue="Removido da lista" className={campo} /></label>
+                      <p className="text-[13px] leading-relaxed text-concreto-500">Sai da lista (continua em “Mostrar cancelados”, dá para recuperar).{sel.status !== 'rascunho' && ' As contas a pagar geradas por ele são canceladas.'}</p>
+                      <Botao variante="perigo" className="h-11 w-full !rounded-xl">Remover pagamento</Botao>
+                    </FormAcao>
+                  </details>)}
               </div>)}
 
             {gaveta.modo === 'novo' && pode && (
