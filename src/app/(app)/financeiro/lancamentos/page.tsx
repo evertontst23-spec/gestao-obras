@@ -90,38 +90,20 @@ export default async function Lancamentos({ searchParams }: { searchParams: Prom
               <thead><tr><th>Vencimento</th><th>Descrição</th><th>Obra</th><th className="text-right">Valor</th><th>Situação</th></tr></thead>
               <tbody>{grupos.map((g) => {
                 if (g.pag && g.rows.length > 1) {
-                  const sub = g.rows.reduce((t, l) => t + Number(l.valor), 0);
+                  // cabeçalho do pagamento + as contas reais (não soma nada aqui: o valor já vem unificado do fechamento)
+                  const vivos = g.rows.filter((l) => l.status !== 'cancelado');
+                  const sub = vivos.reduce((t, l) => t + Number(l.valor), 0);
                   const nAb = g.rows.filter((l) => l.status === 'aberto').length;
-                  // junta as obras: uma linha por empresa / tipo (IDERES, FÊNIX, diretos, passagens)
-                  const cons = new Map<string, { descricao: string; total: number; obras: Set<string>; aberto: boolean; liquidado: boolean; venc: string }>();
-                  for (const l of g.rows) {
-                    const e = cons.get(l.descricao) ?? { descricao: l.descricao, total: 0, obras: new Set<string>(), aberto: false, liquidado: false, venc: l.vencimento };
-                    e.total += Number(l.valor); e.obras.add(nomeObra(l));
-                    if (l.status === 'aberto') e.aberto = true; if (l.status === 'liquidado') e.liquidado = true;
-                    cons.set(l.descricao, e);
-                  }
-                  const linhasC = [...cons.values()].sort((a, b) => b.total - a.total);
                   return (
                     <Fragment key={g.key}>
                       <tr className="border-t-2 border-concreto-200 bg-concreto-100/70">
                         <td className="whitespace-nowrap font-mono text-sm">{data(g.rows[0].vencimento)}</td>
                         <td colSpan={2}><Link href={`/dp/pagamentos/${g.pag}`} className="font-semibold text-concreto-800 hover:underline">{g.titulo}</Link>
-                          <span className="ml-1 text-xs text-concreto-500">{linhasC.length} linha(s){nAb ? ` • ${nAb} em aberto` : ' • pago'}</span></td>
+                          <span className="ml-1 text-xs text-concreto-500">{vivos.length} conta(s){nAb ? ` • ${nAb} em aberto` : ' • pago'}</span></td>
                         <td className="whitespace-nowrap text-right font-mono font-bold text-atraso-700">−{reais(sub)}</td>
                         <td />
                       </tr>
-                      {linhasC.map((c) => {
-                        const st = c.aberto ? situacaoLanc({ status: 'aberto', vencimento: c.venc, tipo: 'despesa' }, hoje) : c.liquidado ? { cor: 'bg-ok-50 text-ok-700', rotulo: 'Pago' } : { cor: 'bg-concreto-100 text-concreto-600', rotulo: '—' };
-                        return (
-                          <tr key={g.key + c.descricao}>
-                            <td className="whitespace-nowrap font-mono text-sm text-concreto-400">{data(c.venc)}</td>
-                            <td className="pl-6"><Link href={`/dp/pagamentos/${g.pag}`} className="link">{c.descricao}</Link>
-                              <div className="text-xs text-concreto-500">{c.obras.size > 1 ? `${c.obras.size} obras` : [...c.obras][0]}</div></td>
-                            <td className="whitespace-nowrap text-xs">{c.obras.size > 1 ? 'Várias' : [...c.obras][0]}</td>
-                            <td className="whitespace-nowrap text-right font-mono font-semibold text-atraso-700">−{reais(c.total)}</td>
-                            <td className="whitespace-nowrap"><Selo cor={st.cor}>{st.rotulo}</Selo></td>
-                          </tr>);
-                      })}
+                      {g.rows.map((l) => linha(l, true))}
                     </Fragment>);
                 }
                 return linha(g.rows[0]);
