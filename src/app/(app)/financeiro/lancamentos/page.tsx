@@ -1,4 +1,3 @@
-import { Fragment } from 'react';
 import Link from 'next/link';
 import { exigirPapel } from '@/lib/sessao';
 import { Cabecalho, Cartao, Selo, Vazio } from '@/components/ui';
@@ -89,22 +88,25 @@ export default async function Lancamentos({ searchParams }: { searchParams: Prom
             <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie"><table className="tabela">
               <thead><tr><th>Vencimento</th><th>Descrição</th><th>Obra</th><th className="text-right">Valor</th><th>Situação</th></tr></thead>
               <tbody>{grupos.map((g) => {
-                if (g.pag && g.rows.length > 1) {
-                  // cabeçalho do pagamento + as contas reais (não soma nada aqui: o valor já vem unificado do fechamento)
+                if (g.pag) {
+                  // uma linha por pagamento (o valor já vem unificado do fechamento); o detalhe fica ao abrir o pagamento
                   const vivos = g.rows.filter((l) => l.status !== 'cancelado');
+                  if (!vivos.length) return null;
                   const sub = vivos.reduce((t, l) => t + Number(l.valor), 0);
-                  const nAb = g.rows.filter((l) => l.status === 'aberto').length;
+                  const venc = vivos[0].vencimento;
+                  const st = vivos.some((l) => l.status === 'aberto') ? situacaoLanc({ status: 'aberto', vencimento: venc, tipo: 'despesa' }, hoje)
+                    : vivos.every((l) => l.status === 'liquidado') ? { cor: 'bg-ok-50 text-ok-700', rotulo: 'Pago' } : { cor: 'bg-concreto-100 text-concreto-600', rotulo: '—' };
+                  const obrasSet = new Set(vivos.map(nomeObra));
+                  const quem = [...new Set(vivos.map((l) => l.favorecido).filter(Boolean))].join(', ');
                   return (
-                    <Fragment key={g.key}>
-                      <tr className="border-t-2 border-concreto-200 bg-concreto-100/70">
-                        <td className="whitespace-nowrap font-mono text-sm">{data(g.rows[0].vencimento)}</td>
-                        <td colSpan={2}><Link href={`/dp/pagamentos/${g.pag}`} className="font-semibold text-concreto-800 hover:underline">{g.titulo}</Link>
-                          <span className="ml-1 text-xs text-concreto-500">{vivos.length} conta(s){nAb ? ` • ${nAb} em aberto` : ' • pago'}</span></td>
-                        <td className="whitespace-nowrap text-right font-mono font-bold text-atraso-700">−{reais(sub)}</td>
-                        <td />
-                      </tr>
-                      {g.rows.map((l) => linha(l, true))}
-                    </Fragment>);
+                    <tr key={g.key}>
+                      <td className="whitespace-nowrap font-mono text-sm">{data(venc)}</td>
+                      <td><Link href={`/dp/pagamentos/${g.pag}`} className="link font-semibold">{g.titulo}</Link>
+                        <div className="text-xs text-concreto-500">{vivos.length} conta(s){quem ? ` • ${quem}` : ''}</div></td>
+                      <td className="whitespace-nowrap text-xs">{obrasSet.size > 1 ? 'Várias' : [...obrasSet][0]}</td>
+                      <td className="whitespace-nowrap text-right font-mono font-semibold text-atraso-700">−{reais(sub)}</td>
+                      <td className="whitespace-nowrap"><Selo cor={st.cor}>{st.rotulo}</Selo></td>
+                    </tr>);
                 }
                 return linha(g.rows[0]);
               })}
