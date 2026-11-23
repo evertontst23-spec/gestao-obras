@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import Link from 'next/link';
 import { exigirPapel } from '@/lib/sessao';
 import { Cabecalho, Cartao, Selo, Vazio } from '@/components/ui';
@@ -18,7 +19,7 @@ export default async function Lancamentos({ searchParams }: { searchParams: Prom
   const { data: ve } = await supabase.rpc('ve_restrito');
   const restrito = !!ve && sp.restrito === '1';
   const situacao = sp.situacao ?? (restrito ? 'todos' : 'abertos');
-  let q = supabase.from('lancamentos').select('*, obras(codigo), fornecedores(nome)').eq('restrito', restrito).order('vencimento').limit(1000);
+  let q = supabase.from('lancamentos').select('*, obras(codigo), fornecedores(nome), pagamentos(titulo)').eq('restrito', restrito).order('vencimento').limit(1000);
   if (sp.tipo) q = q.eq('tipo', sp.tipo);
   if (sp.obra === 'adm') q = q.is('obra_id', null); else if (sp.obra) q = q.eq('obra_id', sp.obra);
   if (situacao === 'abertos') q = q.eq('status', 'aberto');
@@ -35,6 +36,37 @@ export default async function Lancamentos({ searchParams }: { searchParams: Prom
   const ls = lista ?? [];
   const tot = (t: string) => ls.filter((l) => l.tipo === t && l.status !== 'cancelado').reduce((s, l) => s + Number(l.status === 'liquidado' ? l.valor_liquidado : l.valor), 0);
   const nomeObra = (l: (typeof ls)[number]) => (l.obras as unknown as { codigo: string } | null)?.codigo ?? 'Administração';
+
+  // agrupa as contas vindas de um mesmo pagamento (folha) sob um cabeçalho com subtotal
+  type Row = (typeof ls)[number];
+  const grupos: { key: string; pag: string | null; titulo: string; rows: Row[] }[] = [];
+  const gidx = new Map<string, number>();
+  for (const l of ls) {
+    const pid = l.origem === 'folha' && l.pagamento_id ? (l.pagamento_id as string) : null;
+    if (pid) {
+      let gi = gidx.get(pid);
+      if (gi === undefined) { gi = grupos.length; gidx.set(pid, gi); grupos.push({ key: `p:${pid}`, pag: pid, titulo: (l.pagamentos as unknown as { titulo: string } | null)?.titulo ?? 'Pagamento da folha', rows: [] }); }
+      grupos[gi].rows.push(l);
+    } else grupos.push({ key: `l:${l.id}`, pag: null, titulo: '', rows: [l] });
+  }
+  const linha = (l: Row, dentro = false) => {
+    const s = situacaoLanc(l, hoje);
+    return (
+      <tr key={l.id}>
+        <td className="whitespace-nowrap font-mono text-sm">{data(l.vencimento)}</td>
+        <td className={dentro ? 'pl-6' : ''}><Link href={`/financeiro/lancamentos/${l.id}`} className="link">{l.descricao}</Link>
+          <div className="text-xs text-concreto-500">{codLanc(l.numero)} • {CATEGORIAS_FIN[l.categoria]}{(l.fornecedores as unknown as { nome: string } | null)?.nome ? ` • ${(l.fornecedores as unknown as { nome: string }).nome}` : l.favorecido ? ` • ${l.favorecido}` : ''}{!dentro && l.origem !== 'manual' && ` • via ${ORIGEM_LANC[l.origem]}`}</div></td>
+        <td className="whitespace-nowrap text-xs">{nomeObra(l)}</td>
+        <td className={`whitespace-nowrap text-right font-mono font-semibold ${l.tipo === 'receita' ? 'text-ok-700' : 'text-atraso-700'}`}>{l.tipo === 'receita' ? '+' : '−'}{reais(l.valor)}</td>
+        <td className="whitespace-nowrap"><Selo cor={s.cor}>{s.rotulo}</Selo>
+          {l.status === 'aberto' && l.tipo === 'despesa' && (l.boleto_caminho
+            ? <span className="ml-1 text-xs text-ok-700" title="Boleto anexado">📄</span>
+            : <Link href={`/financeiro/lancamentos/${l.id}`} className="ml-1 text-[11px] font-semibold text-atencao-800">sem boleto</Link>)}
+          {l.status === 'liquidado' && l.tipo === 'despesa' && (l.comprovante_caminho
+            ? <span className="ml-1 text-xs text-ok-700" title="Comprovante anexado">📎</span>
+            : <Link href={`/financeiro/lancamentos/${l.id}`} className="ml-1 text-[11px] font-semibold text-atencao-800">sem comprovante</Link>)}</td>
+      </tr>);
+  };
 
   return (
     <>
@@ -56,23 +88,23 @@ export default async function Lancamentos({ searchParams }: { searchParams: Prom
           {!ls.length ? <Vazio>Nenhum lançamento com esses filtros.</Vazio> : (
             <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie"><table className="tabela">
               <thead><tr><th>Vencimento</th><th>Descrição</th><th>Obra</th><th className="text-right">Valor</th><th>Situação</th></tr></thead>
-              <tbody>{ls.map((l) => {
-                const s = situacaoLanc(l, hoje);
-                return (
-                  <tr key={l.id}>
-                    <td className="whitespace-nowrap font-mono text-sm">{data(l.vencimento)}</td>
-                    <td><Link href={`/financeiro/lancamentos/${l.id}`} className="link">{l.descricao}</Link>
-                      <div className="text-xs text-concreto-500">{codLanc(l.numero)} • {CATEGORIAS_FIN[l.categoria]}{(l.fornecedores as unknown as { nome: string } | null)?.nome ? ` • ${(l.fornecedores as unknown as { nome: string }).nome}` : l.favorecido ? ` • ${l.favorecido}` : ''}{l.origem !== 'manual' && ` • via ${ORIGEM_LANC[l.origem]}`}</div></td>
-                    <td className="whitespace-nowrap text-xs">{nomeObra(l)}</td>
-                    <td className={`whitespace-nowrap text-right font-mono font-semibold ${l.tipo === 'receita' ? 'text-ok-700' : 'text-atraso-700'}`}>{l.tipo === 'receita' ? '+' : '−'}{reais(l.valor)}</td>
-                    <td className="whitespace-nowrap"><Selo cor={s.cor}>{s.rotulo}</Selo>
-                      {l.status === 'aberto' && l.tipo === 'despesa' && (l.boleto_caminho
-                        ? <span className="ml-1 text-xs text-ok-700" title="Boleto anexado">📄</span>
-                        : <Link href={`/financeiro/lancamentos/${l.id}`} className="ml-1 text-[11px] font-semibold text-atencao-800">sem boleto</Link>)}
-                      {l.status === 'liquidado' && l.tipo === 'despesa' && (l.comprovante_caminho
-                        ? <span className="ml-1 text-xs text-ok-700" title="Comprovante anexado">📎</span>
-                        : <Link href={`/financeiro/lancamentos/${l.id}`} className="ml-1 text-[11px] font-semibold text-atencao-800">sem comprovante</Link>)}</td>
-                  </tr>);
+              <tbody>{grupos.map((g) => {
+                if (g.pag && g.rows.length > 1) {
+                  const sub = g.rows.reduce((t, l) => t + Number(l.valor), 0);
+                  const nAb = g.rows.filter((l) => l.status === 'aberto').length;
+                  return (
+                    <Fragment key={g.key}>
+                      <tr className="border-t-2 border-concreto-200 bg-concreto-100/70">
+                        <td className="whitespace-nowrap font-mono text-sm">{data(g.rows[0].vencimento)}</td>
+                        <td colSpan={2}><Link href={`/dp/pagamentos/${g.pag}`} className="font-semibold text-concreto-800 hover:underline">{g.titulo}</Link>
+                          <span className="ml-1 text-xs text-concreto-500">{g.rows.length} contas{nAb ? ` • ${nAb} em aberto` : ''}</span></td>
+                        <td className="whitespace-nowrap text-right font-mono font-bold text-atraso-700">−{reais(sub)}</td>
+                        <td />
+                      </tr>
+                      {g.rows.map((l) => linha(l, true))}
+                    </Fragment>);
+                }
+                return linha(g.rows[0]);
               })}
                 <tr className="bg-concreto-50 font-semibold"><td colSpan={3}>Totais da lista</td><td className="whitespace-nowrap text-right font-mono"><div className="text-ok-700">+{reais(tot('receita'))}</div><div className="text-atraso-700">−{reais(tot('despesa'))}</div></td><td /></tr>
               </tbody>
