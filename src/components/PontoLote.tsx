@@ -41,7 +41,15 @@ export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao, turnoDupl
   const [confirmar, setConfirmar] = useState(false);
   const [res, setRes] = useState<ResultadoLote | null>(null);
 
-  const editaveis = linhas.filter((l) => !l.ja);
+  // Vigias (12x36, plantão da noite) ficam numa aba separada: a equipe do dia é fechada no fim do
+  // expediente; o plantão do vigia só é lançado no dia seguinte, sem travar o fechamento do dia.
+  const temVigia = useMemo(() => linhas.some((l) => l.vigia), [linhas]);
+  const [modo, setModo] = useState<'dia' | 'vigia'>('dia');
+  const visiveis = useMemo(() => linhas.filter((l) => (modo === 'vigia' ? l.vigia : !l.vigia)), [linhas, modo]);
+  const pendDia = useMemo(() => linhas.filter((l) => !l.vigia && !l.ja).length, [linhas]);
+  const pendVigia = useMemo(() => linhas.filter((l) => l.vigia && !l.ja).length, [linhas]);
+
+  const editaveis = visiveis.filter((l) => !l.ja);
   const cont = useMemo(() => {
     const c: Record<Sit, number> = { ok: 0, ok24: 0, falta: 0, falta_justificada: 0, atestado: 0, nada: 0, folga: 0 };
     editaveis.forEach((l) => { c[sit[l.id]] += 1; });
@@ -53,12 +61,12 @@ export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao, turnoDupl
     cont.atestado && `${cont.atestado} atestado(s)`, cont.folga && `${cont.folga} vigia(s) de folga`].filter(Boolean).join(' · ');
   const grupos = useMemo(() => {
     const m = new Map<string, LinhaLote[]>();
-    linhas.forEach((l) => m.set(l.obra, [...(m.get(l.obra) ?? []), l]));
+    visiveis.forEach((l) => m.set(l.obra, [...(m.get(l.obra) ?? []), l]));
     return [...m.entries()];
-  }, [linhas]);
+  }, [visiveis]);
 
-  // "Todos OK" / "Limpar" valem só para a equipe de jornada normal; vigias seguem a escala
-  const todos = (v: Sit) => { setSit((s) => ({ ...s, ...Object.fromEntries(editaveis.filter((l) => !l.vigia).map((l) => [l.id, v])) })); setConfirmar(false); };
+  // aplica um valor a todos os editáveis da aba atual
+  const todos = (v: Sit) => { setSit((s) => ({ ...s, ...Object.fromEntries(editaveis.map((l) => [l.id, v])) })); setConfirmar(false); setRes(null); };
   const muda = (id: string, v: Sit) => { setSit((s) => ({ ...s, [id]: v })); setConfirmar(false); setRes(null); };
 
   function gravar() {
@@ -72,18 +80,31 @@ export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao, turnoDupl
     });
   }
 
+  const trocarModo = (m: 'dia' | 'vigia') => { setModo(m); setConfirmar(false); setRes(null); };
+
   return (
     <div className="space-y-4">
+      {temVigia && (
+        <div className="flex gap-1 rounded-lg border border-concreto-200 bg-elevada p-1 text-sm font-semibold">
+          {([['dia', 'Equipe do dia', pendDia], ['vigia', 'Vigias (plantão)', pendVigia]] as const).map(([m, rotulo, pend]) => (
+            <button key={m} type="button" onClick={() => trocarModo(m)}
+              className={`flex-1 rounded-md px-3 py-2 ${modo === m ? 'bg-superficie text-concreto-900 shadow-cartao' : 'text-concreto-600 hover:text-concreto-900'}`}>
+              {rotulo}{pend > 0 && <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[11px] ${modo === m ? 'bg-sinal-100 text-sinal-800' : 'bg-concreto-200 text-concreto-700'}`}>{pend}</span>}</button>))}
+        </div>)}
+      {temVigia && modo === 'vigia' && (
+        <p className="rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-800">Plantão dos vigias — lance normalmente no dia seguinte, depois que o plantão fecha. Fechar a equipe do dia não depende disto.</p>)}
+
       <section className="rounded-lg border border-concreto-200 bg-superficie p-4">
-        <h2 className="mb-1 text-[15px] font-bold text-concreto-900">Horários de quem está OK</h2>
-        <p className="mb-3 text-sm text-concreto-500">Quem ficar como <b>OK</b> recebe estas 4 marcações em {diaFormatado}. Ajuste se o horário da obra for outro.</p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {CAMPOS_HORA.map(([k, r]) => (
-            <label key={k} className="block text-sm"><span className="mb-1 block font-medium text-concreto-700">{r}</span>
-              <input type="time" value={horarios[k]} onChange={(e) => { setHorarios((h) => ({ ...h, [k]: e.target.value })); setConfirmar(false); }} className="entrada" /></label>))}
-        </div>
-        {linhas.some((l) => l.noturno || (turnoDuplo && l.vigia)) && (<>
-          <h3 className="mb-1 mt-4 text-sm font-bold text-concreto-900">Horário do vigia</h3>
+        {modo === 'dia' ? (<>
+          <h2 className="mb-1 text-[15px] font-bold text-concreto-900">Horários de quem está OK</h2>
+          <p className="mb-3 text-sm text-concreto-500">Quem ficar como <b>OK</b> recebe estas 4 marcações em {diaFormatado}. Ajuste se o horário da obra for outro.</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {CAMPOS_HORA.map(([k, r]) => (
+              <label key={k} className="block text-sm"><span className="mb-1 block font-medium text-concreto-700">{r}</span>
+                <input type="time" value={horarios[k]} onChange={(e) => { setHorarios((h) => ({ ...h, [k]: e.target.value })); setConfirmar(false); }} className="entrada" /></label>))}
+          </div>
+        </>) : (<>
+          <h2 className="mb-1 text-[15px] font-bold text-concreto-900">Horário do plantão</h2>
           <p className="mb-2 text-sm text-concreto-500">{turnoDuplo
             ? <>No <b>Dia + noite (24h)</b> o vigia recebe o turno do dia (das {horarios.noturno_saida} às {horarios.noturno_entrada}) e o da noite (das {horarios.noturno_entrada} às {horarios.noturno_saida} do dia seguinte). As primeiras 12h são o plantão normal; as outras 12h entram como hora extra.</>
             : <>Vigia noturno de plantão recebe a entrada em {diaFormatado} e a saída na manhã do dia seguinte (conta tudo no dia {diaFormatado}).</>}</p>
@@ -97,10 +118,15 @@ export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao, turnoDupl
 
       <section className="rounded-lg border border-concreto-200 bg-superficie">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-concreto-200 px-4 py-3">
-          <p className="text-sm text-concreto-600"><b className="text-concreto-900">{editaveis.length}</b> para lançar{linhas.length > editaveis.length && <> · {linhas.length - editaveis.length} já lançado(s)</>}</p>
+          <p className="text-sm text-concreto-600"><b className="text-concreto-900">{editaveis.length}</b> para lançar{visiveis.length > editaveis.length && <> · {visiveis.length - editaveis.length} já lançado(s)</>}</p>
           <div className="flex flex-wrap gap-2 text-sm">
-            <button type="button" onClick={() => todos('ok')} className="rounded-md border border-concreto-300 px-3 py-1.5 font-semibold text-concreto-800 hover:bg-concreto-50">Todos OK</button>
-            <button type="button" onClick={() => todos('nada')} className="rounded-md border border-concreto-300 px-3 py-1.5 font-semibold text-concreto-800 hover:bg-concreto-50">Limpar tudo</button>
+            {modo === 'vigia' ? (<>
+              <button type="button" onClick={() => todos('ok')} className="rounded-md border border-concreto-300 px-3 py-1.5 font-semibold text-concreto-800 hover:bg-concreto-50">Todos plantão</button>
+              <button type="button" onClick={() => todos('folga')} className="rounded-md border border-concreto-300 px-3 py-1.5 font-semibold text-concreto-800 hover:bg-concreto-50">Todos folga</button>
+            </>) : (<>
+              <button type="button" onClick={() => todos('ok')} className="rounded-md border border-concreto-300 px-3 py-1.5 font-semibold text-concreto-800 hover:bg-concreto-50">Todos OK</button>
+              <button type="button" onClick={() => todos('nada')} className="rounded-md border border-concreto-300 px-3 py-1.5 font-semibold text-concreto-800 hover:bg-concreto-50">Limpar tudo</button>
+            </>)}
           </div>
         </div>
         {grupos.map(([obra, ls]) => (
@@ -152,7 +178,7 @@ export function PontoLote({ dia, diaFormatado, linhas, horariosPadrao, turnoDupl
           <p className="text-sm text-concreto-700">{resumo || 'Ninguém marcado.'}{semMotivo.length > 0 && <span className="ml-2 text-atencao-700">— falta o motivo de {semMotivo.length} falta(s) justificada(s)</span>}</p>
           {!confirmar ? (
             <button type="button" disabled={!gravaveis || semMotivo.length > 0 || enviando} onClick={() => setConfirmar(true)}
-              className="rounded-md bg-sinal-500 px-4 py-2 text-sm font-semibold text-white hover:bg-sinal-600 disabled:opacity-50">Gravar o dia {diaFormatado}</button>
+              className="rounded-md bg-sinal-500 px-4 py-2 text-sm font-semibold text-white hover:bg-sinal-600 disabled:opacity-50">{modo === 'vigia' ? `Gravar os vigias ${diaFormatado}` : `Gravar a equipe do dia ${diaFormatado}`}</button>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-semibold text-concreto-900">Confirma? O ponto gravado não se apaga (só se corrige pelo espelho).</span>
