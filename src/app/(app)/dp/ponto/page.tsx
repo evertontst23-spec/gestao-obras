@@ -60,9 +60,15 @@ export default async function Ponto({ searchParams }: { searchParams: Promise<{ 
       <Cabecalho titulo="Ponto" sub="Reconhecimento facial no tablet/celular da obra. Registros com data, hora do servidor, GPS e hash encadeado — não podem ser alterados." />
       <AbasDP atual="ponto" />
       {['admin', 'rh'].includes(perfil.papel) && (
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-sinal-300 bg-sinal-50 px-4 py-3">
-          <p className="text-sm text-concreto-800"><b>Ponto ainda no manual?</b> Lance o dia da equipe inteira de uma vez — todos como OK, e você marca só as faltas, faltas justificadas e atestados.</p>
-          <LinkBotao href={`/dp/ponto/lote${sp.obra ? `?obra=${sp.obra}` : ''}`}>Lançar o dia em lote</LinkBotao>
+        <div className="mb-5 grid gap-3 sm:grid-cols-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-sinal-300 bg-sinal-50 px-4 py-3">
+            <p className="text-sm text-concreto-800"><b>Equipe do dia</b> — lance o dia inteiro de uma vez: todos como OK e você marca só faltas, faltas justificadas e atestados.</p>
+            <LinkBotao href={`/dp/ponto/lote${sp.obra ? `?obra=${sp.obra}` : ''}`}>Lançar o dia em lote</LinkBotao>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-sky-300 bg-sky-50 px-4 py-3">
+            <p className="text-sm text-concreto-800"><b>Vigias (plantão 12×36)</b> — tela à parte, só pra marcar presença no plantão da noite (18h→06h), sem bagunçar o dia.</p>
+            <LinkBotao href={`/dp/ponto/plantao${sp.obra ? `?obra=${sp.obra}` : ''}`}>Lançar plantão dos vigias</LinkBotao>
+          </div>
         </div>)}
       <div className="grid gap-5 lg:grid-cols-5">
         <div className="lg:col-span-2"><PontoFacial obras={obras ?? []} /></div>

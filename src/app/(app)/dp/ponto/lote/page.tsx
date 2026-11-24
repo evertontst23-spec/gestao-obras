@@ -66,6 +66,8 @@ export default async function PontoEmLote({ searchParams }: { searchParams: Prom
   type Info = { id: string; data_admissao: string; obras: { codigo: string; vigia_todo_dia: boolean } | null };
   const porId = new Map(((info ?? []) as unknown as Info[]).map((i) => [i.id, i]));
   const ehVigia = (id: string) => Number(funcaoDia.get(id)?.carga ?? 8) >= 12;
+  // vigia noturno (plantão 18h→06h): sai do lote e é lançado na tela "Plantão dos vigias"
+  const ehVigiaNoturno = (id: string) => ehVigia(id) && !!funcaoDia.get(id)?.noturno;
   // saída da manhã de quem era vigia na véspera = fim do plantão da noite anterior
   const fimDaNoite = (r: { funcionario_id: string; momento: string; tipo: string }) => vigiaOntem.has(r.funcionario_id) && r.tipo === 'saida' && hm(r.momento) < '12:00';
   const marc = new Map<string, string[]>();
@@ -75,8 +77,9 @@ export default async function PontoEmLote({ searchParams }: { searchParams: Prom
   (atests ?? []).forEach((a) => {
     if (a.tipo !== 'declaracao_horas' && dia <= somarDias(a.data_inicio, Math.max(a.dias - 1, 0))) abono.set(a.funcionario_id, ATEST[a.tipo] ?? 'Atestado');
   });
+  const nVigiasNoturnos = equipe.filter((e) => ehVigiaNoturno(e.id) && (porId.get(e.id)?.data_admissao ?? '') <= dia).length;
   const linhas: LinhaLote[] = equipe
-    .filter((e) => (porId.get(e.id)?.data_admissao ?? '') <= dia)
+    .filter((e) => !ehVigiaNoturno(e.id) && (porId.get(e.id)?.data_admissao ?? '') <= dia)
     .map((e): LinhaLote => {
       const i = porId.get(e.id);
       const m = marc.get(e.id);
@@ -113,7 +116,11 @@ export default async function PontoEmLote({ searchParams }: { searchParams: Prom
         <button className="h-[42px] rounded-md bg-concreto-800 px-4 text-sm font-semibold text-white">Abrir</button>
       </form>
 
-      {turnoDuplo && <p className="mb-4 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">{dataBR(dia)} é {feriado ? `feriado (${feriado.descricao})` : 'fim de semana'}: o vigia de plantão cobre o dia e a noite (24h) — as 12h do 2º turno entram como hora extra ({dow(dia) === 6 && !feriado ? '70%' : '100%'}). Confira a equipe de dia antes de gravar.</p>}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-sky-300 bg-sky-50 px-4 py-3">
+        <p className="text-sm text-sky-900"><b>Vigias (plantão 12×36, 18h→06h)</b> são lançados à parte, na tela de Plantão — {nVigiasNoturnos > 0 ? `${nVigiasNoturnos} vigia(s) nesta seleção.` : 'aqui ficam só a equipe do dia.'}</p>
+        <Link href={`/dp/ponto/plantao${obra ? `?obra=${obra}` : ''}`} className="rounded-md border border-sky-400 bg-superficie px-3 py-1.5 text-sm font-semibold text-sky-800 hover:bg-sky-100">Abrir Plantão dos vigias →</Link>
+      </div>
+      {turnoDuplo && <p className="mb-4 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">{dataBR(dia)} é {feriado ? `feriado (${feriado.descricao})` : 'fim de semana'}: confira a equipe do dia antes de gravar. O plantão de 24h do vigia é lançado na tela de Plantão.</p>}
       {dia === hoje && <p className="mb-4 rounded-md bg-atencao-50 px-3 py-2 text-sm text-atencao-800">Hoje: falta, falta justificada e atestado já podem ser lançados; o <b>OK</b> só depois da largada.</p>}
       {fora.size > 0 && <p className="mb-4 text-xs text-concreto-500">Quem tem o ponto marcado fora do sistema (empresa com ponto próprio) não aparece aqui.</p>}
 
