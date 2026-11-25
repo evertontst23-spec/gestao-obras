@@ -133,3 +133,25 @@ export async function anexarBoleto(c: Record<string, string | null>): Promise<Es
   revalidatePath('/financeiro', 'layout');
   return { ok: 'Boleto anexado.' };
 }
+
+/** Baixa em lote: marca as contas selecionadas como pagas e anexa o comprovante do lote (do C6) em todas. */
+export async function darBaixaContas(c: Record<string, string | null>): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const ids = (c.ids ?? '').split(',').filter(Boolean);
+  if (!ids.length) return { erro: 'Selecione ao menos uma conta.' };
+  const { data: n, error } = await supabase.rpc('lancamento_liquidar_lote', {
+    p_ids: ids, p_data: c.data, p_forma: c.forma || 'PIX', p_caminho: c.caminho,
+  });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/financeiro', 'layout');
+  return { ok: `${n} conta(s) baixada(s)${c.caminho ? ' com o comprovante anexado' : ''}.` };
+}
+
+/** Salva/edita a chave Pix de um lançamento (para entrar na planilha do C6). */
+export async function salvarPixLancamento(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.from('lancamentos').update({ pix: txt(f, 'pix') }).eq('id', txt(f, 'id')!);
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/financeiro', 'layout');
+  return { ok: 'Chave Pix salva.' };
+}

@@ -29,7 +29,10 @@ export function FormLancamento({ obras, fornecedores, hoje, obraFixa, restrito =
       {obraFixa ? <input type="hidden" name="obra_id" value={obraFixa} /> : (
         <Campo rotulo="Obra (centro de custo)"><select name="obra_id" className="entrada"><option value="">Administração central</option>{obras.map((o) => <option key={o.id} value={o.id}>{o.codigo} — {o.nome}</option>)}</select></Campo>)}
       {tipo === 'despesa'
-        ? <Campo rotulo="Fornecedor"><select name="fornecedor_id" className="entrada"><option value="">—</option>{fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}</select></Campo>
+        ? <>
+            <Campo rotulo="Fornecedor"><select name="fornecedor_id" className="entrada"><option value="">—</option>{fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}</select></Campo>
+            <Campo rotulo="Chave Pix (opcional)" dica="Entra na planilha do C6. Em branco, usa a chave do fornecedor."><input name="pix" className="entrada" placeholder="CPF/CNPJ, celular, e-mail ou chave aleatória" /></Campo>
+          </>
         : <Campo rotulo="Pagador"><input name="favorecido" className="entrada" /></Campo>}
       <Campo rotulo="Nº do documento (NF, boleto, contrato)"><input name="documento_numero" className="entrada" /></Campo>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="liquidado" checked={pago} onChange={(e) => setPago(e.target.checked)} /> Já {tipo === 'despesa' ? 'pago' : 'recebido'}</label>

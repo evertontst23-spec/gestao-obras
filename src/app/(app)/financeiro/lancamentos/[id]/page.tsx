@@ -7,14 +7,14 @@ import { FormBaixa, FormBoleto, FormComprovante } from '@/components/FormLancame
 import { Botao, FormAcao } from '@/components/formulario';
 import { CATEGORIAS_FIN, ORIGEM_LANC, codBM, codLanc, codOC, reais, situacaoLanc } from '@/lib/dominio';
 import { data, dataHora, hojeISO } from '@/lib/formato';
-import { cancelarLancamento, reprogramarLancamento } from '../../acoes';
+import { cancelarLancamento, reprogramarLancamento, salvarPixLancamento } from '../../acoes';
 
 export const metadata = { title: 'Lançamento' };
 
 export default async function Lancamento({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { supabase } = await exigirPapel('admin', 'financeiro');
-  const { data: l } = await supabase.from('lancamentos').select('*, obras(id, codigo, nome), fornecedores(nome), ordens_compra(numero), boletins_medicao(numero), folhas(competencia), pagamentos(titulo), criador:criado_por(nome)').eq('id', id).maybeSingle();
+  const { data: l } = await supabase.from('lancamentos').select('*, obras(id, codigo, nome), fornecedores(nome, pix), ordens_compra(numero), boletins_medicao(numero), folhas(competencia), pagamentos(titulo), criador:criado_por(nome)').eq('id', id).maybeSingle();
   if (!l) notFound();
   const hoje = hojeISO();
   const s = situacaoLanc(l, hoje);
@@ -62,6 +62,13 @@ export default async function Lancamento({ params }: { params: Promise<{ id: str
             <Cartao titulo={l.boleto_caminho ? 'Trocar boleto' : 'Anexar boleto'} className={`h-fit ${l.boleto_caminho ? '' : l.tipo === 'despesa' ? 'border-2 border-atencao-400' : ''}`}>
               <FormBoleto id={l.id} temBoleto={!!l.boleto_caminho} />
             </Cartao>
+            {l.tipo === 'despesa' && (
+              <Cartao titulo="Chave Pix (para a planilha do C6)">
+                <FormAcao acao={salvarPixLancamento} className="space-y-3"><input type="hidden" name="id" value={l.id} />
+                  <Campo rotulo="Chave Pix" dica={(l.fornecedores as unknown as { pix: string | null } | null)?.pix && !l.pix ? `Sem chave própria — usa a do fornecedor: ${(l.fornecedores as unknown as { pix: string }).pix}` : 'CPF/CNPJ, celular, e-mail ou chave aleatória. Usada ao exportar esta conta para o C6.'}>
+                    <input name="pix" defaultValue={l.pix ?? ''} className="entrada" placeholder="chave Pix do favorecido" /></Campo>
+                  <Botao variante="secundario">Salvar chave Pix</Botao></FormAcao>
+              </Cartao>)}
             <Cartao titulo={l.tipo === 'receita' ? 'Registrar recebimento' : 'Registrar pagamento'}><FormBaixa id={l.id} tipo={l.tipo} valor={Number(l.valor)} hoje={hoje} /></Cartao>
             <Cartao titulo="Alterar vencimento">
               <FormAcao acao={reprogramarLancamento} className="space-y-3"><input type="hidden" name="id" value={l.id} />

@@ -1,9 +1,9 @@
-import Link from 'next/link';
 import { exigirPapel } from '@/lib/sessao';
-import { Cabecalho, Cartao, Selo, Vazio } from '@/components/ui';
+import { Cabecalho, Cartao, Vazio } from '@/components/ui';
 import { AbasFinanceiro } from '@/components/AbasFinanceiro';
 import { FormLancamento } from '@/components/FormLancamento';
 import { BaixarCSV } from '@/components/BaixarCSV';
+import { ContasPagaveis, type SGrupo } from '@/components/ContasPagaveis';
 import { CATEGORIAS_FIN, ORIGEM_LANC, codLanc, reais, situacaoLanc } from '@/lib/dominio';
 import { data, hojeISO } from '@/lib/formato';
 
@@ -18,7 +18,7 @@ export default async function Lancamentos({ searchParams }: { searchParams: Prom
   const { data: ve } = await supabase.rpc('ve_restrito');
   const restrito = !!ve && sp.restrito === '1';
   const situacao = sp.situacao ?? (restrito ? 'todos' : 'abertos');
-  let q = supabase.from('lancamentos').select('*, obras(codigo), fornecedores(nome), pagamentos(titulo)').eq('restrito', restrito).order('vencimento').limit(1000);
+  let q = supabase.from('lancamentos').select('*, obras(codigo), fornecedores(nome, pix), pagamentos(titulo)').eq('restrito', restrito).order('vencimento').limit(1000);
   if (sp.tipo) q = q.eq('tipo', sp.tipo);
   if (sp.obra === 'adm') q = q.is('obra_id', null); else if (sp.obra) q = q.eq('obra_id', sp.obra);
   if (situacao === 'abertos') q = q.eq('status', 'aberto');
@@ -48,24 +48,33 @@ export default async function Lancamentos({ searchParams }: { searchParams: Prom
       grupos[gi].rows.push(l);
     } else grupos.push({ key: `l:${l.id}`, pag: null, titulo: '', rows: [l] });
   }
-  const linha = (l: Row, dentro = false) => {
-    const s = situacaoLanc(l, hoje);
-    return (
-      <tr key={l.id}>
-        <td className="whitespace-nowrap font-mono text-sm">{data(l.vencimento)}</td>
-        <td className={dentro ? 'pl-6' : ''}><Link href={`/financeiro/lancamentos/${l.id}`} className="link">{l.descricao}</Link>
-          <div className="text-xs text-concreto-500">{codLanc(l.numero)} • {CATEGORIAS_FIN[l.categoria]}{(l.fornecedores as unknown as { nome: string } | null)?.nome ? ` • ${(l.fornecedores as unknown as { nome: string }).nome}` : l.favorecido ? ` • ${l.favorecido}` : ''}{!dentro && l.origem !== 'manual' && ` • via ${ORIGEM_LANC[l.origem]}`}</div></td>
-        <td className="whitespace-nowrap text-xs">{nomeObra(l)}</td>
-        <td className={`whitespace-nowrap text-right font-mono font-semibold ${l.tipo === 'receita' ? 'text-ok-700' : 'text-atraso-700'}`}>{l.tipo === 'receita' ? '+' : '−'}{reais(l.valor)}</td>
-        <td className="whitespace-nowrap"><Selo cor={s.cor}>{s.rotulo}</Selo>
-          {l.status === 'aberto' && l.tipo === 'despesa' && (l.boleto_caminho
-            ? <span className="ml-1 text-xs text-ok-700" title="Boleto anexado">📄</span>
-            : <Link href={`/financeiro/lancamentos/${l.id}`} className="ml-1 text-[11px] font-semibold text-atencao-800">sem boleto</Link>)}
-          {l.status === 'liquidado' && l.tipo === 'despesa' && (l.comprovante_caminho
-            ? <span className="ml-1 text-xs text-ok-700" title="Comprovante anexado">📎</span>
-            : <Link href={`/financeiro/lancamentos/${l.id}`} className="ml-1 text-[11px] font-semibold text-atencao-800">sem comprovante</Link>)}</td>
-      </tr>);
-  };
+  // serializa para o componente de seleção (marcar → planilha C6 → anexar comprovante → baixa em lote)
+  const sGrupos: SGrupo[] = [];
+  for (const g of grupos) {
+    if (g.pag) {
+      const vivos = g.rows.filter((l) => l.status !== 'cancelado');
+      if (!vivos.length) continue;
+      const sub = vivos.reduce((t, l) => t + Number(l.valor), 0);
+      const venc = vivos[0].vencimento;
+      const st = vivos.some((l) => l.status === 'aberto') ? situacaoLanc({ status: 'aberto', vencimento: venc, tipo: 'despesa' }, hoje)
+        : vivos.every((l) => l.status === 'liquidado') ? { cor: 'bg-ok-50 text-ok-700', rotulo: 'Pago' } : { cor: 'bg-concreto-100 text-concreto-600', rotulo: '—' };
+      const obrasSet = new Set(vivos.map(nomeObra));
+      sGrupos.push({ kind: 'pag', key: g.key, pag: g.pag, titulo: g.titulo, count: vivos.length,
+        quem: [...new Set(vivos.map((l) => l.favorecido).filter(Boolean))].join(', '),
+        obra: obrasSet.size > 1 ? 'Várias' : [...obrasSet][0] as string, venc, valor: sub, cor: st.cor, rotulo: st.rotulo });
+    } else {
+      const l = g.rows[0];
+      const forn = l.fornecedores as unknown as { nome: string; pix: string | null } | null;
+      sGrupos.push({ kind: 'row', key: g.key, row: {
+        id: l.id, vencimento: l.vencimento, descricao: l.descricao, numero: l.numero, categoria: l.categoria,
+        origem: l.origem, tipo: l.tipo, valor: Number(l.valor), valor_liquidado: l.valor_liquidado != null ? Number(l.valor_liquidado) : null,
+        status: l.status, boleto: !!l.boleto_caminho, comprovante: !!l.comprovante_caminho, pix: (l.pix as string | null) ?? null,
+        fornecedor: forn?.nome ?? null, favorecido: l.favorecido, obra: nomeObra(l),
+        pagavel: l.tipo === 'despesa' && l.status === 'aberto',
+        temChave: !!((l.pix as string | null) || forn?.pix),
+      } });
+    }
+  }
 
   return (
     <>
@@ -84,35 +93,8 @@ export default async function Lancamentos({ searchParams }: { searchParams: Prom
       </form>
       <div className="grid gap-5 xl:grid-cols-3">
         <div className="xl:col-span-2">
-          {!ls.length ? <Vazio>Nenhum lançamento com esses filtros.</Vazio> : (
-            <div className="overflow-x-auto rounded-lg border border-concreto-200 bg-superficie"><table className="tabela">
-              <thead><tr><th>Vencimento</th><th>Descrição</th><th>Obra</th><th className="text-right">Valor</th><th>Situação</th></tr></thead>
-              <tbody>{grupos.map((g) => {
-                if (g.pag) {
-                  // uma linha por pagamento (o valor já vem unificado do fechamento); o detalhe fica ao abrir o pagamento
-                  const vivos = g.rows.filter((l) => l.status !== 'cancelado');
-                  if (!vivos.length) return null;
-                  const sub = vivos.reduce((t, l) => t + Number(l.valor), 0);
-                  const venc = vivos[0].vencimento;
-                  const st = vivos.some((l) => l.status === 'aberto') ? situacaoLanc({ status: 'aberto', vencimento: venc, tipo: 'despesa' }, hoje)
-                    : vivos.every((l) => l.status === 'liquidado') ? { cor: 'bg-ok-50 text-ok-700', rotulo: 'Pago' } : { cor: 'bg-concreto-100 text-concreto-600', rotulo: '—' };
-                  const obrasSet = new Set(vivos.map(nomeObra));
-                  const quem = [...new Set(vivos.map((l) => l.favorecido).filter(Boolean))].join(', ');
-                  return (
-                    <tr key={g.key}>
-                      <td className="whitespace-nowrap font-mono text-sm">{data(venc)}</td>
-                      <td><Link href={`/dp/pagamentos/${g.pag}`} className="link font-semibold">{g.titulo}</Link>
-                        <div className="text-xs text-concreto-500">{vivos.length} conta(s){quem ? ` • ${quem}` : ''}</div></td>
-                      <td className="whitespace-nowrap text-xs">{obrasSet.size > 1 ? 'Várias' : [...obrasSet][0]}</td>
-                      <td className="whitespace-nowrap text-right font-mono font-semibold text-atraso-700">−{reais(sub)}</td>
-                      <td className="whitespace-nowrap"><Selo cor={st.cor}>{st.rotulo}</Selo></td>
-                    </tr>);
-                }
-                return linha(g.rows[0]);
-              })}
-                <tr className="bg-concreto-50 font-semibold"><td colSpan={3}>Totais da lista</td><td className="whitespace-nowrap text-right font-mono"><div className="text-ok-700">+{reais(tot('receita'))}</div><div className="text-atraso-700">−{reais(tot('despesa'))}</div></td><td /></tr>
-              </tbody>
-            </table></div>)}
+          {!ls.length ? <Vazio>Nenhum lançamento com esses filtros.</Vazio>
+            : <ContasPagaveis grupos={sGrupos} totReceita={tot('receita')} totDespesa={tot('despesa')} />}
         </div>
         <Cartao titulo={restrito ? 'Novo lançamento restrito' : 'Novo lançamento'}>
           <FormLancamento obras={obras ?? []} fornecedores={forn ?? []} hoje={hoje} restrito={restrito} />

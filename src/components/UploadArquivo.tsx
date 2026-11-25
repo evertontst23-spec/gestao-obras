@@ -21,11 +21,11 @@ export async function comprimirImagem(arquivo: File, max = 1800, qualidade = 0.8
  * Formulário genérico: envia o arquivo para o Storage (pasta `pasta`) e depois chama
  * a ação do servidor com os campos do formulário + caminho do arquivo.
  */
-export function UploadArquivo({ pasta, acao, children, rotuloBotao = 'Enviar', exigirArquivo = true, accept = 'image/*,application/pdf', multiplo = false }:
+export function UploadArquivo({ pasta, acao, children, rotuloBotao = 'Enviar', exigirArquivo = true, accept = 'image/*,application/pdf', multiplo = false, aoConcluir }:
   { pasta: string; acao: (dados: Record<string, string | null>) => Promise<EstadoAcao>; children?: ReactNode;
     rotuloBotao?: string; exigirArquivo?: boolean; accept?: string;
     /** permite escolher vários arquivos; o 1º vai em `caminho` e todos em `arquivos` (JSON [{caminho, tipo_mime}]) */
-    multiplo?: boolean }) {
+    multiplo?: boolean; aoConcluir?: () => void }) {
   const ref = useRef<HTMLFormElement>(null);
   const router = useRouter();
   const [arquivos, setArquivos] = useState<File[]>([]);
@@ -54,7 +54,7 @@ export function UploadArquivo({ pasta, acao, children, rotuloBotao = 'Enviar', e
       new FormData(ref.current!).forEach((v, k) => { dados[k] = typeof v === 'string' && v.trim() !== '' ? v.trim() : null; });
       const r = await acao(dados);
       setMsg(r);
-      if (r?.ok) { ref.current?.reset(); setArquivos([]); router.refresh(); }
+      if (r?.ok) { ref.current?.reset(); setArquivos([]); aoConcluir?.(); router.refresh(); }
     } catch (er) {
       setMsg({ erro: textoFalha(er) });
     } finally { setEstado('livre'); }
