@@ -76,6 +76,22 @@ export default async function Lancamentos({ searchParams }: { searchParams: Prom
     }
   }
 
+  // transferências de material da obra selecionada entram como custo (realocação) — só exibição, não vira conta a pagar nem mexe no caixa
+  const obraSel = sp.obra && sp.obra !== 'adm' ? sp.obra : null;
+  if (obraSel && !restrito && ['abertos', 'todos', 'vencidos'].includes(situacao)) {
+    const { data: tr } = await supabase.from('v_transferencias')
+      .select('id, criado_em, descricao, quantidade, unidade, origem_id, origem_nome, destino_id, destino_nome, valor_total')
+      .or(`origem_id.eq.${obraSel},destino_id.eq.${obraSel}`).order('criado_em', { ascending: false }).limit(200);
+    const tg: SGrupo[] = (tr ?? []).filter((t) => t.valor_total != null).map((t) => {
+      const recebeu = t.destino_id === obraSel;
+      return { kind: 'transf' as const, key: `t:${t.id}`, venc: t.criado_em as string,
+        material: `${Number(t.quantidade).toLocaleString('pt-BR')} ${t.unidade} — ${t.descricao}`,
+        fluxo: `${t.origem_nome} → ${t.destino_nome}`, obra: (recebeu ? t.destino_nome : t.origem_nome) as string,
+        valor: Number(t.valor_total), recebeu };
+    });
+    sGrupos.unshift(...tg);
+  }
+
   return (
     <>
       <Cabecalho titulo={restrito ? 'Pró-labore dos sócios' : 'Contas a pagar e receber'}

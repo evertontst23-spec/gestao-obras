@@ -15,7 +15,8 @@ export type SRow = {
   pagavel: boolean; temChave: boolean;
 };
 export type SGrupoPag = { kind: 'pag'; key: string; pag: string; titulo: string; count: number; quem: string; obra: string; venc: string; valor: number; cor: string; rotulo: string };
-export type SGrupo = SGrupoPag | { kind: 'row'; key: string; row: SRow };
+export type SGrupoTransf = { kind: 'transf'; key: string; venc: string; material: string; fluxo: string; obra: string; valor: number; recebeu: boolean };
+export type SGrupo = SGrupoPag | SGrupoTransf | { kind: 'row'; key: string; row: SRow };
 
 const linhaFn = (l: SRow) => {
   const s = situacaoLanc(l, hojeISO());
@@ -70,6 +71,16 @@ export function ContasPagaveis({ grupos, totReceita, totDespesa }: { grupos: SGr
         </tr></thead>
         <tbody>
           {grupos.map((g) => {
+            if (g.kind === 'transf') return (
+              <tr key={g.key} className="bg-sky-50/40">
+                {pagaveis.length > 0 && <td />}
+                <td className="whitespace-nowrap font-mono text-sm">{data(g.venc)}</td>
+                <td><Link href="/suprimentos/estoque#transferencias" className="link">{g.material}</Link>
+                  <div className="text-xs text-concreto-500">Transferência de material • {g.fluxo}</div></td>
+                <td className="whitespace-nowrap text-xs">{g.obra}</td>
+                <td className={`whitespace-nowrap text-right font-mono font-semibold ${g.recebeu ? 'text-atraso-700' : 'text-ok-700'}`}>{g.recebeu ? '−' : '+'}{reais(g.valor)}</td>
+                <td className="whitespace-nowrap"><Selo cor="bg-sky-100 text-sky-800">{g.recebeu ? 'Custo recebido' : 'Custo enviado'}</Selo></td>
+              </tr>);
             if (g.kind === 'pag') return (
               <tr key={g.key}>
                 {pagaveis.length > 0 && <td />}
