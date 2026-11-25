@@ -150,7 +150,7 @@ export async function darBaixaContas(c: Record<string, string | null>): Promise<
 /** Salva/edita a chave Pix de um lançamento (para entrar na planilha do C6). */
 export async function salvarPixLancamento(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
   const supabase = await criarClienteServidor();
-  const { error } = await supabase.from('lancamentos').update({ pix: txt(f, 'pix') }).eq('id', txt(f, 'id')!);
+  const { error } = await supabase.rpc('lancamento_salvar_pix', { p_id: txt(f, 'id'), p_pix: txt(f, 'pix') });
   if (error) return { erro: mensagemErro(error) };
   revalidatePath('/financeiro', 'layout');
   return { ok: 'Chave Pix salva.' };
