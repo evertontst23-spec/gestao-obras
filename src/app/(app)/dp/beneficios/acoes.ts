@@ -68,6 +68,18 @@ export async function marcarPagoBeneficio(_: EstadoAcao, f: FormData): Promise<E
   return { ok: pago ? 'Pix marcado como enviado.' : 'Pagamento desfeito: voltou para pendente.' };
 }
 
+/** Aba Flash: grava dias e faltas do funcionário (alimentação e passagem de uma vez). */
+export async function salvarDiasFlash(c: Record<string, string | null>): Promise<EstadoAcao> {
+  const supabase = await criarClienteServidor();
+  const num = (v: string | null) => { const x = Number(String(v ?? '').replace(',', '.')); return Number.isFinite(x) ? x : 0; };
+  const { error } = await supabase.rpc('beneficio_dias_funcionario', {
+    p_comp: c.competencia_id, p_func: c.funcionario_id, p_dias: num(c.dias), p_desconto: num(c.dias_desconto),
+  });
+  if (error) return { erro: mensagemErro(error) };
+  revalidatePath('/dp/beneficios/flash');
+  return { ok: 'Salvo.' };
+}
+
 export async function salvarPixEmpresa(_: EstadoAcao, f: FormData): Promise<EstadoAcao> {
   const supabase = await criarClienteServidor();
   const { error } = await supabase.from('empregadores').update({ pix: txt(f, 'pix'), banco: txt(f, 'banco') }).eq('id', txt(f, 'empregador_id')!);

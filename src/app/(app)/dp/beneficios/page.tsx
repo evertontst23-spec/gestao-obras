@@ -87,6 +87,10 @@ export default async function Beneficios({ searchParams }: { searchParams: Promi
       <Cabecalho titulo="Benefícios" sub="Alimentação e passagem do mês por obra — dias, retroativos/créditos, faltas e valores editáveis."
         acoes={<BotaoImprimir rotulo="Imprimir / PDF" />} />
       <AbasDP atual="benef" />
+      <div className="nao-imprimir mb-4 flex flex-wrap gap-2">
+        <Link href={`/dp/beneficios?mes=${mes}`} className="whitespace-nowrap rounded-full bg-concreto-900 px-3.5 py-1.5 text-sm font-semibold text-white">Por obra / Pix</Link>
+        <Link href={`/dp/beneficios/flash?mes=${mes}`} className="whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-semibold text-concreto-600 hover:bg-concreto-100">Flash (lançar dias)</Link>
+      </div>
 
       {/* mês */}
       <div className="nao-imprimir mb-4 flex flex-wrap items-center gap-2 text-sm">
